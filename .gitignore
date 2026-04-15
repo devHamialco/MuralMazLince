@@ -1,0 +1,75 @@
+# DEPENDENCIAS — nunca se versionan, se restauran con npm install
+node_modules/
+.npm/
+
+# VARIABLES DE ENTORNO — contienen secretos (JWT, Cloudinary, Vision API, DB)
+# El archivo .env.example SÍ se versiona (valores ficticios de referencia)
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# BUILDS Y DISTRIBUCIÓN — artefactos generados, no código fuente
+dist/
+build/
+out/
+.next/
+
+# LOGS — generados en tiempo de ejecución
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# COBERTURA DE PRUEBAS — generada por Jest, no forma parte del código fuente
+coverage/
+.nyc_output/
+
+# SISTEMA OPERATIVO — artefactos del SO que no pertenecen al repo
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# EDITORES E IDEs — configuraciones locales del entorno de trabajo
+# El equipo puede tener VS Code, WebStorm, etc.
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# DOCKER — archivos de override locales (el docker-compose.yml base sí se versiona)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# BASE DE DATOS — dumps locales y archivos de migración temporales
+# Los scripts de migración finales (schema.sql, seed.sql) SÍ se versionan
+*.dump
+*.sql.bak
+/tmp/
+
+# UPLOADS LOCALES — imágenes temporales en desarrollo
+# En producción las imágenes van a Cloudinary, nunca al filesystem del repo
+uploads/
+public/uploads/
+
+# RUNTIME Y CACHÉ — archivos generados en tiempo de ejecución
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# SWAGGER / OpenAPI — el swagger.json GENERADO se excluye;
+# la especificación fuente (swagger.yaml o anotaciones) SÍ se versiona
+swagger-ui-dist/
+

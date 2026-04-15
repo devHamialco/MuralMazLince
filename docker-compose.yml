@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: mural_maz_lince_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mural_maz_lince_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: mural_maz_lince_api
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:password@db:5432/mural_maz_lince_dev
+      JWT_SECRET: reemplaza_con_una_clave_secreta_aleatoria_de_minimo_32_chars
+      JWT_EXPIRATION_HOURS: 8
+      CLOUDINARY_CLOUD_NAME: tu_cloud_name
+      CLOUDINARY_API_KEY: 000000000000000
+      CLOUDINARY_API_SECRET: reemplaza_con_tu_api_secret_de_cloudinary
+      GOOGLE_CLOUD_VISION_KEY: reemplaza_con_tu_api_key_de_google_cloud_vision
+      HASH_SIMILARITY_THRESHOLD: 10
+      INTENT_THRESHOLD_MS: 5000
+      REPORT_ALERT_THRESHOLD: 3
+      REPORT_SHADOWBAN_THRESHOLD: 5
+      REPORT_SHADOWBAN_HOURS: 12
+      REPORT_SHADOWBAN_MAX_HOURS: 48
+      MAX_ACTIVE_PROJECTS_PER_USER: 5
+      MAX_ACTIVE_ANNOUNCEMENTS_PER_PROJECT: 3
+      VISION_API_MONTHLY_LIMIT: 1000
+      VISION_API_ALERT_PERCENTAGE: 80
+      CORS_ALLOWED_ORIGIN: http://localhost:5173
+      APP_PRODUCTION_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
