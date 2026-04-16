@@ -1,12 +1,36 @@
 /**
- * Distancia de Hamming entre dos hashes hex de 64 bits.
- * @param {string} _hash1
- * @param {string} _hash2
+ * Convierte un caracter hexadecimal en una cadena binaria (4 bits).
+ */
+function hexCharToBin(hexChar) {
+  return parseInt(hexChar, 16).toString(2).padStart(4, '0');
+}
+
+/**
+ * Calcula la distancia de Hamming entre dos hashes hexagonales
+ * asumiendo que ambos tienen la misma longitud (por lo regular 64 bits).
+ * @param {string} hash1
+ * @param {string} hash2
  * @returns {number}
  */
-// eslint-disable-next-line no-unused-vars
-function hammingDistance(_hash1, _hash2) {
-  return 0;
+function hammingDistance(hash1, hash2) {
+  if (typeof hash1 !== 'string' || typeof hash2 !== 'string') {
+    throw new TypeError('Los hashes deben ser cadenas de texto');
+  }
+
+  if (hash1.length !== hash2.length) {
+    throw new Error('Los hashes deben tener exactamente la misma longitud');
+  }
+
+  let distance = 0;
+  for (let i = 0; i < hash1.length; i++) {
+    const bin1 = hexCharToBin(hash1[i]);
+    const bin2 = hexCharToBin(hash2[i]);
+    for (let j = 0; j < 4; j++) {
+      if (bin1[j] !== bin2[j]) distance += 1;
+    }
+  }
+
+  return distance;
 }
 
 module.exports = {

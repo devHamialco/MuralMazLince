@@ -6,8 +6,8 @@
     "scripts": {
         "start": "node src/app.js",
         "dev": "nodemon src/app.js",
-      "test": "jest --passWithNoTests",
-      "lint": "eslint src/**/*.js"
+        "test": "jest --passWithNoTests",
+        "lint": "eslint src/**/*.js"
     },
     "dependencies": {
         "bcrypt": "^5.1.0",
@@ -19,7 +19,8 @@
         "helmet": "^7.0.0",
         "jsonwebtoken": "^9.0.0",
         "morgan": "^1.10.0",
-        "pg": "^8.11.0"
+        "pg": "^8.11.0",
+        "sharp": "^0.34.5"
     },
     "devDependencies": {
         "eslint": "^8.57.1",

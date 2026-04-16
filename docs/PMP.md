@@ -325,17 +325,17 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       Job 1: lint (ESLint)
       Job 2: test (Jest, requiere que Job 1 pase)
       Job 3: deploy a Railway (requiere que Jobs 1 y 2 pasen, solo en push a main)
-- [ ] Ejecutar el primer despliegue exitoso en producción
-- [ ] Verificar el despliegue con smoke test manual: GET /health → HTTP 200
-- [ ] Poblar el Sprint 6 en Jira
-- [ ] HITO-04: Infraestructura operativa
+- [x] Ejecutar el primer despliegue exitoso en producción
+- [x] Verificar el despliegue con smoke test manual: GET /health → HTTP 200
+- [x] Poblar el Sprint 6 en Jira
+- [x] HITO-04: Infraestructura operativa
 
 #### SPRINT 7
 
-- [ ] Implementar el módulo checksum de matrícula como función pura exportable:
+- [x] Implementar el módulo checksum de matrícula como función pura exportable:
       isValidMatricula(str) → boolean
       Reglas: exactamente 8 dígitos numéricos, primer dígito = 2
-- [ ] Escribir tests unitarios del checksum cubriendo el 100% de casos de frontera:
+- [x] Escribir tests unitarios del checksum cubriendo el 100% de casos de frontera:
       · Matrícula válida (ej. 20240001)
       · 7 dígitos (muy corta)
       · 9 dígitos (muy larga)
@@ -344,20 +344,20 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · Contiene espacios
       · Cadena vacía
       · null / undefined
-- [ ] Verificar que la cobertura del módulo checksum es 100%
-- [ ] Implementar el módulo dHash con la biblioteca sharp: computeHash(imageBuffer) → string hexadecimal de 64 bits
-- [ ] Implementar la función de comparación: hammingDistance(hash1, hash2) → número (0–64)
-- [ ] Escribir tests unitarios del dHash:
+- [x] Verificar que la cobertura del módulo checksum es 100%
+- [x] Implementar el módulo dHash con la biblioteca sharp: computeHash(imageBuffer) → string hexadecimal de 64 bits
+- [x] Implementar la función de comparación: hammingDistance(hash1, hash2) → número (0–64)
+- [x] Escribir tests unitarios del dHash:
       · Misma imagen dos veces → distancia 0
       · Imagen con leve variación de brillo → distancia ≤ 10
       · Imagen completamente diferente → distancia > 10
       · Imagen redimensionada levemente → distancia ≤ 10
       · Dos fotos distintas del mismo tipo de producto → distancia > 10
       (caso de falso positivo que el umbral debe tolerar)
-- [ ] Verificar que la cobertura del módulo dHash es 100% en casos de frontera
-- [ ] Implementar el WhatsApp Link Service (COMP-09): generateWaLink(phoneNumber) → "[https://wa.me/[número]](https://wa.me/%5Bn%C3%BAmero%5D)"
-- [ ] La función no debe exponer el número en ningún otro formato
-- [ ] Verificar en test que ninguna llamada a generateWaLink devuelve el número en texto plano como parte del string (solo como fragmento de URL [wa.me](http://wa.me/))
+- [x] Verificar que la cobertura del módulo dHash es 100% en casos de frontera
+- [x] Implementar el WhatsApp Link Service (COMP-09): generateWaLink(phoneNumber) → "[https://wa.me/[número]](https://wa.me/%5Bn%C3%BAmero%5D)"
+- [x] La función no debe exponer el número en ningún otro formato
+- [x] Verificar en test que ninguna llamada a generateWaLink devuelve el número en texto plano como parte del string (solo como fragmento de URL [wa.me](http://wa.me/))
 - [ ] Poblar el Sprint 7 en Jira
 - [ ] HITO-05: Módulos de seguridad implementados y verificados
 
