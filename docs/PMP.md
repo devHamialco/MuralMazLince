@@ -310,18 +310,18 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
 - [x] Crear el proyecto en Railway.app y conectar el repositorio de GitHub
 - [x] Provisionar la base de datos PostgreSQL en Railway.app y obtener DATABASE_URL
 - [x] Crear la estructura base del proyecto Express: app.js, routes/, controllers/, services/, middleware/, utils/
-- [ ] Configurar los middlewares globales: CORS, cookie-parser, morgan (logging), helmet (headers de seguridad), express-rate-limit (10 intentos/15 min en /auth)
-- [ ] Crear el GitHub Actions workflow de lint: se dispara en cada push a cualquier rama; falla el workflow si ESLint detecta errores
-- [ ] Verificar que el workflow de lint detecta correctamente un error intencional de ESLint antes de continuar
-- [ ] Poblar el Sprint 5 en Jira
+- [x] Configurar los middlewares globales: CORS, cookie-parser, morgan (logging), helmet (headers de seguridad), express-rate-limit (10 intentos/15 min en /auth)
+- [x] Crear el GitHub Actions workflow de lint: se dispara en cada push a cualquier rama; falla el workflow si ESLint detecta errores
+- [x] Verificar que el workflow de lint detecta correctamente un error intencional de ESLint antes de continuar
+- [x] Poblar el Sprint 5 en Jira
 
 #### SPRINT 6
 
-- [ ] Crear la cuenta de Cloudinary y configurar las credenciales como variables de entorno en Railway.app (CLOUDINARY_CLOUD_NAME, API_KEY, API_SECRET)
-- [ ] Crear la cuenta de Google Cloud, activar la API de Cloud Vision y obtener la API key; configurarla como variable de entorno en Railway
-- [ ] Configurar todas las variables de entorno de producción en [Railway.app](http://Railway.app) (verificar que ningún secreto está en el código fuente del repositorio)
-- [ ] Implementar el endpoint de salud: GET /health → {status:'ok', dbConnected:bool}
-- [ ] Completar el pipeline CI/CD en GitHub Actions:
+- [x] Crear la cuenta de Cloudinary y configurar las credenciales como variables de entorno en Railway.app (CLOUDINARY_CLOUD_NAME, API_KEY, API_SECRET)
+- [x] Crear la cuenta de Google Cloud, activar la API de Cloud Vision y obtener la API key; configurarla como variable de entorno en Railway
+- [x] Configurar todas las variables de entorno de producción en [Railway.app](http://Railway.app) (verificar que ningún secreto está en el código fuente del repositorio)
+- [x] Implementar el endpoint de salud: GET /health → {status:'ok', dbConnected:bool}
+- [x] Completar el pipeline CI/CD en GitHub Actions:
       Job 1: lint (ESLint)
       Job 2: test (Jest, requiere que Job 1 pase)
       Job 3: deploy a Railway (requiere que Jobs 1 y 2 pasen, solo en push a main)
