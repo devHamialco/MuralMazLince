@@ -1,10 +1,11 @@
 /**
  * Distancia de Hamming entre dos hashes hex de 64 bits.
- * @param {string} hash1
- * @param {string} hash2
+ * @param {string} _hash1
+ * @param {string} _hash2
  * @returns {number}
  */
-function hammingDistance(hash1, hash2) {
+// eslint-disable-next-line no-unused-vars
+function hammingDistance(_hash1, _hash2) {
   return 0;
 }
 

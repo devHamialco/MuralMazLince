@@ -1,10 +1,11 @@
 /**
  * dHash perceptual (estructura base).
- * @param {Buffer} imageBuffer
+ * @param {Buffer} _imageBuffer
  * @returns {Promise<string>}
  */
-async function computeHash(imageBuffer) {
-  return "";
+// eslint-disable-next-line no-unused-vars
+async function computeHash(_imageBuffer) {
+  return '';
 }
 
 module.exports = {

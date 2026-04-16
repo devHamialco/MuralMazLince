@@ -1,9 +1,10 @@
 /**
  * Validación de matrícula estudiantil (estructura base).
- * @param {string} str
+ * @param {string} _str
  * @returns {boolean}
  */
-function isValidMatricula(str) {
+// eslint-disable-next-line no-unused-vars
+function isValidMatricula(_str) {
   return false;
 }
 

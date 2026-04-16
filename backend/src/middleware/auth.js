@@ -9,9 +9,10 @@ function requireAuth(req, res, next) {
 }
 
 /**
- * @param {...string} roles
+ * @param {...string} _roles
  */
-function requireRole(...roles) {
+// eslint-disable-next-line no-unused-vars
+function requireRole(..._roles) {
   return function roleMiddleware(req, res, next) {
     next();
   };
