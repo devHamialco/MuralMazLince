@@ -9,6 +9,7 @@ const morgan = require("morgan");
 const { Pool } = require("pg");
 
 const routes = require("./routes");
+const { authLimiter } = require("./middleware/rateLimiter");
 const { errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
@@ -27,16 +28,17 @@ const pool = new Pool({
   connectionString: databaseUrl,
 });
 
-app.use(helmet());
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(
   cors({
-    origin: process.env.CORS_ALLOWED_ORIGIN || "http://localhost:5173",
+    origin: process.env.CORS_ALLOWED_ORIGIN,
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(helmet());
 app.use(cookieParser());
+app.use(morgan("dev"));
+app.use("/auth", authLimiter);
+app.use(express.json());
 
 app.get("/health", async (_req, res) => {
   try {
