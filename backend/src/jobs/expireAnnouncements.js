@@ -9,18 +9,19 @@ async function runExpireAnnouncementsJob() {
      WHERE a.expires_at <= NOW() AND a.status = 'active'`,
   );
 
-  for (let i = 0; i < expiring.rows.length; i += 1) {
-    const row = expiring.rows[i];
-    await db.query(
-      "UPDATE announcements SET status = 'expired' WHERE id = $1",
-      [row.id],
-    );
-    await createNotification(
-      row.user_id,
-      'expiring_soon',
-      'Tu anuncio ha expirado',
-    );
-  }
+  await Promise.all(
+    expiring.rows.map(async (row) => {
+      await db.query(
+        "UPDATE announcements SET status = 'expired' WHERE id = $1",
+        [row.id],
+      );
+      await createNotification(
+        row.user_id,
+        'expiring_soon',
+        'Tu anuncio ha expirado',
+      );
+    }),
+  );
 }
 
 module.exports = {

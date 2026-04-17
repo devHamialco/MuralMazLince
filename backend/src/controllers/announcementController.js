@@ -10,17 +10,23 @@ const MAX_ACTIVE_ANNOUNCEMENTS = Number(process.env.MAX_ACTIVE_ANNOUNCEMENTS) ||
  */
 const createAnnouncement = async (req, res) => {
   const {
-    project_id, title, description, category_id, custom_category, // eslint-disable-line camelcase
-    cloudinary_url, cloudinary_id, expires_at, // eslint-disable-line camelcase
+    project_id: projectId, // eslint-disable-line camelcase
+    title,
+    description,
+    category_id: categoryId, // eslint-disable-line camelcase
+    custom_category: customCategory, // eslint-disable-line camelcase
+    cloudinary_url: cloudinaryUrl, // eslint-disable-line camelcase
+    cloudinary_id: cloudinaryId, // eslint-disable-line camelcase
+    expires_at: expiresAt, // eslint-disable-line camelcase
   } = req.body;
 
-  if (!project_id || !title || !title.trim()) { // eslint-disable-line camelcase
+  if (!projectId || !title || !title.trim()) {
     return res.status(400).json({ error: 'project_id y title son obligatorios' });
   }
-  if (!cloudinary_url || !cloudinary_id) { // eslint-disable-line camelcase
+  if (!cloudinaryUrl || !cloudinaryId) {
     return res.status(400).json({ error: 'cloudinary_url y cloudinary_id son obligatorios' });
   }
-  if (!expires_at) { // eslint-disable-line camelcase
+  if (!expiresAt) {
     return res.status(400).json({ error: 'expires_at es obligatorio' });
   }
 
@@ -28,7 +34,7 @@ const createAnnouncement = async (req, res) => {
     // Verificar que el proyecto pertenece al usuario
     const projCheck = await db.query(
       'SELECT id FROM projects WHERE id = $1 AND user_id = $2',
-      [project_id, req.user.id], // eslint-disable-line camelcase
+      [projectId, req.user.id],
     );
     if (projCheck.rows.length === 0) {
       return res.status(404).json({ error: 'Proyecto no encontrado o no te pertenece' });
@@ -37,7 +43,7 @@ const createAnnouncement = async (req, res) => {
     // Validar límite de anuncios activos por proyecto (RN-04)
     const countResult = await db.query(
       "SELECT COUNT(*) AS cnt FROM announcements WHERE project_id = $1 AND status IN ('active', 'pending_review')",
-      [project_id], // eslint-disable-line camelcase
+      [projectId],
     );
     if (Number(countResult.rows[0].cnt) >= MAX_ACTIVE_ANNOUNCEMENTS) {
       return res.status(409).json({
@@ -45,11 +51,22 @@ const createAnnouncement = async (req, res) => {
       });
     }
 
+    const createParams = [
+      projectId,
+      title.trim(),
+      description || null,
+      categoryId || null,
+      customCategory || null,
+      cloudinaryUrl,
+      cloudinaryId,
+      expiresAt,
+    ];
+
     const result = await db.query(
       `INSERT INTO announcements (project_id, title, description, category_id, custom_category, cloudinary_url, cloudinary_id, status, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8)
        RETURNING id, title, status, expires_at, created_at`,
-      [project_id, title.trim(), description || null, category_id || null, custom_category || null, cloudinary_url, cloudinary_id, expires_at], // eslint-disable-line camelcase
+      createParams,
     );
 
     // Notificación placeholder de aprobación (RF-25)
@@ -66,7 +83,11 @@ const createAnnouncement = async (req, res) => {
  */
 const updateAnnouncement = async (req, res) => {
   const {
-    title, description, category_id, custom_category, expires_at, // eslint-disable-line camelcase
+    title,
+    description,
+    category_id: categoryId, // eslint-disable-line camelcase
+    custom_category: customCategory, // eslint-disable-line camelcase
+    expires_at: expiresAt, // eslint-disable-line camelcase
   } = req.body;
 
   try {
@@ -81,6 +102,15 @@ const updateAnnouncement = async (req, res) => {
       return res.status(404).json({ error: 'Anuncio no encontrado' });
     }
 
+    const updateParams = [
+      title || null,
+      description !== undefined ? description : null,
+      categoryId || null,
+      customCategory || null,
+      expiresAt || null,
+      req.params.id,
+    ];
+
     const result = await db.query(
       `UPDATE announcements SET
         title = COALESCE($1, title),
@@ -90,7 +120,7 @@ const updateAnnouncement = async (req, res) => {
         expires_at = COALESCE($5, expires_at)
        WHERE id = $6
        RETURNING id, title, description, status, expires_at`,
-      [title || null, description !== undefined ? description : null, category_id || null, custom_category || null, expires_at || null, req.params.id], // eslint-disable-line camelcase
+      updateParams,
     );
 
     return res.json({ message: 'Anuncio actualizado', announcement: result.rows[0] });

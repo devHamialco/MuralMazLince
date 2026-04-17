@@ -28,7 +28,7 @@ const listProjects = async (req, res) => {
  * POST /projects — Crear proyecto validando límite N=5 (RF-15, RN-03).
  */
 const createProject = async (req, res) => {
-  const { name, description, category_id } = req.body; // eslint-disable-line camelcase
+  const { name, description, category_id: categoryId } = req.body; // eslint-disable-line camelcase
   if (!name || name.trim() === '') {
     return res.status(400).json({ error: 'El nombre del proyecto es obligatorio' });
   }
@@ -46,10 +46,20 @@ const createProject = async (req, res) => {
     }
 
     const result = await db.query(
-      'INSERT INTO projects (user_id, name, description, category_id) VALUES ($1, $2, $3, $4) RETURNING id, name, status, created_at',
-      [req.user.id, name.trim(), description || null, category_id || null], // eslint-disable-line camelcase
+      `INSERT INTO projects (user_id, name, description, category_id)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, status, created_at`,
+      [
+        req.user.id,
+        name.trim(),
+        description || null,
+        categoryId || null,
+      ],
     );
-    return res.status(201).json({ message: 'Proyecto creado', project: result.rows[0] });
+    return res.status(201).json({
+      message: 'Proyecto creado',
+      project: result.rows[0],
+    });
   } catch (err) {
     return res.status(500).json({ error: 'Error al crear proyecto' });
   }
@@ -98,9 +108,17 @@ const getProject = async (req, res) => {
  * PATCH /projects/:id — Editar nombre, descripción, categoría (RF-16).
  */
 const updateProject = async (req, res) => {
-  const { name, description, category_id } = req.body; // eslint-disable-line camelcase
+  const { name, description, category_id: categoryId } = req.body; // eslint-disable-line camelcase
 
   try {
+    const updateParams = [
+      name || null,
+      description !== undefined ? description : null,
+      categoryId || null,
+      req.params.id,
+      req.user.id,
+    ];
+
     const result = await db.query(
       `UPDATE projects SET
         name = COALESCE($1, name),
@@ -108,7 +126,7 @@ const updateProject = async (req, res) => {
         category_id = COALESCE($3, category_id)
        WHERE id = $4 AND user_id = $5
        RETURNING id, name, description, category_id, status`,
-      [name || null, description !== undefined ? description : null, category_id || null, req.params.id, req.user.id], // eslint-disable-line camelcase
+      updateParams,
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Proyecto no encontrado' });

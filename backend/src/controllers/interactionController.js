@@ -41,7 +41,7 @@ const toggleLike = async (req, res) => {
     if (like.reverted_at === null) {
       // Like activo: revertir y evaluar accidental
       const diffResult = await db.query(
-        "SELECT EXTRACT(EPOCH FROM (NOW() - $1::timestamp)) * 1000 AS diff_ms",
+        'SELECT EXTRACT(EPOCH FROM (NOW() - $1::timestamp)) * 1000 AS diff_ms',
         [like.created_at],
       );
       const diffMs = Number(diffResult.rows[0]?.diff_ms || 0);
@@ -113,7 +113,7 @@ const upsertRating = async (req, res) => {
 
     if (Number(rating.stars) === Number(stars)) {
       const diffResult = await db.query(
-        "SELECT EXTRACT(EPOCH FROM (NOW() - $1::timestamp)) * 1000 AS diff_ms",
+        'SELECT EXTRACT(EPOCH FROM (NOW() - $1::timestamp)) * 1000 AS diff_ms',
         [rating.created_at],
       );
       const diffMs = Number(diffResult.rows[0]?.diff_ms || 0);
@@ -156,7 +156,7 @@ const deleteRating = async (req, res) => {
 
     const rating = existing.rows[0];
     const diffResult = await db.query(
-      "SELECT EXTRACT(EPOCH FROM (NOW() - $1::timestamp)) * 1000 AS diff_ms",
+      'SELECT EXTRACT(EPOCH FROM (NOW() - $1::timestamp)) * 1000 AS diff_ms',
       [rating.created_at],
     );
     const diffMs = Number(diffResult.rows[0]?.diff_ms || 0);

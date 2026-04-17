@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { generateWaLink } = require('../services/whatsappLinkService');
 
@@ -5,7 +6,6 @@ function parseOptionalUser(req) {
   const token = req.cookies?.token;
   if (!token) return null;
   try {
-    const jwt = require('jsonwebtoken'); // lazy import to avoid startup dependency coupling
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch (_err) {
     return null;
