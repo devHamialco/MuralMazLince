@@ -6,14 +6,13 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const { Pool } = require('pg');
+const cron = require('node-cron');
 
 const routes = require('./routes');
-const { authLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
+const { runExpireAnnouncementsJob } = require('./jobs/expireAnnouncements');
 
 const app = express();
-const port = Number(process.env.PORT || 3000);
 
 const pool = require('./db').getPool();
 
@@ -26,7 +25,6 @@ app.use(
 app.use(helmet());
 app.use(cookieParser());
 app.use(morgan('dev'));
-app.use('/auth', authLimiter);
 app.use(express.json());
 
 app.get('/health', async (_req, res) => {
@@ -45,14 +43,27 @@ app.use(errorHandler);
 async function start() {
   try {
     await pool.query('SELECT 1');
+    // eslint-disable-next-line no-console
     console.log('Database connection established.');
 
     if (process.env.NODE_ENV !== 'test') {
+      cron.schedule('0 * * * *', async () => {
+        try {
+          await runExpireAnnouncementsJob();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('Expire announcements job failed:', err.message);
+        }
+      });
+
+      const port = Number(process.env.PORT || 3000);
       app.listen(port, () => {
+        // eslint-disable-next-line no-console
         console.log(`API listening on port ${port}.`);
       });
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Failed to connect to database:', error.message);
     if (process.env.NODE_ENV !== 'test') {
       process.exit(1);

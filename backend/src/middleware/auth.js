@@ -7,9 +7,10 @@ const jwt = require('jsonwebtoken');
  * @param {import('express').NextFunction} next
  */
 function requireAuth(req, res, next) {
-  const token = req.cookies.token;
+  const { token } = req.cookies;
   if (!token) {
-    return res.status(401).json({ error: 'No se encontró token de autenticación (HttpOnly Cookie)' });
+    res.status(401).json({ error: 'No se encontró token de autenticación (HttpOnly Cookie)' });
+    return;
   }
 
   try {
@@ -18,9 +19,10 @@ function requireAuth(req, res, next) {
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expirado' });
+      res.status(401).json({ error: 'Token expirado' });
+      return;
     }
-    return res.status(401).json({ error: 'Token inválido' });
+    res.status(401).json({ error: 'Token inválido' });
   }
 }
 
@@ -31,10 +33,12 @@ function requireAuth(req, res, next) {
 function requireRole(...roles) {
   return function roleMiddleware(req, res, next) {
     if (!req.user || !req.user.role) {
-      return res.status(401).json({ error: 'No autorizado' });
+      res.status(401).json({ error: 'No autorizado' });
+      return;
     }
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'No tienes permisos suficientes para esta acción' });
+      res.status(403).json({ error: 'No tienes permisos suficientes para esta acción' });
+      return;
     }
     next();
   };

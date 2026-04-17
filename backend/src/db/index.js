@@ -2,6 +2,7 @@ const { Pool } = require('pg');
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl || String(databaseUrl).trim() === '') {
+  // eslint-disable-next-line no-console
   console.error(
     'FATAL: DATABASE_URL no está definida. Configure las variables de entorno.',
   );

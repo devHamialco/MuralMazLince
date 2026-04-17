@@ -14,8 +14,8 @@ async function computeHash(imageBuffer) {
 
   let binaryString = '';
 
-  for (let y = 0; y < 8; y++) {
-    for (let x = 0; x < 8; x++) {
+  for (let y = 0; y < 8; y += 1) {
+    for (let x = 0; x < 8; x += 1) {
       const leftPixel = info[y * 9 + x];
       const rightPixel = info[y * 9 + x + 1];
       binaryString += leftPixel > rightPixel ? '1' : '0';
