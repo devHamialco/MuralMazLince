@@ -1,0 +1,67 @@
+/* Tokens de diseño - Mural Maz Lince */
+
+:root {
+  /* Colores - Fondo */
+  --bg-base: #121212;
+  --bg-surface: #1e1e1e;
+  --bg-elevated: #2d2d2d;
+  --bg-hover: #383838;
+
+  /* Colores - Texto */
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-muted: #808080;
+
+  /* Colores - Marca */
+  --primary: #961749;
+  --primary-hover: #b31c5a;
+  --primary-light: #c94a7a;
+  --accent: #e91e63;
+
+  /* Colores - Semánticos */
+  --success: #4caf50;
+  --warning: #ff9800;
+  --error: #f44336;
+  --info: #2196f3;
+
+  /* Colores - Categorías */
+  --category-productos: #e91e63;
+  --category-servicios: #9c27b0;
+  --category-organizaciones: #00bcd4;
+
+  /* Estados */
+  --status-active: #4caf50;
+  --status-pending: #ff9800;
+  --status-rejected: #f44336;
+  --status-shadowban: #9e9e9e;
+  --status-expired: #757575;
+
+  /* Espaciado */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Bordes */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
+
+  /* Transiciones */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* Z-index */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+}

@@ -463,33 +463,33 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
 
 #### SPRINT 10
 
-- [ ] Implementar la integración con Google Cloud Vision API en COMP-07:
+- [x] Implementar la integración con Google Cloud Vision API en COMP-07:
       · Función analyzeImage(imageBuffer) → {flagged: bool, reason: string|null}
       · Categorías a detectar: adult, violence, racy (umbral: LIKELY o VERY_LIKELY)
       · Timeout de 8 segundos; si se agota → devolver {flagged:true,
       reason:'vision_api_timeout'} (el anuncio va a revisión con ese motivo)
-- [ ] Implementar el contador de uso de Vision API:
+- [x] Implementar el contador de uso de Vision API:
       · Registrar cada llamada en un contador mensual
       · Si el contador alcanza el 80% de 1,000 unidades → registrar alerta en el
       log del servidor y activar el fallback de revisión manual
-- [ ] Implementar el filtro de lenguaje ofensivo con bad-words en COMP-07:
+- [x] Implementar el filtro de lenguaje ofensivo con bad-words en COMP-07:
       · Función filterText(text) → {flagged: bool, terms: string[]}
       · Aplicar a: título + descripción + custom_category del anuncio
-- [ ] Integrar el módulo dHash al pipeline de moderación en COMP-07:
+- [x] Integrar el módulo dHash al pipeline de moderación en COMP-07:
       · Calcular el hash de la nueva imagen
       · Comparar contra todos los hashes en image_hashes usando hammingDistance
       · Si alguna distancia ≤ 10 → {flagged:true, reason:'phash', matchId: id}
-- [ ] Implementar COMP-08 Storage Service:
+- [x] Implementar COMP-08 Storage Service:
       · uploadToCloudinary(imageBuffer) → {url: string, public_id: string} (ambos campos se guardan en la tabla announcements)
       · deleteFromCloudinary(public_id) → void
-- [ ] Conectar el pipeline de moderación completo al endpoint POST /announcements
+- [x] Conectar el pipeline de moderación completo al endpoint POST /announcements
       (reemplaza el placeholder del Sprint 9):
       · Los tres filtros se ejecutan en paralelo (Promise.all)
       · Si NINGUNO marca alerta → upload a Cloudinary → status='active'
       · Si ALGUNO marca alerta → upload provisional a Cloudinary → status='pending_review'
       → insertar en moderation_queue con trigger_type y trigger_detail
-- [ ] Actualizar DELETE /announcements/:id y el job de expiración para invocar deleteFromCloudinary(cloudinary_id) antes de eliminar el registro
-- [ ] Implementar la lógica de shadowban en COMP-06:
+- [x] Actualizar DELETE /announcements/:id y el job de expiración para invocar deleteFromCloudinary(cloudinary_id) antes de eliminar el registro
+- [x] Implementar la lógica de shadowban en COMP-06:
       · Job de node-cron que se ejecuta cada hora
       · Busca en moderation_queue donde: urgency_alert_at IS NOT NULL, admin_action IS NULL, shadowban_at IS NULL,
       Y NOW() - urgency_alert_at >= INTERVAL '12 hours'
@@ -497,11 +497,11 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · Si se cumplen ambas condiciones: UPDATE announcements SET status='shadowban',
       UPDATE moderation_queue SET shadowban_at=NOW(),
       INSERT notifications (type='shadowban') al emprendedor
-- [ ] Implementar el job de restauración automática del shadowban:
+- [x] Implementar el job de restauración automática del shadowban:
       · Otro job de node-cron (cada hora)
       · Busca anuncios con status='shadowban', admin_action IS NULL, y moderation_queue.shadowban_at + INTERVAL '48 hours' <= NOW()
       · Restaura a status='active', genera notificación al emprendedor
-- [ ] Implementar COMP-11 Admin Controller:
+- [x] Implementar COMP-11 Admin Controller:
       · GET /admin/moderation-queue: lista todos los anuncios en pending_review y shadowban, ordenados: urgentes primero (urgency_alert_at IS NOT NULL), luego por fecha de creación. Incluye motivo, datos del emprendedor y, para casos de hashing, la imagen existente para comparación visual
       · PATCH /admin/announcements/:id/approve: status='active', notificación al emprendedor, registra admin_id y resolved_at en moderation_queue
       · POST /admin/announcements/:id/reject: status='rejected', eliminar imagen de Cloudinary, notificación al emprendedor con el motivo
@@ -510,7 +510,7 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · PATCH /admin/claim-tickets/:id/resolve: status='resolved'
       · GET /admin/qr: genera el QR con la biblioteca qrcode apuntando a la URL
       de producción y lo devuelve como PNG
-- [ ] Escribir tests de integración para el pipeline de moderación:
+- [x] Escribir tests de integración para el pipeline de moderación:
       · Anuncio que pasa los 3 filtros → status='active'
       · Anuncio que activa el filtro de imagen → status='pending_review'
       · Anuncio que activa bad-words → status='pending_review'
@@ -518,9 +518,9 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · Vision API con timeout → status='pending_review' (reason='vision_api_timeout')
       · Aprobar anuncio pendiente → status='active'
       · Rechazar anuncio pendiente → status='rejected' + imagen eliminada de Cloudinary
-- [ ] Generar el archivo swagger.json definitivo con la especificación OpenAPI 3.0 de todos los endpoints (lo sirve Express en GET /api-docs)
-- [ ] Poblar el Sprint 10 en Jira
-- [ ] HITO-07: Moderación IA integrada y cola de admin operativa
+- [x] Generar el archivo swagger.json definitivo con la especificación OpenAPI 3.0 de todos los endpoints (lo sirve Express en GET /api-docs)
+- [x] Poblar el Sprint 10 en Jira
+- [x] HITO-07: Moderación IA integrada y cola de admin operativa
 
 #### SPRINT 11
 
