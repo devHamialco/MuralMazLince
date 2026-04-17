@@ -358,39 +358,39 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
 - [x] Implementar el WhatsApp Link Service (COMP-09): generateWaLink(phoneNumber) → "[https://wa.me/[número]](https://wa.me/%5Bn%C3%BAmero%5D)"
 - [x] La función no debe exponer el número en ningún otro formato
 - [x] Verificar en test que ninguna llamada a generateWaLink devuelve el número en texto plano como parte del string (solo como fragmento de URL [wa.me](http://wa.me/))
-- [ ] Poblar el Sprint 7 en Jira
-- [ ] HITO-05: Módulos de seguridad implementados y verificados
+- [x] Poblar el Sprint 7 en Jira
+- [x] HITO-05: Módulos de seguridad implementados y verificados
 
 #### SPRINT 8
 
-- [ ] Crear el archivo schema.sql con las tablas del primer bloque: users, entrepreneur_profiles, projects, categories (con todos los constraints, ENUMs y relaciones del SAD Sección 6.2)
-- [ ] Ejecutar la migración inicial en Railway.app y verificar la estructura de las tablas en la base de datos de producción
-- [ ] Crear el archivo seed.sql y poblar la tabla categories con las 20 categorías predefinidas (+ CAT-00 "Otro")
-- [ ] Implementar POST /auth/register/student:
+- [x] Crear el archivo schema.sql con las tablas del primer bloque: users, entrepreneur_profiles, projects, categories (con todos los constraints, ENUMs y relaciones del SAD Sección 6.2)
+- [x] Ejecutar la migración inicial en Railway.app y verificar la estructura de las tablas en la base de datos de producción
+- [x] Crear el archivo seed.sql y poblar la tabla categories con las 20 categorías predefinidas (+ CAT-00 "Otro")
+- [x] Implementar POST /auth/register/student:
       · Validar formato de matrícula con el módulo checksum
       · Verificar unicidad de matrícula en la tabla users
       · Crear el registro con role='visitor_registered'
-- [ ] Implementar POST /auth/register/entrepreneur:
+- [x] Implementar POST /auth/register/entrepreneur:
       · Validar matrícula, contraseña (≥8 chars), WhatsApp y display_name
       · Aplicar filtro bad-words al display_name
       · Ejecutar transacción atómica: INSERT en users + INSERT en entrepreneur_profiles (si cualquiera falla, revertir ambas)
       · Verificar aceptación del aviso de privacidad (privacy_accepted = true)
-- [ ] Implementar POST /auth/login para los 3 roles:
+- [x] Implementar POST /auth/login para los 3 roles:
       · ROL-02: solo matrícula, sin contraseña
       · ROL-03/04: matrícula + contraseña (bcrypt.compare)
       · Emitir JWT en cookie HttpOnly + Secure + SameSite=Strict
       · No incluir whatsapp_number en el payload del JWT
-- [ ] Implementar POST /auth/logout:
+- [x] Implementar POST /auth/logout:
       · Sobrescribir la cookie con valor vacío y maxAge: 0
-- [ ] Implementar POST /auth/claim-matricula:
+- [x] Implementar POST /auth/claim-matricula:
       · Crear registro en claim_tickets con la matrícula en disputa, WhatsApp del reclamante y timestamp
-- [ ] Implementar el middleware de autenticación:
+- [x] Implementar el middleware de autenticación:
       · Verificar la cookie JWT en cada solicitud protegida
       · Adjuntar el usuario decodificado a req.user
       · Retornar HTTP 401 si la cookie está ausente o expirada
       · Retornar HTTP 403 si la cuenta está suspendida
-- [ ] Crear la ruta GET /privacy con el HTML estático del aviso de privacidad (LFPDPPP: identidad del responsable, datos recabados, finalidad, ARCO)
-- [ ] Escribir tests de integración para todos los endpoints de /auth:
+- [x] Crear la ruta GET /privacy con el HTML estático del aviso de privacidad (LFPDPPP: identidad del responsable, datos recabados, finalidad, ARCO)
+- [x] Escribir tests de integración para todos los endpoints de /auth:
       · Registro exitoso de estudiante y emprendedor
       · Registro con matrícula inválida → HTTP 400
       · Registro con matrícula duplicada → HTTP 409
@@ -398,7 +398,7 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · Login exitoso de cada rol
       · Login con contraseña incorrecta → HTTP 401
       · Acceso a ruta protegida sin cookie → HTTP 401
-- [ ] Poblar el Sprint 8 en Jira
+- [x] Poblar el Sprint 8 en Jira
 
 #### SPRINT 9
 

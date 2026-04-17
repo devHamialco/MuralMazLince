@@ -15,18 +15,7 @@ const { errorHandler } = require('./middleware/errorHandler');
 const app = express();
 const port = Number(process.env.PORT || 3000);
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl || String(databaseUrl).trim() === '') {
-  console.error(
-    'FATAL: DATABASE_URL no está definida. En Railway, añade PostgreSQL al proyecto y comparte '
-      + 'su DATABASE_URL con el servicio de la API (Variables → referencia al servicio Postgres).',
-  );
-  process.exit(1);
-}
-
-const pool = new Pool({
-  connectionString: databaseUrl,
-});
+const pool = require('./db').getPool();
 
 app.use(
   cors({
@@ -58,13 +47,19 @@ async function start() {
     await pool.query('SELECT 1');
     console.log('Database connection established.');
 
-    app.listen(port, () => {
-      console.log(`API listening on port ${port}.`);
-    });
+    if (process.env.NODE_ENV !== 'test') {
+      app.listen(port, () => {
+        console.log(`API listening on port ${port}.`);
+      });
+    }
   } catch (error) {
     console.error('Failed to connect to database:', error.message);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(1);
+    }
   }
 }
 
 start();
+
+module.exports = app;
