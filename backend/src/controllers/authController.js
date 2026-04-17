@@ -132,7 +132,10 @@ const login = async (req, res) => {
       // whatsapp_number excluido explícitamente del payload JWT (OBJ-07)
     };
 
-    const secret = process.env.JWT_SECRET || 'secret';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({ error: 'Configuración incompleta del servidor (JWT_SECRET)' });
+    }
     const hours = Number(process.env.JWT_EXPIRATION_HOURS) || 8;
     const token = jwt.sign(payload, secret, { expiresIn: `${hours}h` });
 

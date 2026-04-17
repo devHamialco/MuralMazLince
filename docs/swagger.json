@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Mural Maz Lince API",
-    "description": "API REST del sistema Mural Maz Lince. Digitaliza el tablero de anuncios estudiantil de la Universidad Autónoma de Occidente, Unidad Regional Mazatlán.\n\n**Estado:** Draft Sprint 4 — Contrato de API congelado previo al desarrollo. Los schemas de response están basados en el modelo ER del SAD v1.3. Los detalles de implementación se completarán en el Sprint 10.\n\n**Autenticación:** Cookies HttpOnly con JWT (ADR-04). Incluir `credentials: 'include'` en cada solicitud del cliente.\n\n**Referencia SRS:** v1.4 | **Referencia SAD:** v1.3 | **Referencia DDC:** v1.2",
-    "version": "1.0.0-draft-sprint4",
+    "description": "API REST del sistema Mural Maz Lince. Digitaliza el tablero de anuncios estudiantil de la Universidad Autónoma de Occidente, Unidad Regional Mazatlán.\n\n**Estado:** Definitivo Sprint 10 — incluye pipeline de moderación (Vision + bad-words + dHash), panel admin y endpoints operativos de shadowban/cola.\n\n**Autenticación:** Cookies HttpOnly con JWT (ADR-04). Incluir `credentials: 'include'` en cada solicitud del cliente.\n\n**Referencia SRS:** v1.4 | **Referencia SAD:** v1.3 | **Referencia DDC:** v1.2",
+    "version": "1.0.0-sprint10",
     "contact": {
       "name": "Miriam Alanis — Directora del Proyecto",
       "url": "https://github.com/devHamialco/MuralMazLince"

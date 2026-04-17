@@ -402,11 +402,11 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
 
 #### SPRINT 9
 
-- [ ] Crear el archivo de migración para las tablas restantes:
+- [x] Crear el archivo de migración para las tablas restantes:
       announcements, image_hashes, likes, ratings, reports,
       moderation_queue, notifications, claim_tickets
-- [ ] Ejecutar la migración en Railway.app y verificar la estructura
-- [ ] Implementar COMP-03 Feed Controller:
+- [x] Ejecutar la migración en Railway.app y verificar la estructura
+- [x] Implementar COMP-03 Feed Controller:
       · GET /announcements: feed paginado por cursor, 20 anuncios por bloque
       (SELECT ... WHERE id < $cursor ORDER BY id DESC LIMIT 20)
       · Parámetros de query: cursor (id del último anuncio recibido),
@@ -414,12 +414,12 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · El campo whatsapp_number jamás debe aparecer en la respuesta JSON
       · GET /announcements/:id: detalle completo + generación del enlace [wa.me](http://wa.me/)
       (solo si el usuario está autenticado; de lo contrario campo nulo)
-- [ ] Implementar COMP-04 Announcement Controller (sin moderación IA por ahora):
+- [x] Implementar COMP-04 Announcement Controller (sin moderación IA por ahora):
       · POST /announcements: crear anuncio con estado temporal 'active' (placeholder
       para el pipeline de moderación que se integrará en Sprint 10)
       · PATCH /announcements/:id: editar título, descripción, categoría, vigencia
       · DELETE /announcements/:id: eliminar anuncio (sin Cloudinary por ahora)
-- [ ] Implementar CRUD de proyectos:
+- [x] Implementar CRUD de proyectos:
       · GET /projects: lista todos los proyectos del emprendedor autenticado
       · POST /projects: crear proyecto, validar que el emprendedor tiene < 5 activos
       (HTTP 409 si el límite está alcanzado)
@@ -427,39 +427,39 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · PATCH /projects/:id: editar nombre, descripción, categoría
       · PATCH /projects/:id/status: cambiar estado entre 'active' y 'suspended'
       · DELETE /projects/:id: eliminar proyecto (y todos sus anuncios)
-- [ ] Implementar COMP-05 Interaction Controller:
+- [x] Implementar COMP-05 Interaction Controller:
       · POST /announcements/:id/like: toggle (crear si no existe, eliminar si existe)
       Registrar created_at; si se revierte, registrar reverted_at y calcular
       diferencia; si < 5,000 ms → is_accidental = true
       · POST /announcements/:id/rating: crear o actualizar valoración 1–3
       Con la misma lógica de timestamp para el umbral de intención
       · DELETE /announcements/:id/rating: retirar valoración activa
-- [ ] Implementar COMP-06 Report Controller (sin lógica de shadowban por ahora):
+- [x] Implementar COMP-06 Report Controller (sin lógica de shadowban por ahora):
       · POST /announcements/:id/report: registrar reporte con reason
       Verificar que el usuario no ha reportado ya este anuncio (HTTP 409)
       Contar reportes únicos y, si llega a 3, insertar en moderation_queue
       con trigger_type='report_threshold' y urgency_alert_at=NOW()
-- [ ] Implementar COMP-10 Notification Service:
+- [x] Implementar COMP-10 Notification Service:
       · GET /notifications: listar todas las notificaciones del usuario autenticado
       ordenadas por fecha descendente
       · PATCH /notifications/:id/read: marcar una notificación como leída
       · PATCH /notifications/read-all: marcar todas como leídas
-- [ ] Implementar COMP-12 Metrics Service:
+- [x] Implementar COMP-12 Metrics Service:
       · Endpoint de métricas por proyecto: likes válidos (is_accidental=false),
       valoración promedio (excluyendo accidentales), vistas, evolución temporal
-- [ ] Implementar el job de expiración de anuncios con node-cron:
+- [x] Implementar el job de expiración de anuncios con node-cron:
       · Se ejecuta cada hora
       · Busca anuncios con expires_at <= NOW() y status='active'
       · Actualiza estado a 'expired', crea notificación interna al emprendedor
       (la eliminación de Cloudinary se conectará en Sprint 10)
-- [ ] Escribir tests de integración para:
+- [x] Escribir tests de integración para:
       · Paginación por cursor (verificar que el cursor funciona correctamente)
       · Límite de 5 proyectos (el sexto intento debe devolver HTTP 409)
       · Like y su reversión: caso < 5,000 ms (is_accidental=true) y caso ≥ 5,000 ms (is_accidental=false)
       · Reporte duplicado del mismo usuario en el mismo anuncio (HTTP 409)
       · Métricas excluyendo interacciones accidentales
-- [ ] Poblar el Sprint 9 en Jira
-- [ ] HITO-06: API REST completa y documentad
+- [x] Poblar el Sprint 9 en Jira
+- [x] HITO-06: API REST completa y documentad
 
 #### SPRINT 10
 

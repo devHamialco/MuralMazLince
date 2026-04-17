@@ -6,14 +6,16 @@
     "scripts": {
         "start": "node src/app.js",
         "dev": "nodemon src/app.js",
-        "test": "jest --passWithNoTests --coverage",
+        "test": "jest --runInBand --passWithNoTests --coverage",
         "lint": "eslint src/**/*.js",
         "migrate": "node src/db/migrate.js",
-        "migrate:test": "cross-env DATABASE_URL=postgres://postgres:password@localhost:5433/mural_maz_lince_dev node src/db/migrate.js"
+        "migrate:test": "cross-env DATABASE_URL=postgres://postgres:password@localhost:5433/mural_maz_lince_test node src/db/migrate.js"
     },
     "dependencies": {
+        "@google-cloud/vision": "^5.3.5",
         "bad-words": "^3.0.4",
         "bcrypt": "^5.1.0",
+        "cloudinary": "^2.9.0",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
         "dotenv": "^16.3.1",
@@ -24,6 +26,7 @@
         "morgan": "^1.10.0",
         "node-cron": "^4.2.1",
         "pg": "^8.11.0",
+        "qrcode": "^1.5.4",
         "sharp": "^0.34.5"
     },
     "devDependencies": {

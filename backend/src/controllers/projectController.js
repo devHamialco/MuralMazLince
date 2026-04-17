@@ -2,7 +2,11 @@ const db = require('../db');
 const { getProjectMetrics } = require('../services/metricsService');
 
 /** Máximo de proyectos activos por emprendedor (SAD §6.1, RN-03). */
-const MAX_ACTIVE_PROJECTS = Number(process.env.MAX_ACTIVE_PROJECTS) || 5;
+const MAX_ACTIVE_PROJECTS = Number(
+  process.env.MAX_ACTIVE_PROJECTS
+  || process.env.MAX_ACTIVE_PROJECTS_PER_USER
+  || 5,
+);
 
 /**
  * GET /projects — Lista proyectos del emprendedor autenticado (RF-15).

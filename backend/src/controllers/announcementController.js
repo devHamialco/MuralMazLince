@@ -1,12 +1,18 @@
 const db = require('../db');
 const { createNotification } = require('../services/notificationService');
+const { moderationPipeline } = require('../services/moderationService');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../services/storageService');
 
 /** Máximo de anuncios activos por proyecto (SAD §6.2, RN-04). */
-const MAX_ACTIVE_ANNOUNCEMENTS = Number(process.env.MAX_ACTIVE_ANNOUNCEMENTS) || 3;
+const MAX_ACTIVE_ANNOUNCEMENTS = Number(
+  process.env.MAX_ACTIVE_ANNOUNCEMENTS
+  || process.env.MAX_ACTIVE_ANNOUNCEMENTS_PER_PROJECT
+  || 3,
+);
 
 /**
  * POST /announcements — Crear anuncio (COMP-04, RF-19).
- * Sprint 9 placeholder: status='active' (sin moderación IA, se integra en Sprint 10).
+ * Sprint 10: pipeline de moderación completo + upload en Cloudinary.
  */
 const createAnnouncement = async (req, res) => {
   const {
@@ -15,16 +21,15 @@ const createAnnouncement = async (req, res) => {
     description,
     category_id: categoryId, // eslint-disable-line camelcase
     custom_category: customCategory, // eslint-disable-line camelcase
-    cloudinary_url: cloudinaryUrl, // eslint-disable-line camelcase
-    cloudinary_id: cloudinaryId, // eslint-disable-line camelcase
+    image_base64: imageBase64, // eslint-disable-line camelcase
     expires_at: expiresAt, // eslint-disable-line camelcase
   } = req.body;
 
   if (!projectId || !title || !title.trim()) {
     return res.status(400).json({ error: 'project_id y title son obligatorios' });
   }
-  if (!cloudinaryUrl || !cloudinaryId) {
-    return res.status(400).json({ error: 'cloudinary_url y cloudinary_id son obligatorios' });
+  if (!imageBase64 || typeof imageBase64 !== 'string') {
+    return res.status(400).json({ error: 'image_base64 es obligatorio' });
   }
   if (!expiresAt) {
     return res.status(400).json({ error: 'expires_at es obligatorio' });
@@ -51,28 +56,75 @@ const createAnnouncement = async (req, res) => {
       });
     }
 
-    const createParams = [
-      projectId,
+    const imageBuffer = Buffer.from(imageBase64, 'base64');
+    const moderation = await moderationPipeline(
+      imageBuffer,
       title.trim(),
-      description || null,
-      categoryId || null,
-      customCategory || null,
-      cloudinaryUrl,
-      cloudinaryId,
-      expiresAt,
-    ];
-
-    const result = await db.query(
-      `INSERT INTO announcements (project_id, title, description, category_id, custom_category, cloudinary_url, cloudinary_id, status, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8)
-       RETURNING id, title, status, expires_at, created_at`,
-      createParams,
+      description || '',
+      customCategory || '',
     );
+    const uploaded = await uploadToCloudinary(imageBuffer);
+    const nextStatus = moderation.approved ? 'active' : 'pending_review';
 
-    // Notificación placeholder de aprobación (RF-25)
-    await createNotification(req.user.id, 'approved', `Tu anuncio "${title.trim()}" ha sido publicado`);
+    const client = await db.getPool().connect();
+    try {
+      await client.query('BEGIN');
 
-    return res.status(201).json({ message: 'Anuncio creado', announcement: result.rows[0] });
+      const result = await client.query(
+        `INSERT INTO announcements
+          (project_id, title, description, category_id, custom_category, cloudinary_url, cloudinary_id, status, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id, title, status, expires_at, created_at`,
+        [
+          projectId,
+          title.trim(),
+          description || null,
+          categoryId || null,
+          customCategory || null,
+          uploaded.url,
+          uploaded.public_id,
+          nextStatus,
+          expiresAt,
+        ],
+      );
+
+      const announcement = result.rows[0];
+      if (moderation.dhash) {
+        await client.query(
+          'INSERT INTO image_hashes (announcement_id, dhash) VALUES ($1, $2)',
+          [announcement.id, moderation.dhash],
+        );
+      }
+
+      if (!moderation.approved) {
+        await Promise.all(
+          moderation.triggers.map((trigger) => client.query(
+            `INSERT INTO moderation_queue (announcement_id, trigger_type, trigger_detail)
+             VALUES ($1, $2, $3)`,
+            [announcement.id, trigger.type, trigger.detail],
+          )),
+        );
+        await createNotification(req.user.id, 'pending', `Tu anuncio "${title.trim()}" quedó en revisión`);
+      } else {
+        await createNotification(req.user.id, 'approved', `Tu anuncio "${title.trim()}" ha sido publicado`);
+      }
+
+      await client.query('COMMIT');
+      return res.status(moderation.approved ? 201 : 202).json({
+        message: moderation.approved ? 'Anuncio creado' : 'Anuncio en revisión',
+        announcement,
+        moderation: {
+          approved: moderation.approved,
+          triggers: moderation.triggers,
+        },
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      await deleteFromCloudinary(uploaded.public_id);
+      return res.status(500).json({ error: 'Error al crear anuncio' });
+    } finally {
+      client.release();
+    }
   } catch (err) {
     return res.status(500).json({ error: 'Error al crear anuncio' });
   }
@@ -131,12 +183,12 @@ const updateAnnouncement = async (req, res) => {
 
 /**
  * DELETE /announcements/:id — Eliminar anuncio (RF-21).
- * Sin eliminación de Cloudinary por ahora (Sprint 10).
+ * Elimina primero en Cloudinary y luego el registro.
  */
 const deleteAnnouncement = async (req, res) => {
   try {
     const check = await db.query(
-      `SELECT a.id FROM announcements a
+      `SELECT a.id, a.cloudinary_id FROM announcements a
        JOIN projects p ON p.id = a.project_id
        WHERE a.id = $1 AND p.user_id = $2`,
       [req.params.id, req.user.id],
@@ -145,6 +197,7 @@ const deleteAnnouncement = async (req, res) => {
       return res.status(404).json({ error: 'Anuncio no encontrado' });
     }
 
+    await deleteFromCloudinary(check.rows[0].cloudinary_id);
     await db.query('DELETE FROM announcements WHERE id = $1', [req.params.id]);
     return res.json({ message: 'Anuncio eliminado' });
   } catch (err) {

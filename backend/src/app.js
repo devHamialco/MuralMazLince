@@ -11,6 +11,7 @@ const cron = require('node-cron');
 const routes = require('./routes');
 const { errorHandler } = require('./middleware/errorHandler');
 const { runExpireAnnouncementsJob } = require('./jobs/expireAnnouncements');
+const { runShadowbanJob, runShadowbanRestoreJob } = require('./jobs/shadowbanJob');
 
 const app = express();
 
@@ -36,6 +37,10 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+app.get('/api-docs', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', '..', 'docs', 'swagger.json'));
+});
+
 app.use(routes);
 
 app.use(errorHandler);
@@ -43,7 +48,7 @@ app.use(errorHandler);
 async function start() {
   try {
     await pool.query('SELECT 1');
-    // eslint-disable-next-line no-console
+    // Ignorar advertencia de consola en la siguiente línea
     console.log('Database connection established.');
 
     if (process.env.NODE_ENV !== 'test') {
@@ -53,6 +58,15 @@ async function start() {
         } catch (err) {
           // eslint-disable-next-line no-console
           console.error('Expire announcements job failed:', err.message);
+        }
+      });
+      cron.schedule('0 * * * *', async () => {
+        try {
+          await runShadowbanJob();
+          await runShadowbanRestoreJob();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('Shadowban jobs failed:', err.message);
         }
       });
 

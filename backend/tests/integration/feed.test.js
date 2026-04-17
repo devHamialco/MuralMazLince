@@ -5,6 +5,9 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
 process.env.PORT = '0';
 process.env.NODE_ENV = 'test';
 process.env.INTENTION_THRESHOLD_MS = '5000';
+process.env.CLOUDINARY_MOCK = 'true';
+process.env.VISION_MOCK = 'true';
+process.env.HASH_DISTANCE_THRESHOLD = '-1';
 
 const app = require('../../src/app');
 const db = require('../../src/db');
@@ -54,6 +57,7 @@ describe('Feed / Projects / Interactions / Reports — Integration', () => {
   }
 
   async function createAnnouncement(cookie, projectId, title = 'Anuncio') {
+    const tinyPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8/5+hHgAHggJ/PX3yvQAAAABJRU5ErkJggg==';
     const response = await request(app)
       .post('/announcements')
       .set('Cookie', cookie)
@@ -62,8 +66,8 @@ describe('Feed / Projects / Interactions / Reports — Integration', () => {
         title,
         description: 'Detalle',
         category_id: 1,
-        cloudinary_url: 'https://cdn.test/img.png',
-        cloudinary_id: 'img_1',
+        custom_category: 'general',
+        image_base64: tinyPngBase64,
         expires_at: '2099-12-31T23:59:59.000Z',
       });
     return response.body.announcement;
@@ -88,6 +92,7 @@ describe('Feed / Projects / Interactions / Reports — Integration', () => {
 
   beforeEach(async () => {
     await cleanupData();
+    process.env.VISION_MOCK_RESULT = 'safe';
   });
 
   afterAll(async () => {
@@ -219,6 +224,103 @@ describe('Feed / Projects / Interactions / Reports — Integration', () => {
 
     expect(metricsRes.statusCode).toBe(200);
     expect(metricsRes.body.metrics.valid_likes).toBe(0);
+  });
+
+  it('moderación por bad-words envía anuncio a pending_review', async () => {
+    const entrepreneur = await createEntrepreneurAgent();
+    const project = await createProject(entrepreneur.cookie, 'Proyecto Moderación');
+    const tinyPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8/5+hHgAHggJ/PX3yvQAAAABJRU5ErkJggg==';
+    const response = await request(app)
+      .post('/announcements')
+      .set('Cookie', entrepreneur.cookie)
+      .send({
+        project_id: project.id,
+        title: 'Oferta',
+        description: 'puta promo',
+        category_id: 1,
+        custom_category: 'general',
+        image_base64: tinyPngBase64,
+        expires_at: '2099-12-31T23:59:59.000Z',
+      });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.body.announcement.status).toBe('pending_review');
+  });
+
+  it('timeout de Vision envía anuncio a pending_review con trigger vision', async () => {
+    process.env.VISION_MOCK_RESULT = 'timeout';
+    const entrepreneur = await createEntrepreneurAgent();
+    const project = await createProject(entrepreneur.cookie, 'Proyecto Vision');
+    const announcement = await createAnnouncement(entrepreneur.cookie, project.id, 'Vision Timeout');
+
+    expect(announcement.status).toBe('pending_review');
+    const queue = await db.query(
+      'SELECT trigger_type, trigger_detail FROM moderation_queue WHERE announcement_id = $1',
+      [announcement.id],
+    );
+    expect(queue.rows.some((row) => row.trigger_type === 'vision_api')).toBe(true);
+    expect(queue.rows.some((row) => String(row.trigger_detail).includes('vision_api_timeout'))).toBe(true);
+  });
+
+  it('admin aprueba anuncio pendiente y lo activa', async () => {
+    process.env.VISION_MOCK_RESULT = 'timeout';
+    const entrepreneur = await createEntrepreneurAgent();
+    const project = await createProject(entrepreneur.cookie, 'Proyecto Admin Approve');
+    const announcement = await createAnnouncement(entrepreneur.cookie, project.id, 'Pendiente');
+    expect(announcement.status).toBe('pending_review');
+
+    const adminMatricula = randomMatricula();
+    await request(app).post('/auth/register/entrepreneur').send({
+      matricula: adminMatricula,
+      password: 'password123',
+      whatsapp_number: '6692001234',
+      display_name: 'Admin Lince',
+      privacy_accepted: true,
+    });
+    await db.query("UPDATE users SET role = 'admin' WHERE matricula = $1", [adminMatricula]);
+    const adminLogin = await request(app).post('/auth/login').send({
+      matricula: adminMatricula,
+      password: 'password123',
+    });
+
+    const approve = await request(app)
+      .patch(`/admin/announcements/${announcement.id}/approve`)
+      .set('Cookie', adminLogin.headers['set-cookie'][0]);
+    expect(approve.statusCode).toBe(200);
+
+    const current = await db.query('SELECT status FROM announcements WHERE id = $1', [announcement.id]);
+    expect(current.rows[0].status).toBe('active');
+  });
+
+  it('admin rechaza anuncio pendiente y marca rejected', async () => {
+    process.env.VISION_MOCK_RESULT = 'timeout';
+    const entrepreneur = await createEntrepreneurAgent();
+    const project = await createProject(entrepreneur.cookie, 'Proyecto Admin Reject');
+    const announcement = await createAnnouncement(entrepreneur.cookie, project.id, 'Pendiente 2');
+    expect(announcement.status).toBe('pending_review');
+
+    const adminMatricula = randomMatricula();
+    await request(app).post('/auth/register/entrepreneur').send({
+      matricula: adminMatricula,
+      password: 'password123',
+      whatsapp_number: '6692001234',
+      display_name: 'Admin Lince 2',
+      privacy_accepted: true,
+    });
+    await db.query("UPDATE users SET role = 'admin' WHERE matricula = $1", [adminMatricula]);
+    const adminLogin = await request(app).post('/auth/login').send({
+      matricula: adminMatricula,
+      password: 'password123',
+    });
+
+    const reject = await request(app)
+      .post(`/admin/announcements/${announcement.id}/reject`)
+      .set('Cookie', adminLogin.headers['set-cookie'][0])
+      .send({ reason: 'Contenido no permitido' });
+    expect(reject.statusCode).toBe(200);
+
+    const current = await db.query('SELECT status FROM announcements WHERE id = $1', [announcement.id]);
+    expect(current.rows[0].status).toBe('rejected');
   });
 
   it('nunca expone whatsapp_number en feed ni detalle', async () => {
