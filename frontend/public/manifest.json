@@ -1,10 +1,10 @@
 {
   "name": "Mural Maz Lince",
   "short_name": "Mural Maz",
-  "description": "Tablero de anuncios estudiantil - Universidad Autónoma de Occidente",
+  "description": "El mural emprendedor de tu universidad - Universidad Autónoma de Occidente",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#121212",
+  "background_color": "#1A1A2E",
   "theme_color": "#961749",
   "orientation": "portrait-primary",
   "icons": [

@@ -1,3 +1,6 @@
+/* AuthContext - Sistema de autenticación */
+/* Referencia: DDC, wireframes-spec.md */
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
@@ -13,7 +16,7 @@ export function AuthProvider({ children }) {
 
   const checkAuth = async () => {
     try {
-      const response = await api.get('/auth/me');
+      const response = await api.getMe();
       setUser(response.data.user);
     } catch (error) {
       setUser(null);
@@ -23,33 +26,34 @@ export function AuthProvider({ children }) {
   };
 
   const login = async (matricula, password = null) => {
-    const payload = password 
-      ? { matricula, password }
-      : { matricula };
-    const response = await api.post('/auth/login', payload);
-    const { user: userData, token } = response.data;
-    setUser(userData);
-    return userData;
+    const response = await api.login(matricula, password);
+    setUser(response.data.user);
+    return response.data.user;
   };
 
   const registerStudent = async (matricula) => {
-    const response = await api.post('/auth/register/student', { matricula });
+    const response = await api.registerStudent(matricula);
     return response.data;
   };
 
   const registerEntrepreneur = async (data) => {
-    const response = await api.post('/auth/register/entrepreneur', data);
+    const response = await api.registerEntrepreneur(data);
+    if (response.status === 201) {
+      setUser(response.data.user);
+    }
     return response.data;
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
+    await api.logout();
     setUser(null);
   };
 
   const value = {
     user,
     loading,
+    isAuthenticated: !!user,
+    role: user?.role || null,
     login,
     registerStudent,
     registerEntrepreneur,

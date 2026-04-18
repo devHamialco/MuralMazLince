@@ -1,58 +1,49 @@
 /* Tokens de diseño - Mural Maz Lince */
+/* Referencia: DDC v1.2 */
 
 :root {
-  /* Colores - Fondo */
-  --bg-base: #121212;
-  --bg-surface: #1e1e1e;
-  --bg-elevated: #2d2d2d;
-  --bg-hover: #383838;
+  /* Colores - Fondo (DDC 2.2) */
+  --bg-base: #1A1A2E;
+  --bg-card: #16213E;
+  --bg-surface: #0F3460;
+
+  /* Colores - Acción y acentos */
+  --primary: #C4184A;
+  --secondary: #194A8D;
+  --accent: #F0C040;
 
   /* Colores - Texto */
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-muted: #808080;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0AEC0;
+  --text-muted: #718096;
 
-  /* Colores - Marca */
-  --primary: #961749;
-  --primary-hover: #b31c5a;
-  --primary-light: #c94a7a;
-  --accent: #e91e63;
+  /* Colores - Borde */
+  --border: #2D3748;
 
-  /* Colores - Semánticos */
-  --success: #4caf50;
-  --warning: #ff9800;
-  --error: #f44336;
-  --info: #2196f3;
+  /* Colores - Estados semánticos */
+  --status-active: #48BB78;
+  --status-pending: #F0C040;
+  --status-rejected: #E53E3E;
 
-  /* Colores - Categorías */
-  --category-productos: #e91e63;
-  --category-servicios: #9c27b0;
-  --category-organizaciones: #00bcd4;
-
-  /* Estados */
-  --status-active: #4caf50;
-  --status-pending: #ff9800;
-  --status-rejected: #f44336;
-  --status-shadowban: #9e9e9e;
-  --status-expired: #757575;
-
-  /* Espaciado */
+  /* Espaciado (DDC 2.4) */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
 
   /* Bordes */
-  --border-radius-sm: 4px;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-  --border-radius-xl: 16px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
   /* Sombras */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-button: 0 4px 12px rgba(196, 24, 74, 0.4);
+  --shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.6);
 
   /* Transiciones */
   --transition-fast: 150ms ease;
@@ -60,8 +51,11 @@
   --transition-slow: 350ms ease;
 
   /* Z-index */
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-modal: 300;
-  --z-toast: 400;
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-modal-backdrop: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-notification-dot: 600;
 }

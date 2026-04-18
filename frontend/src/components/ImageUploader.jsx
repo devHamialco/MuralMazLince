@@ -1,14 +1,17 @@
+/* ImageUploader - wireframes-spec.md WF-3.4.3 */
+/* Referencia: DDC 2.5, wireframes-spec.md */
+
 import { useState, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import imageCompression from 'browser-image-compression';
-import { FaCloudUploadAlt, FaTimes, FaImage } from 'react-icons/fa';
+import { FiImage, FiX } from 'react-icons/fi';
 
 const MAX_SIZE_MB = 0.5;
 const MAX_WIDTH_OR_HEIGHT = 1200;
 
 export default function ImageUploader({ onImageChange, initialImage, disabled = false }) {
   const [preview, setPreview] = useState(initialImage || null);
-  const [uploading, setUploading] = useState(false);
+  const [state, setState] = useState('idle'); // idle, compressing, uploading, error
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
@@ -16,7 +19,7 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
   const compressImage = useCallback(async (file) => {
     try {
       setError(null);
-      setUploading(true);
+      setState('compressing');
       setProgress(10);
 
       const options = {
@@ -40,13 +43,13 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
       };
       reader.readAsDataURL(compressedFile);
 
+      setState('idle');
       return compressedFile;
     } catch (err) {
       setError('Error al comprimir la imagen');
+      setState('error');
       console.error('Compression error:', err);
       return null;
-    } finally {
-      setUploading(false);
     }
   }, [onImageChange]);
 
@@ -54,15 +57,15 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validar tipo
     if (!file.type.startsWith('image/')) {
       setError('Por favor selecciona una imagen');
+      setState('error');
       return;
     }
 
-    // Validar tamaño (antes de comprimir)
     if (file.size > 10 * 1024 * 1024) {
       setError('La imagen no puede superar 10MB');
+      setState('error');
       return;
     }
 
@@ -72,7 +75,6 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
   const handleDrop = useCallback(async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (disabled) return;
 
     const file = e.dataTransfer.files?.[0];
@@ -91,6 +93,7 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
     setPreview(null);
     setProgress(0);
     setError(null);
+    setState('idle');
     if (inputRef.current) {
       inputRef.current.value = '';
     }
@@ -99,107 +102,110 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
     }
   }, [onImageChange]);
 
+  const handleClick = () => {
+    if (!disabled && state === 'idle') {
+      inputRef.current?.click();
+    }
+  };
+
   return (
-    <div className="image-uploader">
+    <div onClick={handleClick}>
       <div
-        className={`upload-zone ${preview ? 'has-preview' : ''} ${disabled ? 'disabled' : ''} ${error ? 'has-error' : ''}`}
-        onClick={() => !disabled && inputRef.current?.click()}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
         style={{
-          border: `2px dashed ${error ? 'var(--error)' : preview ? 'var(--primary)' : 'var(--bg-hover)'}`,
-          borderRadius: 'var(--border-radius-lg)',
-          padding: 'var(--spacing-xl)',
-          textAlign: 'center',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          backgroundColor: 'var(--bg-elevated)',
-          transition: 'all var(--transition-fast)',
-          minHeight: '200px',
+          width: '343px',
+          height: '200px',
+          border: `2px dashed ${error ? 'var(--status-rejected)' : state !== 'idle' ? 'var(--primary)' : 'var(--border)'}`,
+          borderRadius: 'var(--radius-lg)',
+          backgroundColor: 'var(--bg-card)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          cursor: disabled ? 'not-allowed' : 'pointer',
           position: 'relative',
+          overflow: 'hidden',
+          transition: 'border-color var(--transition-fast)',
         }}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
         role="button"
         tabIndex={disabled ? -1 : 0}
-        aria-label={preview ? 'Cambiar imagen' : 'Subir imagen'}
       >
-        {uploading ? (
-          <div className="upload-progress">
-            <div className="spinner-border text-primary mb-2" role="status">
-              <span className="visually-hidden">Comprimiendo...</span>
-            </div>
-            <p className="text-muted mb-0">Comprimiendo imagen... {progress}%</p>
-            <div 
-              className="progress mt-2" 
-              style={{ width: '80%', height: '6px' }}
+        {state === 'compressing' || state === 'uploading' ? (
+          <>
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.6)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <div 
-                className="progress-bar bg-primary" 
-                style={{ width: `${progress}%` }}
-              />
+              <span style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                {state === 'compressing' ? 'Optimizando imagen...' : 'Subiendo...'}
+              </span>
+              <div style={{ width: '80%', height: '4px', backgroundColor: 'var(--border)', borderRadius: '2px' }}>
+                <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary)', borderRadius: '2px', transition: 'width 150ms' }} />
+              </div>
             </div>
-          </div>
+          </>
         ) : preview ? (
-          <div className="preview-container" style={{ position: 'relative', width: '100%' }}>
-            <img 
-              src={preview} 
-              alt="Preview" 
-              style={{ 
-                maxWidth: '100%', 
-                maxHeight: '300px', 
-                borderRadius: 'var(--border-radius-md)',
-                objectFit: 'contain',
-              }} 
+          <>
+            <img
+              src={preview}
+              alt="Preview"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
             />
-            {!disabled && (
-              <button
-                type="button"
-                className="btn btn-sm btn-danger position-absolute"
-                onClick={handleClear}
-                style={{ 
-                  position: 'absolute', 
-                  top: '8px', 
-                  right: '8px',
-                  borderRadius: '50%',
-                  width: '32px',
-                  height: '32px',
-                  padding: 0,
-                }}
-                aria-label="Eliminar imagen"
-              >
-                <FaTimes />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleClear}
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                backgroundColor: 'rgba(0,0,0,0.6)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+              }}
+              aria-label="Eliminar imagen"
+            >
+              <FiX size={16} />
+            </button>
+          </>
+        ) : state === 'error' ? (
+          <div style={{ color: 'var(--status-rejected)', textAlign: 'center' }}>
+            <FiX size={32} />
+            <p style={{ fontSize: '12px', marginTop: '8px' }}>{error || 'Error'}</p>
           </div>
         ) : (
-          <>
-            <FaCloudUploadAlt 
-              size={48} 
-              color="var(--text-muted)" 
-              className="mb-3"
-            />
-            <p className="text-primary mb-1" style={{ fontWeight: 500 }}>
-              Toca o arrastra una imagen
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+            <FiImage size={32} />
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '4px' }}>
+              Toca para subir una imagen
             </p>
-            <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
-              Máx 500KB después de comprimir
-            </p>
-          </>
+            <p style={{ fontSize: '12px' }}>JPG, PNG, máx. 500 KB</p>
+          </div>
         )}
       </div>
-
-      {error && (
-        <p className="text-error mt-2" style={{ color: 'var(--error)', fontSize: '0.875rem' }}>
-          {error}
-        </p>
-      )}
 
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png"
         onChange={handleFileSelect}
         disabled={disabled}
         style={{ display: 'none' }}

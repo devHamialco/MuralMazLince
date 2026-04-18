@@ -1,55 +1,55 @@
+/* LikeButton - wireframes-spec.md WF-3.3.1 */
+/* Referencia: DDC 2.5, wireframes-spec.md */
+
 import PropTypes from 'prop-types';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 
-export default function LikeButton({ liked, count, onToggle, disabled = false, size = 'md' }) {
-  const sizes = {
-    sm: { icon: 'fa-sm', font: 'fs-6' },
-    md: { icon: '', font: 'fs-5' },
-    lg: { icon: 'fa-lg', font: 'fs-4' },
-  };
-
+export default function LikeButton({ 
+  liked = false, 
+  count = 0, 
+  onClick, 
+  disabled = false,
+  size = 20,
+}) {
   const handleClick = (e) => {
     e.stopPropagation();
-    if (!disabled && onToggle) {
-      onToggle();
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (!disabled && onToggle && (e.key === 'Enter' || e.key === 'Space')) {
-      e.preventDefault();
-      onToggle();
+    if (!disabled && onClick) {
+      onClick();
     }
   };
 
   return (
     <button
-      className={`like-button btn btn-link d-inline-flex align-items-center gap-1 p-0 ${liked ? 'liked' : ''}`}
+      className="d-inline-flex align-items-center gap-1"
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
       disabled={disabled}
       aria-label={liked ? 'Quitar like' : 'Dar like'}
       aria-pressed={liked}
-      style={{ 
-        color: liked ? 'var(--error)' : 'var(--text-muted)',
-        textDecoration: 'none',
-        transition: 'transform 0.15s ease, color 0.15s ease',
-        border: 'none',
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
         background: 'transparent',
+        border: 'none',
+        padding: '4px',
+        cursor: disabled ? 'pointer' : 'pointer',
+        color: liked ? 'var(--primary)' : 'var(--text-muted)',
+        transition: 'transform var(--transition-fast)',
+        borderRadius: '4px',
       }}
+      title={disabled ? 'Regístrate para valorar' : undefined}
     >
-      <span 
-        className={`like-icon ${sizes[size].icon}`}
-        style={{ 
+      <span
+        style={{
           display: 'inline-flex',
-          transform: liked ? 'scale(1.1)' : 'scale(1)',
-          transition: 'transform 0.15s ease',
+          fontSize: `${size}px`,
         }}
+        className={liked ? 'pop-animation' : ''}
       >
         {liked ? <FaHeart /> : <FaRegHeart />}
       </span>
       {count !== undefined && (
-        <span className={`count ${sizes[size].font}`} style={{ color: 'inherit' }}>
+        <span style={{ fontSize: '12px', color: 'inherit' }}>
           {count}
         </span>
       )}
@@ -58,9 +58,9 @@ export default function LikeButton({ liked, count, onToggle, disabled = false, s
 }
 
 LikeButton.propTypes = {
-  liked: PropTypes.bool.isRequired,
+  liked: PropTypes.bool,
   count: PropTypes.number,
-  onToggle: PropTypes.func,
+  onClick: PropTypes.func,
   disabled: PropTypes.bool,
-  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  size: PropTypes.number,
 };

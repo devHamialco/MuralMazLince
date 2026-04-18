@@ -1,55 +1,88 @@
+/* Register - wireframes-spec.md WF-3.2.1, WF-3.2.2, WF-3.2.3 */
+/* Referencia: DDC, wireframes-spec.md */
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FiCheck, FiX, FiLock, FiArrowLeft } from 'react-icons/fi';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 
-// Algoritmo de checksum para validación de matrícula
+// Checksum de matrícula - wireframes-spec:357-361
 const isValidMatricula = (matricula) => {
   if (!matricula || matricula.length !== 8) return false;
   if (!/^\d{8}$/.test(matricula)) return false;
   return matricula[0] === '2';
 };
 
+// Validador de contraseña - wireframes-spec:414-422
+const getPasswordStrength = (password) => {
+  if (password.length < 1) return { level: 0, label: '', color: 'var(--border)' };
+  if (password.length < 8) return { level: 1, label: 'Débil', color: 'var(--status-rejected)' };
+  
+  const hasNumber = /\d/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const isStrong = password.length >= 8 && hasNumber && hasUpper;
+  
+  if (isStrong) return { level: 3, label: 'Fuerte', color: 'var(--status-active)' };
+  return { level: 2, label: 'Aceptable', color: 'var(--status-pending)' };
+};
+
+// Validador de WhatsApp - wireframes-spec:447
+const isValidWhatsApp = (phone) => {
+  return phone.replace(/\D/g, '').length === 10;
+};
+
 export default function Register() {
   const { registerStudent, registerEntrepreneur, login } = useAuth();
-  const { showToast } = useNotification();
+  const { showToast, setToast } = useNotification();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState(1); // 1: tipo, 2: estudiante, 3: emprendedor
-  const [userType, setUserType] = useState(null); // 'student' | 'entrepreneur'
-  
-  // Campos comunes
+  const [step, setStep] = useState('welcome'); // welcome, student, entrepreneur
   const [matricula, setMatricula] = useState('');
   const [matriculaValid, setMatriculaValid] = useState(null);
   
   // Campos emprendedor
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [whatsapp, setWhatsapp] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [displayNameError, setDisplayNameError] = useState(false);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Validar matrícula en tiempo real
+  const passwordStrength = getPasswordStrength(password);
+
   const handleMatriculaChange = (value) => {
-    setMatricula(value);
-    if (value.length === 8) {
-      setMatriculaValid(isValidMatricula(value));
+    const cleaned = value.replace(/\D/g, '').slice(0, 8);
+    setMatricula(cleaned);
+    if (cleaned.length === 8) {
+      setMatriculaValid(isValidMatricula(cleaned));
     } else {
       setMatriculaValid(null);
     }
   };
 
-  // Seleccionar tipo de usuario
-  const handleSelectType = (type) => {
-    setUserType(type);
-    setStep(type === 'student' ? 2 : 3);
+  const handlePasswordChange = (value) => {
+    setPassword(value);
   };
 
-  // Registro como estudiante
+  const handleWhatsappChange = (value) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 10);
+    setWhatsapp(cleaned);
+  };
+
+  const handleDisplayNameBlur = () => {
+    // Aquí se aplicaría el filtro bad-words
+    if (displayName.length > 0 && displayName.length < 2) {
+      setDisplayNameError(true);
+    } else {
+      setDisplayNameError(false);
+    }
+  };
+
   const handleStudentSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -57,12 +90,12 @@ export default function Register() {
 
     try {
       await registerStudent(matricula);
-      showToast('Registro exitoso. Ahora puedes iniciar sesión.', 'success');
+      showToast('Cuenta creada. Inicia sesión.', 'success');
       navigate('/login');
     } catch (err) {
       console.error('Student registration error:', err);
       if (err.status === 409) {
-        setError('Esta matrícula ya está registrada. ¿Quieres reclamar tu matrícula?');
+        setError('Esta matrícula ya está registrada.');
       } else {
         setError(err.message || 'Error al registrarte');
       }
@@ -71,34 +104,18 @@ export default function Register() {
     }
   };
 
-  // Registro como emprendedor
   const handleEntrepreneurSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
-    // Validaciones
-    if (!isValidMatricula(matricula)) {
-      setError('Matrícula inválida');
-      return;
-    }
-    if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-    if (!whatsapp.match(/^\d{10}$/)) {
-      setError('WhatsApp debe ser un número de 10 dígitos');
-      return;
-    }
-    if (!displayName.trim()) {
-      setError('El nombre visible es obligatorio');
-      return;
-    }
-    if (!privacyAccepted) {
-      setError('Debes aceptar el aviso de privacidad');
+    const isValid = isValidMatricula(matricula) && 
+                  password.length >= 8 && 
+                  isValidWhatsApp(whatsapp) && 
+                  displayName.length >= 2 &&
+                  privacyAccepted;
+
+    if (!isValid) {
+      setError('Por favor completa todos los campos correctamente');
       return;
     }
 
@@ -113,16 +130,15 @@ export default function Register() {
         privacy_accepted: true,
       });
       
-      // Login automático después del registro
-      await login(matricula, password);
-      showToast(`Bienvenido, ${displayName}`, 'success');
+      showToast('Cuenta creada', 'success');
       navigate('/dashboard');
     } catch (err) {
       console.error('Entrepreneur registration error:', err);
       if (err.status === 409) {
-        setError('Esta matrícula ya está registrada. ¿Quieres reclamar tu matrícula?');
+        setError('Esta matrícula ya está registrada.');
       } else if (err.data?.error?.includes('bad-words')) {
-        setError('El nombre visible contiene palabras inapropiadas');
+        setDisplayNameError(true);
+        setError('Por favor elige un nombre apropiado');
       } else {
         setError(err.message || 'Error al registrarte');
       }
@@ -131,374 +147,418 @@ export default function Register() {
     }
   };
 
-  return (
-    <div 
-      className="register-page d-flex align-items-center justify-content-center"
-      style={{ 
-        minHeight: '100vh',
-        backgroundColor: 'var(--bg-base)',
-        padding: 'var(--spacing-md)',
-      }}
-    >
-      <div 
-        className="card"
+  // Pantalla de bienvenida - wireframes-spec: WF-3.2.1
+  if (step === 'welcome') {
+    return (
+      <div
         style={{
-          width: '100%',
-          maxWidth: '450px',
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--bg-elevated)',
-          borderRadius: 'var(--border-radius-lg)',
+          minHeight: '100vh',
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(196,24,74,0.15) 0%, transparent 60%)',
+          backgroundColor: 'var(--bg-base)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 'var(--spacing-lg)',
         }}
       >
-        <div className="card-body p-4">
-          <div className="text-center mb-4">
-            <Link 
-              to="/"
-              style={{ 
-                color: 'var(--primary)', 
-                fontWeight: 700, 
-                fontSize: '1.5rem',
-                textDecoration: 'none',
+        {/* Logo */}
+        <div className="fade-in" style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
+          <span style={{ fontSize: '48px' }}>
+            <span style={{ color: 'var(--primary)' }}>◉</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}> M</span>
+          </span>
+        </div>
+        
+        <p className="body-sm text-secondary fade-in" style={{ marginBottom: '40px', animationDelay: '150ms' }}>
+          El mural emprendedor de tu universidad
+        </p>
+
+        {/* Botón explorar sin cuenta */}
+        <Link
+          to="/"
+          className="btn-cta btn-cta-outline"
+          style={{ width: '100%', height: '48px', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          Explorar sin cuenta
+        </Link>
+
+        {/* Separador */}
+        <div className="divider" style={{ width: '100%', margin: 'var(--spacing-md) 0' }}>
+          o regístrate
+        </div>
+
+        {/* Botón estudiante */}
+        <Link
+          to="/register?type=student"
+          onClick={() => setStep('student')}
+          className="btn-cta btn-cta-secondary"
+          style={{ width: '100%', height: '48px', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          Registrarme como Estudiante
+        </Link>
+
+        {/* Botón emprendedor */}
+        <Link
+          to="/register?type=entrepreneur"
+          onClick={() => setStep('entrepreneur')}
+          className="btn-cta btn-cta-primary"
+          style={{ width: '100%', height: '48px', marginTop: '12px', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          Registrarme como Emprendedor
+        </Link>
+
+        {/* Link login */}
+        <p style={{ marginTop: 'var(--spacing-lg)', fontSize: '14px', color: 'var(--text-muted)' }}>
+          ¿Ya tienes cuenta?{' '}
+          <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+            Iniciar sesión
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
+  // Registro estudiante - wireframes-spec: WF-3.2.2
+  if (step === 'student') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', padding: 'var(--spacing-md)' }}>
+        {/* Header */}
+        <button
+          onClick={() => setStep('welcome')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-primary)',
+            fontSize: '14px',
+            padding: 'var(--spacing-sm)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginBottom: 'var(--spacing-md)',
+          }}
+        >
+          <FiArrowLeft size={20} />
+          Volver
+        </button>
+
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginTop: 'var(--spacing-lg)' }}>
+          Crear cuenta de estudiante
+        </h1>
+        <p className="body-sm" style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-xl)' }}>
+          Solo necesitas tu matrícula
+        </p>
+
+        <form onSubmit={handleStudentSubmit}>
+          {/* Campo matrícula */}
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Número de matrícula
+            </label>
+            <input
+              type="tel"
+              value={matricula}
+              onChange={(e) => handleMatriculaChange(e.target.value)}
+              placeholder="20240001"
+              maxLength={8}
+              style={{
+                width: '100%',
+                height: '52px',
+                backgroundColor: 'var(--bg-card)',
+                border: `1px solid ${matriculaValid === false ? 'var(--status-rejected)' : matriculaValid === true ? 'var(--status-active)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '0 44px 0 16px',
+                fontSize: '16px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
+            />
+            {/* Indicador de validación */}
+            <div
+              style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-25px)',
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
-              Mural Maz Lince
-            </Link>
-            <p className="text-muted mt-2">
-              {step === 1 && 'Crear cuenta'}
-              {step === 2 && 'Registro como estudiante'}
-              {step === 3 && 'Registro como emprendedor'}
+              {matriculaValid === true && <FiCheck size={20} style={{ color: 'var(--status-active)' }} />}
+              {matriculaValid === false && <FiX size={20} style={{ color: 'var(--status-rejected)' }} />}
+            </div>
+            {/* Texto de ayuda */}
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+              8 dígitos · Debe comenzar con 2
             </p>
           </div>
 
-          {/* Paso 1: Seleccionar tipo */}
-          {step === 1 && (
-            <div className="type-selection">
-              <p className="text-center text-secondary mb-4">
-                ¿Qué tipo de cuenta deseas crear?
-              </p>
-              
-              <div className="d-grid gap-3">
-                <button
-                  className="btn p-4"
-                  onClick={() => handleSelectType('student')}
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    textAlign: 'left',
-                  }}
-                >
-                  <h5 className="mb-1" style={{ color: 'var(--text-primary)' }}>
-                    Estudiante
-                  </h5>
-                  <p className="mb-0 text-muted" style={{ fontSize: '0.9rem' }}>
-                    Solo matrícula. Puedes filtrar y valorar anuncios.
-                  </p>
-                </button>
-                
-                <button
-                  className="btn p-4"
-                  onClick={() => handleSelectType('entrepreneur')}
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    textAlign: 'left',
-                  }}
-                >
-                  <h5 className="mb-1" style={{ color: 'var(--primary-light)' }}>
-                    Emprendedor
-                  </h5>
-                  <p className="mb-0 text-muted" style={{ fontSize: '0.9rem' }}>
-                    Matrícula + contraseña + WhatsApp. Publica y gestiona tus proyectos.
-                  </p>
-                </button>
+          {error && (
+            <p style={{ fontSize: '12px', color: 'var(--status-rejected)', marginBottom: 'var(--spacing-md)' }}>
+              {error}
+            </p>
+          )}
+
+          {/* Botón CTA */}
+          <button
+            type="submit"
+            disabled={loading || !matriculaValid}
+            className="btn-cta btn-cta-primary"
+            style={{ width: '100%', height: '52px' }}
+          >
+            {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // Registro emprendedor - wireframes-spec: WF-3.2.3
+  if (step === 'entrepreneur') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', padding: 'var(--spacing-md)', overflow: 'auto' }}>
+        {/* Header */}
+        <button
+          onClick={() => setStep('welcome')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-primary)',
+            fontSize: '14px',
+            padding: 'var(--spacing-sm)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginBottom: 'var(--spacing-md)',
+          }}
+        >
+          <FiArrowLeft size={20} />
+          Volver
+        </button>
+
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Crear cuenta de emprendedor
+        </h1>
+        <p className="body-sm" style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
+          Publica tus proyectos en el mural universitario
+        </p>
+
+        <form onSubmit={handleEntrepreneurSubmit}>
+          {/* Campo matrícula */}
+          <div style={{ marginBottom: 'var(--spacing-md)' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Número de matrícula
+            </label>
+            <input
+              type="tel"
+              value={matricula}
+              onChange={(e) => handleMatriculaChange(e.target.value)}
+              placeholder="20240001"
+              maxLength={8}
+              style={{
+                width: '100%',
+                height: '52px',
+                backgroundColor: 'var(--bg-card)',
+                border: `1px solid ${matriculaValid === false ? 'var(--status-rejected)' : matriculaValid === true ? 'var(--status-active)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '0 44px 0 16px',
+                fontSize: '16px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
+            />
+            <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-25px)' }}>
+              {matriculaValid === true && <FiCheck size={20} style={{ color: 'var(--status-active)' }} />}
+              {matriculaValid === false && <FiX size={20} style={{ color: 'var(--status-rejected)' }} />}
+            </div>
+          </div>
+
+          {/* Campo contraseña */}
+          <div style={{ marginBottom: 'var(--spacing-md)' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Contraseña
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                style={{
+                  width: '100%',
+                  height: '52px',
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0 44px 0 16px',
+                  fontSize: '16px',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                {showPassword ? '😵' : '👁️'}
+              </button>
+            </div>
+            {/* Barra de fortaleza */}
+            <div style={{ marginTop: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ flex: 1, height: '4px', backgroundColor: 'var(--border)', borderRadius: '2px', overflow: 'hidden' }}>
+                  <div style={{ width: `${passwordStrength.level * 33.33}%`, height: '100%', backgroundColor: passwordStrength.color, transition: 'all 150ms' }} />
+                </div>
+                <span style={{ fontSize: '12px', color: passwordStrength.color }}>{passwordStrength.label}</span>
               </div>
             </div>
-          )}
-
-          {/* Paso 2: Registro estudiante */}
-          {step === 2 && (
-            <form onSubmit={handleStudentSubmit}>
-              <div className="mb-3">
-                <label 
-                  htmlFor="matricula" 
-                  className="form-label"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Matrícula estudiantil
-                </label>
-                <input
-                  type="text"
-                  id="matricula"
-                  className={`form-control ${matriculaValid === true ? 'is-valid' : ''} ${matriculaValid === false ? 'is-invalid' : ''}`}
-                  value={matricula}
-                  onChange={(e) => handleMatriculaChange(e.target.value)}
-                  placeholder="20240001"
-                  required
-                  maxLength={8}
-                  pattern="[0-9]{8}"
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-                <div className="form-text" style={{ color: 'var(--text-muted)' }}>
-                  {matriculaValid === true && <span className="text-success">✓ Formato válido</span>}
-                  {matriculaValid === false && <span className="text-danger">✗ Formato inválido (8 dígitos, inicia con 2)</span>}
-                  {matriculaValid === null && '8 dígitos, primer dígito = 2'}
-                </div>
-              </div>
-
-              {error && (
-                <div 
-                  className="alert alert-danger" 
-                  role="alert"
-                  style={{ 
-                    backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-                    border: '1px solid var(--error)',
-                    color: 'var(--error)',
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <div className="d-grid gap-2">
-                <button
-                  type="submit"
-                  className="btn"
-                  disabled={loading || !matriculaValid}
-                  style={{
-                    backgroundColor: 'var(--primary)',
-                    color: 'white',
-                    fontWeight: 600,
-                  }}
-                >
-                  {loading ? 'Registrando...' : 'Registrarse'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-link"
-                  onClick={() => {
-                    setStep(1);
-                    setMatricula('');
-                    setMatriculaValid(null);
-                    setError(null);
-                  }}
-                >
-                  ← Volver
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Paso 3: Registro emprendedor */}
-          {step === 3 && (
-            <form onSubmit={handleEntrepreneurSubmit}>
-              <div className="mb-3">
-                <label 
-                  htmlFor="matricula" 
-                  className="form-label"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Matrícula estudiantil
-                </label>
-                <input
-                  type="text"
-                  id="matricula"
-                  className={`form-control ${matriculaValid === true ? 'is-valid' : ''} ${matriculaValid === false ? 'is-invalid' : ''}`}
-                  value={matricula}
-                  onChange={(e) => handleMatriculaChange(e.target.value)}
-                  placeholder="20240001"
-                  required
-                  maxLength={8}
-                  pattern="[0-9]{8}"
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              </div>
-
-              <div className="mb-3">
-                <label 
-                  htmlFor="password" 
-                  className="form-label"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Contraseña
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  className="form-control"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                  required
-                  minLength={8}
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              </div>
-
-              <div className="mb-3">
-                <label 
-                  htmlFor="confirmPassword" 
-                  className="form-label"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Confirmar contraseña
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  className="form-control"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repite tu contraseña"
-                  required
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-              </div>
-
-              <div className="mb-3">
-                <label 
-                  htmlFor="whatsapp" 
-                  className="form-label"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Número de WhatsApp
-                </label>
-                <input
-                  type="tel"
-                  id="whatsapp"
-                  className="form-control"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="6671234567"
-                  required
-                  maxLength={10}
-                  pattern="[0-9]{10}"
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-                <div className="form-text" style={{ color: 'var(--text-muted)' }}>
-                  10 dígitos sin espacios ni país
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <label 
-                  htmlFor="displayName" 
-                  className="form-label"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Nombre visible <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="displayName"
-                  className="form-control"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Tu nombre o nombre de tu negocio"
-                  required
-                  maxLength={80}
-                  style={{
-                    backgroundColor: 'var(--bg-elevated)',
-                    border: '1px solid var(--bg-hover)',
-                    color: 'var(--text-primary)',
-                  }}
-                />
-                <div className="form-text" style={{ color: 'var(--text-muted)' }}>
-                  Este nombre será visible en el feed
-                </div>
-              </div>
-
-              <div className="mb-3 form-check">
-                <input
-                  type="checkbox"
-                  id="privacyAccepted"
-                  className="form-check-input"
-                  checked={privacyAccepted}
-                  onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                  required
-                />
-                <label 
-                  className="form-check-label" 
-                  htmlFor="privacyAccepted"
-                  style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}
-                >
-                  Acepto el <a href="/privacy" target="_blank" style={{ color: 'var(--primary-light)' }}>aviso de privacidad</a>
-                </label>
-              </div>
-
-              {error && (
-                <div 
-                  className="alert alert-danger" 
-                  role="alert"
-                  style={{ 
-                    backgroundColor: 'rgba(244, 67, 54, 0.1)', 
-                    border: '1px solid var(--error)',
-                    color: 'var(--error)',
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <div className="d-grid gap-2">
-                <button
-                  type="submit"
-                  className="btn"
-                  disabled={loading || !matriculaValid || !privacyAccepted}
-                  style={{
-                    backgroundColor: 'var(--primary)',
-                    color: 'white',
-                    fontWeight: 600,
-                  }}
-                >
-                  {loading ? 'Registrando...' : 'Crear cuenta'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-link"
-                  onClick={() => {
-                    setStep(1);
-                    setMatricula('');
-                    setMatriculaValid(null);
-                    setError(null);
-                  }}
-                >
-                  ← Volver
-                </button>
-              </div>
-            </form>
-          )}
-
-          <div className="text-center mt-4">
-            <p className="text-muted mb-0">¿Ya tienes cuenta?</p>
-            <Link 
-              to="/login" 
-              style={{ color: 'var(--primary-light)' }}
-            >
-              Iniciar sesión
-            </Link>
           </div>
-        </div>
+
+          {/* Campo display_name */}
+          <div style={{ marginBottom: 'var(--spacing-md)' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              ¿Cómo quieres que te conozcan?
+            </label>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              Este nombre aparecerá en el mural junto a tus anuncios.
+            </p>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => {
+                setDisplayName(e.target.value);
+                if (displayNameError) setDisplayNameError(false);
+              }}
+              onBlur={handleDisplayNameBlur}
+              placeholder="ej: Mariana G., Tech Lince"
+              maxLength={80}
+              style={{
+                width: '100%',
+                height: '52px',
+                backgroundColor: 'var(--bg-card)',
+                border: `1px solid ${displayNameError ? 'var(--status-rejected)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '0 44px 0 16px',
+                fontSize: '16px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
+            />
+            <span style={{ position: 'absolute', right: '16px', bottom: '18px', fontSize: '12px', color: displayName.length > 70 ? 'var(--accent)' : 'var(--text-muted)' }}>
+              {displayName.length}/80
+            </span>
+            {displayNameError && (
+              <p style={{ fontSize: '12px', color: 'var(--status-rejected)', marginTop: '6px' }}>
+                Por favor elige un nombre apropiado
+              </p>
+            )}
+          </div>
+
+          {/* Campo WhatsApp */}
+          <div style={{ marginBottom: 'var(--spacing-md)' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Número de WhatsApp
+            </label>
+            <input
+              type="tel"
+              value={whatsapp}
+              onChange={(e) => handleWhatsappChange(e.target.value)}
+              placeholder="+52 1 669 123 4567"
+              style={{
+                width: '100%',
+                height: '52px',
+                backgroundColor: 'var(--bg-card)',
+                border: `1px solid ${isValidWhatsApp(whatsapp) && whatsapp ? 'var(--status-active)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius-md)',
+                padding: '0 44px 0 16px',
+                fontSize: '16px',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
+            />
+            <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-25px)' }}>
+              {isValidWhatsApp(whatsapp) && whatsapp && <FiCheck size={20} style={{ color: 'var(--status-active)' }} />}
+            </div>
+            {/* Nota de privacidad */}
+            <div
+              style={{
+                marginTop: 'var(--spacing-sm)',
+                backgroundColor: 'var(--bg-card)',
+                borderLeft: '2px solid var(--secondary)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <FiLock size={14} style={{ color: 'var(--secondary)', flexShrink: 0 }} />
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+                Tu número solo se usará para generar un enlace de contacto. No se publicará como texto plano.
+              </p>
+            </div>
+          </div>
+
+          {/* Checkbox privacidad */}
+          <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: privacyAccepted ? 'var(--primary)' : 'var(--bg-card)',
+                  border: '2px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'background-color 150ms',
+                }}
+                onClick={() => setPrivacyAccepted(!privacyAccepted)}
+              >
+                {privacyAccepted && <FiCheck size={14} style={{ color: 'var(--text-primary)' }} />}
+              </div>
+              <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                He leído y acepto el{' '}
+                <a href="/privacy" target="_blank" style={{ color: 'var(--secondary)', textDecoration: 'underline' }}>
+                  Aviso de Privacidad
+                </a>
+              </span>
+            </label>
+          </div>
+
+          {error && (
+            <p style={{ fontSize: '12px', color: 'var(--status-rejected)', marginBottom: 'var(--spacing-md)' }}>
+              {error}
+            </p>
+          )}
+
+          {/* Botón CTA */}
+          <button
+            type="submit"
+            disabled={loading || !matriculaValid || password.length < 8 || !isValidWhatsApp(whatsapp) || displayName.length < 2 || !privacyAccepted}
+            className="btn-cta btn-cta-primary"
+            style={{ width: '100%', height: '52px' }}
+          >
+            {loading ? 'Creando cuenta...' : 'Crear cuenta de emprendedor'}
+          </button>
+        </form>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }

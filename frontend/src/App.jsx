@@ -1,5 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+/* App - Mural Maz Lince */
+/* Sprint 11 - Frontend */
+
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotification } from './context/NotificationContext';
 import Feed from './pages/Feed';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -9,15 +13,36 @@ import AdminPanel from './pages/AdminPanel';
 import PrivateRoute from './components/PrivateRoute';
 import ToastNotification from './components/ToastNotification';
 
-function App() {
-  const { user, loading } = useAuth();
+function AppContent() {
+  const { user, loading, isAuthenticated } = useAuth();
+  const { toast, setToast } = useNotification();
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100vh',
+          backgroundColor: 'var(--bg-base)',
+        }}
+      >
+        <div 
+          style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid var(--border)', 
+            borderTopColor: 'var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }} 
+        />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -25,38 +50,65 @@ function App() {
   return (
     <div className="app-container">
       <Routes>
-        {/* Rutas públicas */}
-        <Route path="/" element={<Feed />} />
-        <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        <Route path="/register" element={user ? <Navigate to="/" /> : <Register />} />
-        <Route path="/announcement/:id" element={<AnnouncementDetail />} />
-
-        {/* Rutas de emprendedor */}
-        <Route
-          path="/dashboard"
+        {/* Ruta pública por defecto - redirige a Feed */}
+        <Route 
+          path="/" 
+          element={<Feed />} 
+        />
+        
+        {/* Auth routes */}
+        <Route 
+          path="/login" 
+          element={isAuthenticated ? <Navigate to="/" /> : <Login />} 
+        />
+        <Route 
+          path="/register" 
+          element={isAuthenticated ? <Navigate to="/" /> : <Register />} 
+        />
+        
+        {/* Anuncio detalle */}
+        <Route 
+          path="/announcement/:id" 
+          element={<AnnouncementDetail />} 
+        />
+        
+        {/* Dashboard del emprendedor */}
+        <Route 
+          path="/dashboard" 
           element={
             <PrivateRoute allowedRoles={['entrepreneur', 'admin']}>
               <EntrepreneurDashboard />
             </PrivateRoute>
-          }
+          } 
         />
-
-        {/* Rutas de administrador */}
-        <Route
-          path="/admin"
+        
+        {/* Panel de administrador */}
+        <Route 
+          path="/admin" 
           element={
             <PrivateRoute allowedRoles={['admin']}>
               <AdminPanel />
             </PrivateRoute>
-          }
+          } 
         />
-
+        
         {/* Ruta catch-all */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route 
+          path="*" 
+          element={<Navigate to="/" />} 
+        />
       </Routes>
-      <ToastNotification />
+      
+      {/* Toast global */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <NotificationProvider>
+      <AppContent />
+    </NotificationProvider>
+  );
+}

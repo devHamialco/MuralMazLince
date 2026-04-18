@@ -1,11 +1,17 @@
+/* Feed - wireframes-spec.md WF-3.1.1 / WF-3.3.1 */
+/* Referencia: DDC, wireframes-spec.md */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FiBell, FiLogOut } from 'react-icons/fi';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import AnnouncementCard from '../components/AnnouncementCard';
 import CategoryBadge from '../components/CategoryBadge';
+import NotificationDot from '../components/NotificationDot';
 import ReportModal from '../components/ReportModal';
+import ToastNotification from '../components/ToastNotification';
 
 const CATEGORIES = [
   'Alimentos y bebidas', 'Repostería y postres', 'Artesanías y manualidades',
@@ -18,8 +24,8 @@ const CATEGORIES = [
 ];
 
 export default function Feed() {
-  const { user, login } = useAuth();
-  const { showToast } = useNotification();
+  const { user, isAuthenticated, logout } = useAuth();
+  const { showToast, toast, setToast } = useNotification();
   const navigate = useNavigate();
   
   const [announcements, setAnnouncements] = useState([]);
@@ -28,12 +34,12 @@ export default function Feed() {
   const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [userInteractions, setUserInteractions] = useState({});
+  const [unreadCount, setUnreadCount] = useState(0);
   const [reportedAnnouncements, setReportedAnnouncements] = useState(new Set());
   
-  // Modal de reporte
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportAnnouncementId, setReportAnnouncementId] = useState(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   
   const observerRef = useRef(null);
   const loadMoreRef = useRef(null);
@@ -60,22 +66,22 @@ export default function Feed() {
       setHasMore(!!next_cursor);
     } catch (error) {
       console.error('Error loading announcements:', error);
-      showToast('Error al cargar los anuncios', 'error');
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [showToast]);
+  }, []);
 
-  // Cargar interacciones del usuario
-  const loadUserInteractions = useCallback(async () => {
-    if (!user) return;
+  // Cargar notificaciones
+  const loadNotifications = useCallback(async () => {
+    if (!user || user.role !== 'entrepreneur') return;
     
     try {
-      // Obtener likes y ratings del usuario
-      // Por ahora, almacenamos el estado localmente
+      const response = await api.getNotifications();
+      const unread = response.data.notifications?.filter(n => !n.read_at) || [];
+      setUnreadCount(unread.length);
     } catch (error) {
-      console.error('Error loading interactions:', error);
+      console.error('Error loading notifications:', error);
     }
   }, [user]);
 
@@ -84,10 +90,10 @@ export default function Feed() {
   }, [selectedCategory]);
 
   useEffect(() => {
-    loadUserInteractions();
-  }, [loadUserInteractions]);
+    loadNotifications();
+  }, [loadNotifications]);
 
-  // Infinite scroll
+  // Infinite scroll - wireframes-spec:151-155
   useEffect(() => {
     if (loading || !hasMore) return;
     
@@ -97,7 +103,7 @@ export default function Feed() {
           loadAnnouncements(cursor, selectedCategory);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.2 }
     );
     
     if (loadMoreRef.current) {
@@ -113,11 +119,9 @@ export default function Feed() {
     };
   }, [loading, loadingMore, hasMore, cursor, selectedCategory, loadAnnouncements]);
 
-  // Handlers
   const handleLike = async (announcementId) => {
-    if (!user) {
-      showToast('Regístrate para dar like', 'info');
-      navigate('/login');
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
       return;
     }
     
@@ -137,7 +141,12 @@ export default function Feed() {
     }
   };
 
+  const handleInteractionAttempt = () => {
+    setShowLoginPrompt(true);
+  };
+
   const handleReport = (announcementId) => {
+    if (!isAuthenticated) return;
     setReportAnnouncementId(announcementId);
     setReportModalOpen(true);
   };
@@ -146,13 +155,13 @@ export default function Feed() {
     try {
       await api.reportAnnouncement(announcementId, reason);
       setReportedAnnouncements(prev => new Set([...prev, announcementId]));
-      showToast('Reporte enviado correctamente', 'success');
+      showToast('Reporte enviado', 'success');
     } catch (error) {
       if (error.status === 409) {
         setReportedAnnouncements(prev => new Set([...prev, announcementId]));
-        showToast('Ya has reportado este anuncio', 'warning');
+        showToast('Ya enviaste un reporte para este anuncio', 'warning');
       } else {
-        throw error;
+        showToast('Error al enviar reporte', 'error');
       }
     }
   };
@@ -161,184 +170,228 @@ export default function Feed() {
     setSelectedCategory(prev => prev === category ? null : category);
   };
 
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/';
+  };
+
   return (
     <div className="feed-page">
-      {/* Navbar */}
-      <nav 
-        className="navbar navbar-dark sticky-top"
-        style={{ 
-          backgroundColor: 'var(--bg-surface)', 
-          borderBottom: '1px solid var(--bg-elevated)',
-          padding: 'var(--spacing-sm) var(--spacing-md)',
+      {/* NavBar - wireframes-spec:57-63 */}
+      <nav
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          height: '56px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 'var(--z-sticky)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 var(--spacing-md)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
-        <div className="container-fluid">
-          <Link 
-            className="navbar-brand d-flex align-items-center gap-2" 
-            to="/"
-            style={{ color: 'var(--primary)' }}
-          >
-            <span style={{ fontWeight: 700, fontSize: '1.25rem' }}>Mural Maz Lince</span>
-          </Link>
-          
-          <div className="d-flex align-items-center gap-2">
-            {user ? (
-              <>
-                {user.role === 'entrepreneur' && (
-                  <Link 
-                    to="/dashboard" 
-                    className="btn btn-outline-primary btn-sm"
-                  >
-                    Mi Panel
-                  </Link>
-                )}
-                {user.role === 'admin' && (
-                  <Link 
-                    to="/admin" 
-                    className="btn btn-outline-primary btn-sm"
-                  >
-                    Admin
-                  </Link>
-                )}
-                <button 
-                  className="btn btn-link text-light"
-                  onClick={() => {
-                    api.logout();
-                    window.location.href = '/';
-                  }}
-                >
-                  Salir
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" className="btn btn-link text-light">
-                  Iniciar sesión
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+          <span style={{ fontSize: '20px' }}>
+            <span style={{ color: 'var(--primary)' }}>◉</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}> M</span>
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+            Mural Maz Lince
+          </span>
+        </Link>
+
+        <div className="d-flex align-items-center gap-2">
+          {isAuthenticated ? (
+            <>
+              {user?.role === 'entrepreneur' && (
+                <Link to="/dashboard" style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                  Mi Panel
                 </Link>
-                <Link 
-                  to="/register" 
-                  className="btn btn-primary btn-sm"
-                  style={{ backgroundColor: 'var(--primary)' }}
-                >
-                  Registrarse
+              )}
+              {user?.role === 'admin' && (
+                <Link to="/admin" style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                  Admin
                 </Link>
-              </>
-            )}
-          </div>
+              )}
+              {user?.role === 'entrepreneur' && (
+                <Link to="/dashboard" style={{ position: 'relative', color: 'var(--text-primary)' }}>
+                  <FiBell size={24} />
+                  <NotificationDot count={unreadCount} />
+                </Link>
+              )}
+              <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                <FiLogOut size={20} />
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                Iniciar sesión
+              </Link>
+              <Link
+                to="/register"
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  color: 'var(--text-primary)',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                }}
+              >
+                Registrarse
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
-      {/* Filtros de categoría */}
-      <div 
-        className="category-filters py-2"
-        style={{ 
-          backgroundColor: 'var(--bg-base)',
-          borderBottom: '1px solid var(--bg-elevated)',
-          position: 'sticky',
-          top: '56px',
-          zIndex: 100,
-        }}
-      >
-        <div className="container-fluid">
-          <div 
-            className="d-flex gap-2 overflow-auto py-1"
-            style={{ scrollbarWidth: 'none' }}
+      {/* Chips de categoría - wireframes-spec:614-628 */}
+      {isAuthenticated && (
+        <div
+          style={{
+            backgroundColor: 'var(--bg-base)',
+            padding: 'var(--spacing-sm) 0',
+            position: 'sticky',
+            top: '56px',
+            zIndex: 'var(--z-sticky)',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <div
+            className="d-flex gap-2"
+            style={{
+              overflowX: 'auto',
+              padding: '0 var(--spacing-md)',
+              scrollbarWidth: 'none',
+            }}
           >
-            <button
-              className={`btn btn-sm ${!selectedCategory ? 'btn-primary' : 'btn-outline-secondary'}`}
+            <CategoryBadge
+              category="Todos"
+              selected={!selectedCategory}
+              clickable
               onClick={() => setSelectedCategory(null)}
-              style={{
-                backgroundColor: !selectedCategory ? 'var(--primary)' : 'transparent',
-                borderColor: 'var(--bg-hover)',
-                color: !selectedCategory ? 'white' : 'var(--text-secondary)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Todos
-            </button>
+            />
             {CATEGORIES.map(cat => (
-              <button
+              <CategoryBadge
                 key={cat}
-                className={`btn btn-sm ${selectedCategory === cat ? 'btn-primary' : 'btn-outline-secondary'}`}
-                onClick={() => handleCategoryClick(cat)}
-                style={{
-                  backgroundColor: selectedCategory === cat ? 'var(--primary)' : 'transparent',
-                  borderColor: 'var(--bg-hover)',
-                  color: selectedCategory === cat ? 'white' : 'var(--text-secondary)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Feed */}
-      <div className="container-fluid py-3" style={{ paddingBottom: '80px' }}>
-        {loading ? (
-          // Skeleton loading
-          <div className="skeleton-container">
-            {[1, 2, 3].map(i => (
-              <div 
-                key={i} 
-                className="card mb-3 skeleton"
-                style={{ height: '320px' }}
+                category={cat}
+                selected={selectedCategory === cat}
+                clickable
+                onClick={handleCategoryClick}
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Feed - wireframes-spec:67-155 */}
+      <div style={{ padding: 'var(--spacing-md)', paddingBottom: '80px' }}>
+        {loading ? (
+          <div>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ marginBottom: 'var(--spacing-md)' }}>
+                <div className="skeleton" style={{ width: '343px', height: '257px', marginBottom: 'var(--spacing-sm)' }} />
+                <div className="skeleton" style={{ width: '200px', height: '20px', marginBottom: '4px' }} />
+                <div className="skeleton" style={{ width: '140px', height: '14px' }} />
+              </div>
+            ))}
+          </div>
         ) : announcements.length === 0 ? (
-          <div className="text-center py-5">
-            <p className="text-muted">No hay anuncios disponibles</p>
+          <div style={{ textAlign: 'center', padding: 'var(--spacing-xl)' }}>
+            <p style={{ color: 'var(--text-muted)' }}>No hay anuncios disponibles</p>
             {selectedCategory && (
-              <button 
-                className="btn btn-link"
+              <button
                 onClick={() => setSelectedCategory(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary)',
+                  cursor: 'pointer',
+                }}
               >
                 Ver todos los anuncios
               </button>
             )}
           </div>
         ) : (
-          <div className="row">
-            <div className="col-12 col-md-6 col-lg-4">
-              {announcements.map((announcement, index) => (
-                <div 
-                  key={announcement.id}
-                  className="fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <AnnouncementCard
-                    announcement={announcement}
-                    onLike={handleLike}
-                    onReport={handleReport}
-                    userLiked={announcement.user_liked}
-                    userRating={announcement.user_rating}
-                    isAuthenticated={!!user}
-                  />
-                </div>
-              ))}
-            </div>
+          <div>
+            {announcements.map((announcement, index) => (
+              <div
+                key={announcement.id}
+                className="fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <AnnouncementCard
+                  announcement={announcement}
+                  onLike={handleLike}
+                  onReport={handleReport}
+                  userLiked={announcement.user_liked}
+                  userRating={announcement.user_rating}
+                  isAuthenticated={isAuthenticated}
+                  onInteractionAttempt={handleInteractionAttempt}
+                />
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Load more trigger */}
+        {/* Load more - wireframes-spec:151-155 */}
         {hasMore && !loading && (
-          <div 
-            ref={loadMoreRef} 
-            className="text-center py-3"
-          >
+          <div ref={loadMoreRef} style={{ textAlign: 'center', padding: 'var(--spacing-md)' }}>
             {loadingMore && (
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Cargando más...</span>
-              </div>
+              <div
+                style={{
+                  width: '24px',
+                  height: '24px',
+                  border: '2px solid var(--border)',
+                  borderTopColor: 'var(--primary)',
+                  borderRadius: '50%',
+                  margin: '0 auto',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
             )}
           </div>
         )}
+
+        {!hasMore && announcements.length > 0 && (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+            Has llegado al final del mural.
+          </p>
+        )}
       </div>
 
-      {/* Modal de reporte */}
+      {/* CTA sticky para visitantes - wireframes-spec:124-134 */}
+      {showLoginPrompt && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'var(--bg-surface)',
+            backdropFilter: 'blur(8px)',
+            borderTop: '1px solid var(--border)',
+            padding: 'var(--spacing-md)',
+            zIndex: 'var(--z-sticky)',
+            animation: 'slideUp 200ms ease-out',
+          }}
+          onClick={() => {
+            setShowLoginPrompt(false);
+            navigate('/register');
+          }}
+        >
+          <p style={{ textAlign: 'center', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600, margin: 0 }}>
+            Inicia sesión para interactuar
+          </p>
+        </div>
+      )}
+
+      {/* Report Modal - wireframes-spec: WF-3.3.2 */}
       <ReportModal
         isOpen={reportModalOpen}
         onClose={() => {
@@ -349,6 +402,15 @@ export default function Feed() {
         announcementId={reportAnnouncementId}
         alreadyReported={reportedAnnouncements.has(reportAnnouncementId)}
       />
+
+      {/* Toast - wireframes-spec:939-945 */}
+      <ToastNotification toast={toast} onClose={() => setToast(null)} />
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
