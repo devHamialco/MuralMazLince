@@ -18,10 +18,9 @@ const app = express();
 const pool = require('./db').getPool();
 
 // Determinación de origen permitido para CORS según entorno
-const allowedOrigin =
-  (process.env.NODE_ENV === 'production')
-    ? (process.env.APP_PRODUCTION_URL || process.env.CORS_ALLOWED_ORIGIN)
-    : process.env.CORS_ALLOWED_ORIGIN;
+const allowedOrigin = (process.env.NODE_ENV === 'production')
+  ? (process.env.APP_PRODUCTION_URL || process.env.CORS_ALLOWED_ORIGIN)
+  : process.env.CORS_ALLOWED_ORIGIN;
 
 app.use(
   cors({
@@ -54,8 +53,11 @@ app.use(errorHandler);
 async function start() {
   try {
     await pool.query('SELECT 1');
-    // Ignorar advertencia de consola en la siguiente línea
-    console.log('Database connection established.');
+    // Log opcional en desarrollo
+    if (process.env.NODE_ENV !== 'test') {
+      // eslint-disable-next-line no-console
+      console.log('Database connection established.');
+    }
 
     if (process.env.NODE_ENV !== 'test') {
       cron.schedule('0 * * * *', async () => {

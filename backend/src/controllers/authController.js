@@ -25,7 +25,7 @@ const registerStudent = async (req, res) => {
     if (error.code === '23505') {
       return res.status(409).json({ error: 'La matrícula ya está registrada' });
     }
-  return res.status(500).json({ error: 'Error del servidor al registrar' });
+    return res.status(500).json({ error: 'Error del servidor al registrar' });
   }
 };
 
