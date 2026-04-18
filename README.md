@@ -2,7 +2,7 @@
 
 Aplicación web **mobile-first** que digitaliza el tablero de anuncios estudiantil físico de la Universidad Autónoma de Occidente, Unidad Regional Mazatlán. Permite a estudiantes emprendedores publicar y gestionar sus proyectos comerciales, a organizaciones estudiantiles difundir comunicados, y a cualquier visitante descubrir el ecosistema emprendedor universitario sin necesidad de cuenta.
 
-> **Estado del proyecto:** En desarrollo — Sprint 5 / 15  
+> **Estado del proyecto:** En desarrollo — Sprint 12 / 15  
 > **Versión:** 1.0.0-dev  
 > **Repositorio:** https://github.com/devHamialco/MuralMazLince  
 > **Producción:** Railway.app _(disponible al cierre del Sprint 14)_

@@ -193,13 +193,7 @@ export default function Feed() {
         }}
       >
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-          <span style={{ fontSize: '20px' }}>
-            <span style={{ color: 'var(--primary)' }}>◉</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}> M</span>
-          </span>
-          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase' }}>
-            Mural Maz Lince
-          </span>
+          <img src="/icons/icon-512.png" alt="Mural Maz Lince" style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
         </Link>
 
         <div className="d-flex align-items-center gap-2">

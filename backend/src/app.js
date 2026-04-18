@@ -17,9 +17,15 @@ const app = express();
 
 const pool = require('./db').getPool();
 
+// Determinación de origen permitido para CORS según entorno
+const allowedOrigin =
+  (process.env.NODE_ENV === 'production')
+    ? (process.env.APP_PRODUCTION_URL || process.env.CORS_ALLOWED_ORIGIN)
+    : process.env.CORS_ALLOWED_ORIGIN;
+
 app.use(
   cors({
-    origin: process.env.CORS_ALLOWED_ORIGIN,
+    origin: allowedOrigin,
     credentials: true,
   }),
 );

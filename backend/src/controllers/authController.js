@@ -25,7 +25,7 @@ const registerStudent = async (req, res) => {
     if (error.code === '23505') {
       return res.status(409).json({ error: 'La matrícula ya está registrada' });
     }
-    return res.status(500).json({ error: 'Error del servidor al registrar' });
+  return res.status(500).json({ error: 'Error del servidor al registrar' });
   }
 };
 
@@ -142,7 +142,7 @@ const login = async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: hours * 3600000,
     });
 
@@ -156,7 +156,7 @@ const logout = (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   });
   return res.status(200).json({ message: 'Sesión finalizada exitosamente' });
 };
