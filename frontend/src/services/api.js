@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Soporte a diferentes variables de entorno (VITE_API_URL moderno, y fallback legacy)
+// En entornos donde se inyecta REACT_APP_API_URL, o una variable global, intentamos detectarla.
+const legacyRoot = typeof window !== 'undefined' ? window.REACT_APP_API_URL : undefined;
+const API_BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL) || legacyRoot || 'http://localhost:3000';
 
 class ApiClient {
   constructor() {

@@ -588,22 +588,20 @@ export default function EntrepreneurDashboard() {
               </div>
             )}
 
-            {/* Notificaciones */}
+            {/* Notificaciones (WF-3.4.4) - panel dedicado para el emprendedor */}
             {activeTab === 'notifications' && (
               <div>
                 <div className="d-flex justify-content-between align-items-center mb-4">
                   <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>Notificaciones</h4>
                   {unreadCount > 0 && (
-                    <button 
-                      className="btn btn-link"
-                      onClick={() => api.markAllNotificationsRead()}
-                      style={{ color: 'var(--primary-light)' }}
-                    >
-                      Marcar todo como leído
-                    </button>
+                    <span className="badge bg-primary" style={{ backgroundColor: 'var(--primary)', color: 'var(--text-primary)' }}>
+                      {unreadCount}
+                    </span>
                   )}
+                  <button className="btn btn-sm btn-outline-secondary" onClick={markAllAsRead}>
+                    Marcar todas como leídas
+                  </button>
                 </div>
-                
                 {notifications.length === 0 ? (
                   <p className="text-muted">No tienes notificaciones</p>
                 ) : (
@@ -611,20 +609,17 @@ export default function EntrepreneurDashboard() {
                     {notifications.map(notif => (
                       <div
                         key={notif.id}
-                        className={`list-group-item ${!notif.read ? 'bg-elevated' : ''}`}
+                        className={`list-group-item ${notif.read ? '' : 'bg-light'}`}
                         onClick={() => markAsRead(notif.id)}
-                        style={{
-                          backgroundColor: notif.read ? 'transparent' : 'var(--bg-elevated)',
-                          border: '1px solid var(--bg-elevated)',
-                          cursor: 'pointer',
-                        }}
+                        style={{ cursor: 'pointer' }}
                       >
-                        <p className="mb-1" style={{ color: 'var(--text-primary)' }}>
-                          {notif.message}
-                        </p>
-                        <small className="text-muted">
-                          {new Date(notif.created_at).toLocaleString('es-MX')}
-                        </small>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div className="d-flex align-items-center gap-2">
+                            <span style={{ fontSize: '18px' }} aria-label="notif-icon">{notif.type === 'approved' ? '✓' : notif.type === 'review' ? '⏳' : notif.type === 'warning' ? '⚠' : '✗'}</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{notif.message}</span>
+                          </div>
+                          <span className="text-muted" style={{ fontSize: '12px' }}>{new Date(notif.created_at).toLocaleString('es-MX')}</span>
+                        </div>
                       </div>
                     ))}
                   </div>

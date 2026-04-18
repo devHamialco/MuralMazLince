@@ -8,6 +8,7 @@ import Feed from './pages/Feed';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AnnouncementDetail from './pages/AnnouncementDetail';
+import ClaimMatricula from './pages/ClaimMatricula';
 import EntrepreneurDashboard from './pages/EntrepreneurDashboard';
 import AdminPanel from './pages/AdminPanel';
 import PrivateRoute from './components/PrivateRoute';
@@ -70,6 +71,12 @@ function AppContent() {
         <Route 
           path="/announcement/:id" 
           element={<AnnouncementDetail />} 
+        />
+
+        {/* Reclamo de matrícula */}
+        <Route 
+          path="/claim-matricula" 
+          element={<ClaimMatricula />} 
         />
         
         {/* Dashboard del emprendedor */}
