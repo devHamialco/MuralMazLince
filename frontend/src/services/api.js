@@ -1,12 +1,47 @@
 // Soporte a diferentes variables de entorno (VITE_API_URL moderno, y fallback legacy)
+/**
+ * ApiClient - Cliente REST para el frontend.
+ * Proporciona métodos de alto nivel para autenticación, anuncios, proyectos,
+ * notificaciones y operaciones administrativas. Esta capa sirve como única fuente
+ * de verdad para las llamadas al backend, respetando las convenciones existentes
+ * en el repositorio y evitando-hardcodear URLs de producción.
+ *
+ * Nota: los nombres de endpoints y estructuras de respuesta deben corresponder
+ * a lo descrito en el backend/registros OpenAPI del proyecto. No se deben suponer
+ * comportamientos de negocio en el frontend.
+ */
+/**
+ * Locales y URLs de API
+ */
 // En entornos donde se inyecta REACT_APP_API_URL, o una variable global, intentamos detectarla.
 const legacyRoot = typeof window !== 'undefined' ? window.REACT_APP_API_URL : undefined;
 const API_BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL) || legacyRoot || 'http://localhost:3000';
 
+// Desarrollo: advertir si no se ha configurado una URL de API explícita
+const hasViteApiUrl = typeof import.meta !== 'undefined' && import.meta.env && Object.prototype.hasOwnProperty.call(import.meta.env, 'VITE_API_URL');
+const isDev = typeof import.meta !== 'undefined' && import.meta.env && !!import.meta.env.DEV;
+if (!hasViteApiUrl && !legacyRoot && isDev) {
+  console.error('[WF-3.1.1] VITE_API_URL no configurado. Se usará http://localhost:3000 por defecto. Establece VITE_API_URL en .env.local o en la configuración del entorno para apuntar al backend correcto (staging/producción).');
+}
+
+/**
+ * API client - clase que encapsula llamadas al backend.
+ */
+/**
+ * ApiClient - Cliente REST para el frontend.
+ * Proporciona métodos de alto nivel para autenticación, anuncios, proyectos,
+ * notificaciones y operaciones administrativas. Esta capa sirve como única fuente
+ * de verdad para las llamadas al backend, respetando las convenciones existentes
+ * en el repositorio. Evita-hardcodear URLs de producción.
+ */
 class ApiClient {
+  /**
+   * @param {string} baseURL - URL base de la API.
+   */
   constructor() {
     this.baseURL = API_BASE_URL;
   }
+
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;

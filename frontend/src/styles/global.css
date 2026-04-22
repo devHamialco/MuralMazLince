@@ -24,6 +24,37 @@ body {
   min-height: 100vh;
 }
 
+# Ensure full height coverage on root elements for dark theme
+html, #root {
+  height: 100%;
+}
+
+/* Global inheritance and focus styles (WF-3) */
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+/* Inherit font and color for form elements to align with tokens */
+a, button, input, select, textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* Focus states for accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+a:focus, button:focus, input:focus, select:focus, textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 #root {
   min-height: 100vh;
 }

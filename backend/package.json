@@ -7,6 +7,7 @@
         "start": "node src/app.js",
         "dev": "nodemon src/app.js",
         "test": "jest --runInBand --passWithNoTests --coverage",
+        "test:integration": "node backend/scripts/bootstrap_integration.js",
         "lint": "eslint src/**/*.js",
         "migrate": "node src/db/migrate.js",
         "migrate:test": "cross-env DATABASE_URL=postgres://postgres:password@localhost:5433/mural_maz_lince_test node src/db/migrate.js"

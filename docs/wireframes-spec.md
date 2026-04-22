@@ -1,5 +1,7 @@
 # ESPECIFICACIÓN VISUAL DE WIREFRAMES
+
 ## Mural Maz Lince — v1.0
+
 **Documento:** Guía de Diseño Visual por Pantalla  
 **Referencia DDC:** v1.2 | **Referencia SRS:** v1.4 | **Referencia SAD:** v1.3  
 **Elaborado por:** Miriam Alanis  
@@ -10,35 +12,38 @@
 ## CONVENCIONES DE ESTE DOCUMENTO
 
 ### Tokens de color (de la paleta oficial)
-| Token | Hex | Nombre |
-|---|---|---|
-| `BG_BASE` | `#1A1A2E` | Fondo base de la app |
-| `BG_CARD` | `#16213E` | Fondo de tarjetas |
-| `BG_SURFACE` | `#0F3460` | NavBar, modales, panels |
-| `PRIMARY` | `#C4184A` | Botones CTA, acentos |
-| `SECONDARY` | `#194A8D` | Links, chips de categoría |
-| `ACCENT` | `#F0C040` | Estrellas, badges especiales |
-| `TEXT_PRIMARY` | `#FFFFFF` | Títulos, texto impacto |
-| `TEXT_SECONDARY` | `#A0AEC0` | Descripciones, labels |
-| `TEXT_MUTED` | `#718096` | Timestamps, metadatos |
-| `BORDER` | `#2D3748` | Divisores |
-| `STATUS_ACTIVE` | `#48BB78` | Badge "Publicado" |
-| `STATUS_PENDING` | `#F0C040` | Badge "En revisión" |
-| `STATUS_REJECTED` | `#E53E3E` | Badge "Rechazado" |
+
+| Token             | Hex       | Nombre                       |
+| ----------------- | --------- | ---------------------------- |
+| `BG_BASE`         | `#1A1A2E` | Fondo base de la app         |
+| `BG_CARD`         | `#16213E` | Fondo de tarjetas            |
+| `BG_SURFACE`      | `#0F3460` | NavBar, modales, panels      |
+| `PRIMARY`         | `#C4184A` | Botones CTA, acentos         |
+| `SECONDARY`       | `#194A8D` | Links, chips de categoría    |
+| `ACCENT`          | `#F0C040` | Estrellas, badges especiales |
+| `TEXT_PRIMARY`    | `#FFFFFF` | Títulos, texto impacto       |
+| `TEXT_SECONDARY`  | `#A0AEC0` | Descripciones, labels        |
+| `TEXT_MUTED`      | `#718096` | Timestamps, metadatos        |
+| `BORDER`          | `#2D3748` | Divisores                    |
+| `STATUS_ACTIVE`   | `#48BB78` | Badge "Publicado"            |
+| `STATUS_PENDING`  | `#F0C040` | Badge "En revisión"          |
+| `STATUS_REJECTED` | `#E53E3E` | Badge "Rechazado"            |
 
 ### Escala tipográfica
-| Nivel | Tamaño | Peso | Uso |
-|---|---|---|---|
-| Display | 32px | 700 | Nombre de proyecto en portafolio |
-| H1 | 24px | 700 | Títulos de sección en paneles |
-| H2 | 20px | 600 | Nombre de proyecto en tarjeta |
-| Body L | 16px | 400 | Descripción principal |
-| Body S | 14px | 400 | Metadatos, categoría, fecha |
-| Caption | 12px | 400 | Contadores, timestamps |
-| Button | 14px | 600 | Texto de botones CTA |
-| Badge | 12px | 600 | Etiquetas de estado y categoría |
+
+| Nivel   | Tamaño | Peso | Uso                              |
+| ------- | ------ | ---- | -------------------------------- |
+| Display | 32px   | 700  | Nombre de proyecto en portafolio |
+| H1      | 24px   | 700  | Títulos de sección en paneles    |
+| H2      | 20px   | 600  | Nombre de proyecto en tarjeta    |
+| Body L  | 16px   | 400  | Descripción principal            |
+| Body S  | 14px   | 400  | Metadatos, categoría, fecha      |
+| Caption | 12px   | 400  | Contadores, timestamps           |
+| Button  | 14px   | 600  | Texto de botones CTA             |
+| Badge   | 12px   | 600  | Etiquetas de estado y categoría  |
 
 ### Convenciones de layout
+
 - **Viewport:** 375px de ancho (móvil, base de diseño)
 - **Padding horizontal:** 16px a cada lado → área de contenido: 343px
 - **Border-radius tarjetas:** 12px
@@ -58,8 +63,8 @@
 **Dimensiones y posición:** Sticky (fija en la parte superior al hacer scroll), altura 56px, fondo `BG_SURFACE` (`#0F3460`), ancho 375px, `z-index` alto para mantenerse sobre el contenido.
 
 **Contenido:**
-- **Logo "◉ M"** — posicionado a 16px del borde izquierdo. El símbolo "◉" en color `PRIMARY` (`#C4184A`), tamaño 20px. La letra "M" en `TEXT_PRIMARY` (`#FFFFFF`), tamaño 20px, peso 700.
-- **Nombre "MURAL MAZ LINCE"** — a la derecha del logo, separado 8px. Tipografía Body S (14px / 600), color `TEXT_PRIMARY`. Letras en mayúsculas.
+
+- **Logo de la pagina** icono-512.png
 - **Sin íconos de menú autenticado** — el extremo derecho de la NavBar está vacío, sin hamburguer, sin avatar, sin notificaciones.
 
 ---
@@ -79,6 +84,7 @@ Cada tarjeta es un contenedor con las siguientes propiedades:
 - **Sombra:** `box-shadow: 0 2px 8px rgba(0,0,0,0.3)`
 
 **Zona de imagen (parte superior de la tarjeta):**
+
 - Ancho: 343px (ancho completo de la tarjeta)
 - Alto: 257px (ratio 4:3 aplicado al ancho de 343px)
 - `object-fit: cover` — la imagen rellena el espacio recortando según sea necesario
@@ -86,30 +92,36 @@ Cada tarjeta es un contenedor con las siguientes propiedades:
 - Estado skeleton: rectángulo `BG_SURFACE` con animación de shimmer horizontal (gradiente de `#0F3460` a `#194A8D` a `#0F3460` desplazándose de izquierda a derecha cada 1.5s)
 
 **Zona de contenido (parte inferior de la tarjeta):**
+
 - Padding: 12px horizontal, 12px vertical
 - Espacio entre elementos internos: 8px
 
 **Fila 1 — Nombre del proyecto + CategoryBadge:**
+
 - **Nombre del proyecto:** Tipografía H2 (20px / 600), color `TEXT_PRIMARY`, truncado a 1 línea con ellipsis si supera el ancho disponible (~230px dependiendo del badge).
 - **CategoryBadge:** posicionado a la derecha del nombre. Chip de fondo `SECONDARY` (`#194A8D`), texto Badge (12px / 600) en `TEXT_PRIMARY`, padding 4px horizontal y 2px vertical, border-radius 4px. El texto del badge es el nombre de la categoría (máximo 18 caracteres visibles, resto con ellipsis).
 
 **Fila 2 — Nombre visible del emprendedor:**
+
 - Tipografía Body S (14px / 400), color `TEXT_SECONDARY` (`#A0AEC0`)
 - Prefijado con un ícono de persona sutíl (16×16px, color `TEXT_SECONDARY`)
 - Valor: `entrepreneur_profiles.display_name`
 
 **Fila 3 — Descripción truncada:**
+
 - Tipografía Body L (16px / 400), color `TEXT_SECONDARY`
 - Limitada a 2 líneas con `-webkit-line-clamp: 2` y `overflow: hidden`
 - Al final de la segunda línea: "… **Ver más**" — el texto "Ver más" en color `PRIMARY`, peso 600, no es un enlace independiente sino parte del flujo de texto truncado (tap en la tarjeta entera navega al detalle).
 
 **Fila 4 — Métricas (likes, estrellas, timestamp):**
+
 - Layout: flexbox, `justify-content: space-between`
 - **LikeButton (modo readonly):** ícono de corazón outline en `TEXT_MUTED` (no relleno). Contador numérico a 4px de distancia, tipografía Caption (12px / 400) en `TEXT_MUTED`. No es interactivo: tap dispara CTA de registro.
 - **StarRating (modo readonly):** 3 estrellas en fila horizontal, separadas 4px. Las estrellas mostradas corresponden al `average_rating` redondeado (ej: 2.7 → 2 estrellas llenas, 1 vacía). Color de estrella activa: `ACCENT` (`#F0C040`), vacía: `TEXT_MUTED`. Tamaño de ícono: 16×16px. No es interactivo: tap dispara CTA de registro.
 - **Timestamp:** tipografía Caption (12px / 400), color `TEXT_MUTED`. Formato relativo: "hace 2h", "hace 3 días". Alineado al extremo derecho.
 
 **Botón "Ver detalle":**
+
 - Posición: debajo de la fila de métricas, separado 8px
 - Ancho: 100% del contenido de la tarjeta (343px - 24px de padding = 319px)
 - Alto: 40px
@@ -126,6 +138,7 @@ Cada tarjeta es un contenedor con las siguientes propiedades:
 **Visibilidad:** Aparece solo cuando el visitante intenta interactuar con LikeButton o StarRating (tap sobre cualquiera de los dos).
 
 **Diseño:**
+
 - Posición: fija en la parte inferior, ancho 375px, altura 64px
 - Fondo: `BG_SURFACE` con `backdrop-filter: blur(8px)` para semi-transparencia
 - Borde superior: 1px sólido `BORDER`
@@ -138,6 +151,7 @@ Cada tarjeta es un contenedor con las siguientes propiedades:
 ### SKELETON LOADING
 
 Mientras el primer bloque de 20 anuncios carga:
+
 - Se muestran 3 tarjetas esqueleto apiladas verticalmente, gap 16px
 - Imagen: rectángulo `BG_SURFACE` con shimmer, dimensiones 343×257px
 - Nombre de proyecto: rectángulo redondeado 200×20px, color `BG_SURFACE`
@@ -184,14 +198,17 @@ Mientras el primer bloque de 20 anuncios carga:
 Contenedor con padding horizontal 16px, padding top 16px.
 
 **Título del anuncio:**
+
 - Tipografía H1 (24px / 700), color `TEXT_PRIMARY`
 - Máximo 2 líneas, tercer desborde con ellipsis
 
 **Fila: nombre del proyecto + badge de categoría:**
+
 - **Nombre del proyecto:** Body L (16px / 400), color `SECONDARY` (`#194A8D`), actúa como enlace visual (subrayado sutil) hacia el portafolio público del emprendedor (navegación futura, en v1.0 sin destino activo).
 - **CategoryBadge:** chip `SECONDARY`, texto Badge (12px / 600), `TEXT_PRIMARY`, padding 4px/2px, border-radius 4px. Separado 8px del nombre.
 
 **Nombre del emprendedor:**
+
 - Texto Body S (14px / 400), color `TEXT_SECONDARY`
 - Prefijo: ícono de persona 16×16px en `TEXT_SECONDARY`
 - Valor: `entrepreneur_profiles.display_name`
@@ -257,7 +274,7 @@ Layout: flexbox horizontal, `gap: 24px`, centrado, padding vertical 12px, separa
 
 ### BLOQUE SUPERIOR — LOGO E IDENTIDAD
 
-- **Logo "◉ M":** centrado horizontalmente, tamaño 48px. El símbolo "◉" en `PRIMARY`, la "M" en `TEXT_PRIMARY`. Animación `fade-in` de 300ms al cargar la pantalla (`opacity: 0 → 1`).
+- **Logo de la pagina** icons/icon-512.png.
 - **Tagline:** "El mural emprendedor de tu universidad" — tipografía Body S (14px / 400), color `TEXT_SECONDARY`, centrado, margin-top 8px. Animación `fade-in` con delay 150ms.
 - Espacio vertical entre logo y botones: 40px
 
@@ -448,6 +465,7 @@ Idéntico al campo de matrícula de WF-3.2.2, incluyendo el texto de ayuda, el i
 - Validación de formato en tiempo real: mismo sistema de ícono ✓/✗ que el campo de matrícula
 
 **Nota de privacidad (siempre visible bajo el campo):**
+
 - Contenedor: fondo `BG_CARD`, borde izquierdo 2px sólido `SECONDARY`, border-radius 4px, padding 8px 12px
 - Ícono de candado 14×14px en `SECONDARY`, alineado con el texto
 - Texto: "Tu número solo se usará para generar un enlace de contacto. No se publicará como texto plano." — Caption (12px / 400), `TEXT_SECONDARY`
@@ -560,6 +578,7 @@ Idéntico al campo de matrícula de WF-3.2.2 con checksum en tiempo real.
 ### OPCIONES DE ACCIÓN
 
 **Opción A:**
+
 - Botón: "Iniciar sesión con esta matrícula"
 - Fondo `SECONDARY`, texto `TEXT_PRIMARY`, Button (14px / 600)
 - Alto 48px, ancho 100%, border-radius 12px
@@ -568,6 +587,7 @@ Idéntico al campo de matrícula de WF-3.2.2 con checksum en tiempo real.
 **Separador:** igual que en WF-3.2.1 ("─── o ───")
 
 **Opción B:**
+
 - Botón: "No fui yo, quiero reclamar mi matrícula"
 - Fondo transparente, borde 1px `STATUS_REJECTED`, texto `STATUS_REJECTED`
 - Button (14px / 600), alto 48px, ancho 100%, border-radius 12px
@@ -590,6 +610,7 @@ Idéntico al campo de matrícula de WF-3.2.2 con checksum en tiempo real.
 ### ESTADO POST-CONFIRMACIÓN
 
 Al confirmar el reclamo, la pantalla se reemplaza por:
+
 - Ícono ✓ verde (48×48px, `STATUS_ACTIVE`) centrado
 - Texto principal: "Tu reclamo fue registrado." — H2 (20px / 600), `TEXT_PRIMARY`, centrado
 - Texto secundario: "Un administrador se comunicará contigo vía WhatsApp para resolver el caso." — Body S (14px / 400), `TEXT_SECONDARY`, centrado
@@ -619,6 +640,7 @@ Al confirmar el reclamo, la pantalla se reemplaza por:
 - Padding horizontal 16px al inicio y al final
 
 **Chip "Todos" y chips de categoría:**
+
 - Alto: 32px, padding horizontal 12px
 - Border-radius: 16px (píldora)
 - Separación entre chips: 8px (flexbox gap)
@@ -634,21 +656,25 @@ Al confirmar el reclamo, la pantalla se reemplaza por:
 Misma estructura visual que en WF-3.1.1, con las siguientes diferencias:
 
 **LikeButton (interactivo):**
+
 - **Estado inactivo:** ícono de corazón outline, `TEXT_MUTED`, 20×20px. Contador a la derecha.
 - **Estado activo (liked):** ícono de corazón relleno, `PRIMARY` (`#C4184A`), 20×20px.
 - **Al activar (tap):** animación "pop" — escala del ícono de 1 → 1.35 → 1 en 200ms con `ease-out`. El contador incrementa inmediatamente (optimistic UI).
 - **Al revertir dentro de 5,000 ms:** el sistema registra `is_accidental = true`; no hay indicador visual especial para el usuario (la reversión se trata igual que una reversión normal desde la perspectiva de UX).
 
 **StarRating (interactivo):**
+
 - **Estado sin valorar:** 3 estrellas outline, color `TEXT_MUTED`, 20×20px
 - **Al hacer tap en estrella N:** las estrellas 1 a N se rellenan con `ACCENT`, la N+1 a 3 quedan outline `TEXT_MUTED`. Animación de llenado secuencial: la estrella seleccionada escala 1 → 1.2 → 1 en 200ms.
 - **Si el usuario tiene una valoración activa:** muestra las estrellas correspondientes rellenas en `ACCENT`.
 - El mismo mecanismo de umbral de intención se aplica aquí sin retroalimentación visual especial.
 
 **Botón de contacto WhatsApp:**
+
 - Solo visible para ROL-02 y ROL-03 en la tarjeta de detalle (NO en el feed principal). En el feed solo aparece el botón "Ver detalle".
 
 **Ícono de reporte ⚐:**
+
 - Posición: esquina superior derecha de la tarjeta (sobre la imagen), ícono de bandera outline, 20×20px, color `TEXT_MUTED`, fondo `rgba(0,0,0,0.4)` circular 32×32px.
 - Al tap: abre el Modal de Reporte WF-3.3.2.
 
@@ -678,6 +704,7 @@ Misma estructura visual que en WF-3.1.1, con las siguientes diferencias:
 - Ancho: 375px (ancho completo)
 
 **Handle de arrastre:**
+
 - Rectángulo 40×4px centrado horizontalmente en la parte superior del modal
 - Fondo: `BORDER`
 - Border-radius: 2px
@@ -686,6 +713,7 @@ Misma estructura visual que en WF-3.1.1, con las siguientes diferencias:
 **Título:** "⚐ Reportar este anuncio" — H2 (20px / 600), `TEXT_PRIMARY`, margin-bottom 8px
 
 **Nota de confidencialidad:**
+
 - Contenedor: fondo `rgba(196,24,74,0.1)`, borde izquierdo 2px `PRIMARY`, border-radius 4px, padding 8px 12px
 - Texto: "Tu reporte es confidencial. El emprendedor no sabrá que fuiste tú." — Caption (12px / 400), `TEXT_SECONDARY`
 - Margin-bottom: 20px
@@ -695,6 +723,7 @@ Misma estructura visual que en WF-3.1.1, con las siguientes diferencias:
 ### LISTA DE MOTIVOS (radio buttons)
 
 Cada opción:
+
 - Layout: flexbox horizontal, alineación centrada
 - Alto: 48px, padding horizontal 0, separación entre opciones: 0 (bloque continuo)
 - Separador entre opciones: 1px `BORDER`
@@ -711,12 +740,14 @@ Cada opción:
 ### BOTONES
 
 **"Confirmar reporte":**
+
 - Fondo: `PRIMARY`, texto `TEXT_PRIMARY`, Button (14px / 600)
 - Alto: 52px, ancho: 100%, border-radius: 12px
 - **Deshabilitado** hasta que se seleccione un motivo: fondo `BG_CARD`, texto `TEXT_MUTED`, opacidad 0.5
 - Al activar: fondo `PRIMARY`, sombra `0 4px 12px rgba(196,24,74,0.4)`
 
 **"Cancelar":**
+
 - Fondo: transparente, texto: "Cancelar", Body S (14px / 400), `TEXT_SECONDARY`
 - Margin-top: 12px, centrado
 - Al tap: cierra el modal
@@ -726,6 +757,7 @@ Cada opción:
 ### ESTADO: YA REPORTADO
 
 Si el usuario ya reportó este anuncio, el modal muestra solamente:
+
 - Ícono ✓ verde (32×32px, `STATUS_ACTIVE`) centrado
 - Texto: "Ya enviaste un reporte para este anuncio." — Body S (14px / 400), `TEXT_SECONDARY`, centrado
 - Botón: "Cerrar" — fondo transparente, borde `BORDER`, texto `TEXT_SECONDARY`
@@ -774,22 +806,26 @@ Cada tarjeta de proyecto:
 - Margin-bottom: 12px (gap entre tarjetas)
 
 **Encabezado de tarjeta:**
+
 - Fila: nombre del proyecto (H2, 20px / 600, `TEXT_PRIMARY`) + StatusBadge a la derecha
 - **StatusBadge:**
   - "Activo": fondo `rgba(72,187,120,0.15)`, texto `STATUS_ACTIVE`, Badge (12px / 600), border-radius 4px, padding 3px 8px
   - "Suspendido": fondo `rgba(113,128,150,0.15)`, texto `TEXT_MUTED`, Badge (12px / 600)
 
 **Métricas resumidas:**
+
 - 3 ítems en fila: "N anuncios activos" | "N likes totales" | "★ N promedio"
 - Caption (12px / 400), `TEXT_MUTED`, separados por "·" en `TEXT_MUTED`
 
 **Menú de acciones:**
+
 - Botón "⋯" en la esquina superior derecha de la tarjeta, 24×24px, `TEXT_SECONDARY`
 - Al tap: aparece un bottom sheet con opciones: "✎ Editar proyecto", "⏸ Suspender" / "▶ Reactivar", "🗑 Eliminar"
   - "Eliminar" en `STATUS_REJECTED`
   - Resto en `TEXT_PRIMARY`
 
 **Botones de acción visibles en la tarjeta:**
+
 - Fila inferior de la tarjeta con dos botones:
   - "Ver detalle" — fondo transparente, borde 1px `BORDER`, texto `TEXT_SECONDARY`, Button (14px / 400), ancho 50% - 4px, alto 36px, border-radius 8px. Navega a WF-3.4.2.
   - "Nuevo anuncio" — fondo `SECONDARY`, texto `TEXT_PRIMARY`, Button (14px / 600), ancho 50% - 4px, alto 36px, border-radius 8px. Navega a WF-3.4.3.
@@ -834,6 +870,7 @@ Cada tarjeta de proyecto:
 ### LISTA DE ANUNCIOS ACTIVOS
 
 Cada **AnnouncementRow** (fila de anuncio):
+
 - Layout: flexbox horizontal
 - **Miniatura:** imagen 60×60px, border-radius 8px, object-fit: cover
 - **Info (resto del ancho):**
@@ -963,12 +1000,14 @@ Cada **AnnouncementRow** (fila de anuncio):
 ### LISTA DE NOTIFICACIONES
 
 Cada notificación es una fila:
+
 - Padding 16px horizontal y 12px vertical
 - Separador bottom: 1px `BORDER`
 - **Notificaciones no leídas:** fondo `rgba(196,24,74,0.05)`, punto de color (8×8px, `PRIMARY`) en el extremo derecho
 - **Notificaciones leídas:** fondo transparente
 
 **Ícono de tipo** (izquierda, 32×32px círculo):
+
 - **Aprobado:** fondo `rgba(72,187,120,0.15)`, ícono ✓ `STATUS_ACTIVE`
 - **En revisión:** fondo `rgba(240,192,64,0.15)`, ícono ⏳ `STATUS_PENDING`
 - **Por vencer:** fondo `rgba(240,192,64,0.15)`, ícono ⚠ `ACCENT`
@@ -976,11 +1015,13 @@ Cada notificación es una fila:
 - **Shadowban:** fondo `rgba(196,24,74,0.15)`, ícono ⊘ `PRIMARY`
 
 **Texto:**
+
 - Mensaje principal: Body S (14px / 400), `TEXT_PRIMARY`, 2 líneas máx
 - Timestamp: Caption (12px / 400), `TEXT_MUTED`, en la segunda línea debajo del mensaje
 - **Para notificación "Por vencer":** enlace "Renovar vigencia" al final del mensaje, color `PRIMARY`, peso 600. Tap navega al editor del anuncio con foco en el campo de vigencia.
 
 **Al tocar una notificación:** marca como leída (`PATCH /notifications/:id/read`) y navega según el tipo:
+
 - Aprobado → al anuncio en el feed
 - En revisión → al anuncio en el panel
 - Rechazado → sin navegación (sin enlace activo)
@@ -992,6 +1033,7 @@ Cada notificación es una fila:
 ### ESTADO VACÍO
 
 Si no hay notificaciones:
+
 - Ícono de campanita con tilde (48×48px, `TEXT_MUTED`) centrado
 - Texto: "No tienes notificaciones pendientes." — Body S (14px / 400), `TEXT_MUTED`, centrado
 
@@ -1027,6 +1069,7 @@ Estos casos aparecen primero en la lista, con los siguientes indicadores:
 Fondo `BG_CARD`, border-radius 12px, borde 1px `BORDER`, padding 16px, margin-bottom 12px.
 
 **Encabezado:**
+
 - Fila: tipo de trigger (badge) + timestamp del ingreso a la cola
 - **Badges de trigger:**
   - "Imagen inapropiada (Vision API)": fondo `rgba(229,62,62,0.15)`, texto `STATUS_REJECTED`
@@ -1036,17 +1079,21 @@ Fondo `BG_CARD`, border-radius 12px, borde 1px `BORDER`, padding 16px, margin-bo
   - "Vision API timeout": fondo `rgba(113,128,150,0.15)`, texto `TEXT_MUTED`, con nota "(La IA no pudo analizar)"
 
 **Imagen del anuncio:**
+
 - Miniatura 120×90px, border-radius 8px, object-fit: cover, margin vertical 12px
 
 **Texto del anuncio:**
+
 - Título: Body S (14px / 600), `TEXT_PRIMARY`
 - Descripción: Caption (12px / 400), `TEXT_SECONDARY`, truncada a 2 líneas
 
 **Datos del emprendedor:**
+
 - "Emprendedor: [display_name] · Matrícula: [matrícula] · Proyecto: [nombre]"
 - Caption (12px / 400), `TEXT_MUTED`
 
 **Para trigger tipo "Reporte múltiple":** bloque adicional con motivos agregados:
+
 - Cada motivo como chip: "Contenido ofensivo ×2", "Spam ×1", etc.
 - Chips fondo `BG_SURFACE`, texto Caption, `TEXT_SECONDARY`
 
@@ -1097,6 +1144,7 @@ Fila de 3 botones:
 Dos bloques en fila, cada uno con ancho 159px (343px / 2 - 12px gap).
 
 **Bloque izquierdo — "Imagen nueva":**
+
 - Imagen 159×140px, border-radius 8px, object-fit: cover
 - Debajo: "Nueva", Body S (14px / 600), `TEXT_PRIMARY`
 - Emprendedor: Caption (12px / 400), `TEXT_MUTED`
@@ -1104,6 +1152,7 @@ Dos bloques en fila, cada uno con ancho 159px (343px / 2 - 12px gap).
 - Fecha: Caption (12px / 400), `TEXT_MUTED`
 
 **Bloque derecho — "Imagen existente":**
+
 - Misma estructura visual
 - "Existente", Body S (14px / 600), `TEXT_PRIMARY`
 - Borde del contenedor: 1px sólido `SECONDARY` para diferenciar visualmente
@@ -1113,11 +1162,13 @@ Dos bloques en fila, cada uno con ancho 159px (343px / 2 - 12px gap).
 ### BOTONES CONTEXTUALES
 
 **"✓ Son imágenes diferentes — Aprobar":**
+
 - Fondo `STATUS_ACTIVE`, texto `TEXT_PRIMARY`, Button (14px / 600)
 - Alto: 52px, ancho: 100%, border-radius: 12px
 - Tap: aprueba el anuncio nuevo y navega de regreso a la cola
 
 **"✗ Es la misma imagen — Rechazar":**
+
 - Fondo transparente, borde 1px `STATUS_REJECTED`, texto `STATUS_REJECTED`, Button (14px / 600)
 - Alto: 52px, ancho: 100%, border-radius: 12px
 - Margin-top: 12px
@@ -1156,12 +1207,14 @@ Dos bloques en fila, cada uno con ancho 159px (343px / 2 - 12px gap).
 ### BOTONES
 
 **"⬇ Descargar PNG":**
+
 - Fondo `PRIMARY`, texto `TEXT_PRIMARY`, Button (14px / 600)
 - Alto: 52px, ancho: 100%, border-radius: 12px
 - Descarga un PNG de 512×512px de alta resolución (óptimo para impresión hasta A5)
 - Al activar: spinner blanco mientras el backend genera el PNG (`GET /admin/qr`)
 
 **"🔗 Copiar enlace":**
+
 - Fondo transparente, borde 1px `BORDER`, texto `TEXT_SECONDARY`, Button (14px / 600)
 - Alto: 48px, ancho: 100%, border-radius: 12px, margin-top: 12px
 - Al activar: copia la URL al portapapeles. Toast feedback: "✓ Enlace copiado", fondo `STATUS_ACTIVE`, 2s.
@@ -1173,6 +1226,7 @@ Dos bloques en fila, cada uno con ancho 159px (343px / 2 - 12px gap).
 Contenedor: fondo `rgba(25,74,141,0.15)`, borde izquierdo 2px `SECONDARY`, border-radius 4px, padding 12px 16px.
 
 Texto en Caption (12px / 400), `TEXT_SECONDARY`:
+
 - "Imprime en tamaño A5 o carta para mejor legibilidad."
 - "Plastifica si es posible para mayor durabilidad."
 - "Si la URL de la plataforma cambia, genera un nuevo QR desde esta pantalla."
@@ -1181,27 +1235,27 @@ Texto en Caption (12px / 400), `TEXT_SECONDARY`:
 
 ## RESUMEN DE TRAZABILIDAD WIREFRAME ↔ SRS
 
-| Wireframe | ID | Requisitos SRS |
-|---|---|---|
-| Feed Principal (visitante) | WF-3.1.1 | RF-08, RNF-01, RNF-02 |
-| Detalle de anuncio (visitante) | WF-3.1.2 | RF-10, RF-11, RNF-04 |
-| Pantalla de bienvenida | WF-3.2.1 | RF-01, RF-02 |
-| Registro estudiante | WF-3.2.2 | RF-01, RF-07, RN-01 |
-| Registro emprendedor | WF-3.2.3 | RF-02, RF-39, RNF-17, RN-09 |
-| Login | WF-3.2.4 | RF-03, RF-04, RF-05 |
-| Reclamo de matrícula | WF-3.2.5 | RF-35, RN-02, RN-10 |
-| Feed autenticado con filtros | WF-3.3.1 | RF-08, RF-09, RF-12, RF-13, RF-14 |
-| Modal de reporte | WF-3.3.2 | RF-36, RN-13 |
-| Panel principal emprendedor | WF-3.4.1 | RF-15, RF-17, RF-23, RF-24 |
-| Detalle de proyecto y portafolio | WF-3.4.2 | RF-16, RF-23, RF-24, RN-04 |
-| Crear nuevo anuncio | WF-3.4.3 | RF-19, RF-22, RF-26, RF-27, RF-28, RF-31 |
-| Notificaciones del emprendedor | WF-3.4.4 | RF-25, RF-38 |
-| Cola de moderación (admin) | WF-3.5.1 | RF-29, RF-30, RF-37, RF-38 |
-| Comparativa de imágenes (hash) | WF-3.5.2 | RF-28, RF-29, RF-30, RN-07 |
-| Generador de QR | WF-3.5.3 | RF-34 |
+| Wireframe                        | ID       | Requisitos SRS                           |
+| -------------------------------- | -------- | ---------------------------------------- |
+| Feed Principal (visitante)       | WF-3.1.1 | RF-08, RNF-01, RNF-02                    |
+| Detalle de anuncio (visitante)   | WF-3.1.2 | RF-10, RF-11, RNF-04                     |
+| Pantalla de bienvenida           | WF-3.2.1 | RF-01, RF-02                             |
+| Registro estudiante              | WF-3.2.2 | RF-01, RF-07, RN-01                      |
+| Registro emprendedor             | WF-3.2.3 | RF-02, RF-39, RNF-17, RN-09              |
+| Login                            | WF-3.2.4 | RF-03, RF-04, RF-05                      |
+| Reclamo de matrícula             | WF-3.2.5 | RF-35, RN-02, RN-10                      |
+| Feed autenticado con filtros     | WF-3.3.1 | RF-08, RF-09, RF-12, RF-13, RF-14        |
+| Modal de reporte                 | WF-3.3.2 | RF-36, RN-13                             |
+| Panel principal emprendedor      | WF-3.4.1 | RF-15, RF-17, RF-23, RF-24               |
+| Detalle de proyecto y portafolio | WF-3.4.2 | RF-16, RF-23, RF-24, RN-04               |
+| Crear nuevo anuncio              | WF-3.4.3 | RF-19, RF-22, RF-26, RF-27, RF-28, RF-31 |
+| Notificaciones del emprendedor   | WF-3.4.4 | RF-25, RF-38                             |
+| Cola de moderación (admin)       | WF-3.5.1 | RF-29, RF-30, RF-37, RF-38               |
+| Comparativa de imágenes (hash)   | WF-3.5.2 | RF-28, RF-29, RF-30, RN-07               |
+| Generador de QR                  | WF-3.5.3 | RF-34                                    |
 
 ---
 
-*FIN DEL DOCUMENTO*  
-*Especificación Visual de Wireframes — Mural Maz Lince v1.0*  
-*Elaborado por Miriam Alanis · Abril 2026*
+_FIN DEL DOCUMENTO_  
+_Especificación Visual de Wireframes — Mural Maz Lince v1.0_  
+_Elaborado por Miriam Alanis · Abril 2026_

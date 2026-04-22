@@ -58,4 +58,42 @@
   --z-modal: 400;
   --z-toast: 500;
   --z-notification-dot: 600;
+  /* Uppercase token aliases (compatibility with WF-3) */
+  --BG_BASE: var(--bg-base);
+  --BG_CARD: var(--bg-card);
+  --BG_SURFACE: var(--bg-surface);
+  --PRIMARY: var(--primary);
+  --SECONDARY: var(--secondary);
+  --ACCENT: var(--accent);
+  --TEXT_PRIMARY: var(--text-primary);
+  --TEXT_SECONDARY: var(--text-secondary);
+  --TEXT_MUTED: var(--text-muted);
+  --BORDER: var(--border);
+  --STATUS_ACTIVE: var(--status-active);
+  --STATUS_PENDING: var(--status-pending);
+  --STATUS_REJECTED: var(--status-rejected);
+
+  /* Additional useful aliases */
+  --RADIUS_SM: var(--radius-sm);
+  --RADIUS_MD: var(--radius-md);
+  --RADIUS_LG: var(--radius-lg);
+  --RADIUS_XL: var(--radius-xl);
+  --SPACING_XS: var(--spacing-xs);
+  --SPACING_SM: var(--spacing-sm);
+  --SPACING_MD: var(--spacing-md);
+  --SPACING_LG: var(--spacing-lg);
+  --SPACING_XL: var(--spacing-xl);
+  --SHADOW_CARD: var(--shadow-card);
+  --SHADOW_BUTTON: var(--shadow-button);
+  --SHADOW_MODAL: var(--shadow-modal);
+  --Z_BASE: var(--z-base);
+  --Z_STICKY: var(--z-sticky);
+  --Z_DROPDOWN: var(--z-dropdown);
+  --Z_MODAL_BACKDROP: var(--z-modal-backdrop);
+  --Z_MODAL: var(--z-modal);
+  --Z_TOAST: var(--z-toast);
+  --Z_NOTIFICATION_DOT: var(--z-notification-dot);
+  --TRANSITION_FAST: var(--transition-fast);
+  --TRANSITION_NORMAL: var(--transition-normal);
+  --TRANSITION_SLOW: var(--transition-slow);
 }

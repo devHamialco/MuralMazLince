@@ -1,145 +1,14 @@
----
+### Casos de Prueba Sprint 12
 
-#### STP Sección 1 — Introducción
-
-Este STP describe el plan de pruebas para el Sprint 12 de Mural Maz Lince. Incluye el alcance, la arquitectura de pruebas, el entorno y los criterios de entrada/salida por fase.
-
-Alcance declarado: pruebas de backend (Node.js/Express), pruebas de integracion de la API REST, pruebas de seguridad sobre la proteccion del numero WhatsApp, prueba de compresion client-side y prueba de persistencia de imagenes.
-
-Fuera del alcance del Sprint 12: pruebas end-to-end de flujos completos de usuario (esas van en Sprint 13), pruebas de responsividad visual y compatibilidad de navegadores (Sprint 13).
-
----
-
-#### STP Sección 2 — Estrategia de pruebas
-
-Documentar tres niveles de prueba y la herramienta para cada uno:
-
-**Nivel 1 — Pruebas unitarias puras**
-- Herramienta: Jest con `--coverage`
-- Objetivo: verificar que cada funcion pura del backend produce el output correcto dado un input específico, en aislamiento total (sin base de datos, sin red, sin servicios externos).
-- Módulos bajo cobertura 100%: `utils/checksum.js`, `utils/dhash.js` (incluye `hammingDistance`), `services/whatsappLinkService.js`, logica del umbral de intencion en `services/interactionService.js`.
-- Módulos bajo cobertura general ≥ 70%: todos los demas archivos de `controllers/`, `services/`, `middleware/`.
-
-**Nivel 2 — Pruebas de integracion de API**
-- Herramienta: Jest + Supertest
-- Objetivo: verificar que cada endpoint de la API REST devuelve el status HTTP correcto y el body JSON esperado ante inputs controlados, usando una base de datos PostgreSQL de prueba real (no mocks de BD).
-- Entorno requerido: base de datos de test dedicada con el esquema aplicado y seeds de datos de prueba.
-
-**Nivel 3 — Pruebas de seguridad y comportamiento del sistema**
-- Herramienta: scripts Node.js personalizados + Jest
-- Objetivo: verificar propiedades de seguridad (WhatsApp no expuesto), limites de payload (compresion), y comportamiento del sistema ante condiciones de umbral (shadowban).
-
----
-
-#### STP Sección 3 — Entorno de pruebas
-
-Especificar exactamente la configuración necesaria para reproducir las pruebas:
-
-```
-# .env.test (a crear en la raiz del proyecto, NUNCA commitear a Git)
-NODE_ENV=test
-DATABASE_URL=postgresql://localhost:5432/mural_lince_test
-JWT_SECRET=test-secret-key-only-for-testing
-CLOUDINARY_CLOUD_NAME=[valor real de staging]
-CLOUDINARY_API_KEY=[valor real de staging]
-CLOUDINARY_API_SECRET=[valor real de staging]
-GOOGLE_CLOUD_VISION_KEY=[valor real de staging]
-HASH_SIMILARITY_THRESHOLD=10
-INTENT_THRESHOLD_MS=5000
-REPORT_ALERT_THRESHOLD=3
-REPORT_SHADOWBAN_THRESHOLD=5
-REPORT_SHADOWBAN_HOURS=12
-REPORT_SHADOWBAN_MAX_HOURS=48
-```
-
-El entorno de pruebas usa una base de datos PostgreSQL separada (`mural_lince_test`), nunca la base de datos de produccion o staging. Antes de cada suite de integracion se ejecuta un script de reset que aplica el schema y los seeds necesarios para ese suite.
-
----
-
-#### STP Sección 4 — Criterios de entrada y salida por fase
-
-Esta sección es la mas importante del STP desde la perspectiva de gestion. Define cuando se puede empezar y cuando se puede terminar cada fase.
-
-**FASE A — Pruebas unitarias**
-
-| Campo | Criterio |
-|---|---|
-| Criterio de entrada | Sprint 11 marcado como Done. Rama `main` con todos los tests de sprints anteriores en verde. Base de datos de test provisionada. |
-| Criterio de salida | Cobertura Jest ≥ 70% general reportada por `--coverage`. Cobertura 100% en los 4 módulos críticos. Cero tests en estado FAIL. |
-| Condicion de bloqueo | Si algún modulo crítico no alcanza 100%, el sprint no avanza a Fase B hasta que se corrija el código o el test. |
-
-**FASE B — Pruebas de integracion de API**
-
-| Campo | Criterio |
-|---|---|
-| Criterio de entrada | Fase A completada. Todos los endpoints documentados en la Sección 4 del DDC existiendo en el código. |
-| Criterio de salida | 100% de los casos de prueba de integracion ejecutados. Todos en estado PASS o con defecto registrado en el STD. |
-| Condicion de bloqueo | Si un endpoint crítico (autenticacion, publicacion de anuncio, moderacion) devuelve status incorrecto: bloqueo hasta correccion. |
-
-**FASE C — Pruebas de seguridad y sistema**
-
-| Campo | Criterio |
-|---|---|
-| Criterio de entrada | Fases A y B completadas. |
-| Criterio de salida | Prueba WhatsApp: 0 ocurrencias en texto plano. Prueba compresion: 0 archivos fuera de límite. Prueba shadowban: comportamiento correcto en 100% de escenarios. |
-| Condicion de bloqueo | Cualquier resultado positivo en la prueba de WhatsApp es un defecto SEV-1 que bloquea el sprint. |
-
----
-
-#### STP Sección 5 — Definicion de severidades de defectos
-
-Esta taxonomia se usara en el STD. Todo defecto encontrado se clasifica en una de estas categorias:
-
-**SEV-1 | Crítico — Bloquea el sprint**
-El sistema tiene un fallo de seguridad, de integridad de datos o de correccion de logica de negocio que hace que el sistema no pueda operar de forma confiable. El sprint no cierra hasta que se resuelva.
-
-Ejemplos concretos en este proyecto:
-- El numero de WhatsApp aparece como texto plano en cualquier respuesta de la API.
-- El registro de emprendedor crea solo el registro en `users` pero no en `entrepreneur_profiles` (transaccion atomica rota).
-- El pipeline de moderacion aprueba automaticamente imagenes que Vision API marcaria como LIKELY adult.
-- El checksum acepta una matricula con formato invalido.
-
-**SEV-2 | Mayor — Debe resolverse antes del Sprint 14**
-Una funcionalidad principal no se comporta como especifica el SRS, pero el sistema sigue siendo operativo en sus demas funciones. Se registra en el STD con solucion pendiente antes del despliegue a produccion.
-
-Ejemplos: el umbral de intencion calcula la ventana de 5 segundos con un error de +-200ms. El limite de 5 proyectos activos permite crear el sexto en lugar de retornar HTTP 409. La paginacion por cursor devuelve un anuncio duplicado al pasar de pagina.
-
-**SEV-3 | Menor — Se resuelve antes del cierre**
-Un comportamiento incorrecto que no afecta una funcionalidad principal. Puede resolverse en el Sprint 13 sin bloquear el avance.
-
-Ejemplos: el mensaje de error de contrasena incorrecta dice "matricula no encontrada" en lugar de "contrasena incorrecta". Un timestamp en notificaciones se muestra en UTC en lugar de hora local.
-
-**SEV-4 | Observacion — Registro informativo**
-Algo que no es un bug pero que deberia mejorar en una version futura. No bloquea nada.
-
-Ejemplos: el endpoint `GET /announcements` tarda 800ms en devolver los primeros 20 anuncios cuando hay 500 en la base de datos (dentro del limite de RNF-01 pero se puede optimizar). El log de Winston registra demasiada informacion en nivel DEBUG en produccion.
-
----
-
-### Criterio de aprobacion de la Tarea 1
-
-- El documento `/docs/STP.md` existe en el repositorio con las 5 secciones descritas arriba, completas y sin secciones vacias.
-- El STP es autocontenido: cualquier persona nueva en el proyecto puede leerlo y saber exactamente que ejecutar, en que orden y como interpretar los resultados.
-- La Seccion 4 tiene exactamente tres fases con criterios de entrada y salida verificables (no ambiguos).
-- La Seccion 5 tiene exactamente 4 niveles de severidad con al menos 2 ejemplos concretos del proyecto por nivel.
-
----
-
-## TAREA 2 — Diseñar los casos de prueba para todos los modulos criticos
-
-### Principio de diseño
-
-Cada caso de prueba tiene: un identificador unico, la precondicion exacta, el input exacto, el output esperado y la referencia al SRS que justifica ese comportamiento esperado. No hay casos de prueba vagos como "verificar que funciona".
-
-El archivo de destino de esta tarea es `/docs/casos_prueba_sprint12.md`, que alimentara el STD definitivo del Sprint 13.
+Este documento contiene los casos de prueba por modulo critico, siguiendo el plan detallado en el Sprint 12. Cada caso incluye ID, Descripcion, Input/Precondicion, Output Esperado y Referencia al SRS.
 
 ---
 
 ### 2.1 — Modulo checksum de matricula
 
-**Archivo a probar:** `utils/checksum.js` → funcion `isValidMatricula(str)`
+**Archivo a probar:** `utils/checksum.js` → función `isValidMatricula(str)`
 
-La funcion es una funcion pura: recibe un string, devuelve `true` o `false`. Esto hace que sus tests sean completamente deterministas.
+La función es una función pura: recibe un string, devuelve `true` o `false`. Esto hace que sus tests sean completamente deterministas.
 
 **Referencia SRS:** RN-01
 
@@ -155,7 +24,7 @@ La funcion es una funcion pura: recibe un string, devuelve `true` o `false`. Est
 | TC-CS-08 | Contiene letras intercaladas | `"2024A001"` | `false` |
 | TC-CS-09 | Contiene espacios al inicio | `" 2024001"` | `false` |
 | TC-CS-10 | Contiene espacios al final | `"20240001 "` | `false` |
-| TC-CS-11 | Cadena vacía | `""` | `false` |
+| TC-CS-11 | Cadena vacia | `""` | `false` |
 | TC-CS-12 | `null` | `null` | `false` |
 | TC-CS-13 | `undefined` | `undefined` | `false` |
 | TC-CS-14 | Número (no string) | `20240001` | `false` |
@@ -205,7 +74,7 @@ describe('isValidMatricula', () => {
 
 **Referencia SRS:** RF-28, RN-07, RN-05 del SAD (ADR-02)
 
-#### Preparación del fixture de imagenes
+#### Preparación del fixture de imágenes
 
 Antes de escribir los tests, crear el directorio `tests/fixtures/images/` con los siguientes archivos:
 
@@ -247,12 +116,12 @@ Importante: Los fixtures `similar_theme_1.jpg` y `similar_theme_2.jpg` son el ca
 
 La logica es: `(reverted_at - created_at) < INTENT_THRESHOLD_MS` → `is_accidental = true`
 
-| ID | Descripción | created_at | reverted_at | THRESHOLD | Output esperado |
+| ID | Descripcion | created_at | reverted_at | THRESHOLD | Output esperado |
 |---|---|---|---|---|---|
 | TC-IT-01 | Reversion a los 4,999 ms (dentro del umbral) | T | T + 4999ms | 5000 | `is_accidental: true` |
-| TC-IT-02 | Reversion exactamente a los 5,000 ms (en el límite) | T | T + 5000ms | 5000 | `is_accidental: false` |
+| TC-IT-02 | Reversion exactamente a los 5,000 ms (en el limite) | T | T + 5000ms | 5000 | `is_accidental: false` |
 | TC-IT-03 | Reversion a los 5,001 ms (fuera del umbral) | T | T + 5001ms | 5000 | `is_accidental: false` |
-| TC-IT-04 | Reversion a los 100 ms (tap accidental rápido) | T | T + 100ms | 5000 | `is_accidental: true` |
+| TC-IT-04 | Reversion a los 100 ms (tap accidental rapido) | T | T + 100ms | 5000 | `is_accidental: true` |
 | TC-IT-05 | No hay reversión (`reverted_at` es null) | T | null | 5000 | `is_accidental: false` |
 | TC-IT-06 | Reversion a los 10 segundos | T | T + 10000ms | 5000 | `is_accidental: false` |
 | TC-IT-07 | Umbral parametrizado a 3000ms, reversión a 4000ms | T | T + 4000ms | 3000 | `is_accidental: false` |
@@ -269,10 +138,10 @@ Criterio de aprobacion TC-IT: Los 7 casos pasan. Cobertura 100% en la funcion qu
 
 **Referencia SRS:** RF-11, RN-09
 
-| ID | Descripción | Input | Output esperado |
+| ID | Descripcion | Input | Output esperado |
 |---|---|---|---|
 | TC-WA-01 | Numero mexicano formato +52 | `"+5216691234567"` | `"https://wa.me/5216691234567"` |
-| TC-WA-02 | El resultado NO contiene el numero en texto aislado | `"+5216691234567"` | `!result.includes('\n')` y el numero solo aparece como parte de la URL |
+| TC-WA-02 | El resultado NO contiene el numero en texto aislado | `"+5216691234567"` | `!result.includes('\\n')` y el numero solo aparece como parte de la URL |
 | TC-WA-03 | Numero con formato distinto (sin +) | `"5216691234567"` | URL valida wa.me |
 | TC-WA-04 | La funcion devuelve solo la URL, sin campos extra | `"+5216691234567"` | `typeof result === 'string'` |
 
@@ -280,13 +149,13 @@ Criterio de aprobacion TC-WA: Los 4 casos pasan. Cobertura 100%.
 
 ---
 
-### 2.5 — Compresion y validacion de imagen
+### 2.5 — Compresión y validacion de imagen
 
 Contexto: estos tests son de integracion parcial. Prueban que el middleware del backend rechaza imagenes fuera de limite (segunda linea de defensa, RF-31).
 
 Los tests unitarios de la compresion client-side no son posibles en Jest (browser-image-compression corre en el navegador). Para esa parte, la verificacion se hace en la Tarea 6 (ejecucion manual).
 
-| ID | Descripción | Condicion | Output esperado |
+| ID | Descripcion | Condicion | Output esperado |
 |---|---|---|---|
 | TC-CM-01 | Imagen de 400 KB → aceptada | POST /announcements con imagen 400KB | HTTP 201 o 202 |
 | TC-CM-02 | Imagen de 501 KB → rechazada | POST /announcements con imagen 501KB | 413 |
@@ -315,10 +184,10 @@ Criterio de aprobacion TC-CM: Los 5 casos de integracion pasan.
 
 Este caso es una prueba de sistema, no una prueba unitaria. Se ejecuta en entorno de staging.
 
-| ID | Descripción | Pasos | Output esperado |
+| ID | Descripcion | Pasos | Output esperado |
 |---|---|---|---|
 | TC-PS-01 | Imagen disponible tras reinicio del servidor | 1) Publicar anuncio con imagen. 2) Guardar la `cloudinary_url` devuelta. 3) Ejecutar redeploy en Railway staging. 4) Hacer GET a la `cloudinary_url` directamente. | HTTP 200 con la imagen original. La URL sigue siendo valida. |
-| TC-PS-02 | Eliminación correcta al borrar anuncio | 1) Publicar anuncio. 2) Guardar `cloudinary_id`. 3) Eliminar el anuncio (DELETE /announcements/:id). 4) Intentar acceder a la URL de Cloudinary. | HTTP 404 desde Cloudinary. El `cloudinary_id` no existe en la cuenta. |
+| TC-PS-02 | Eliminacion correcta al borrar anuncio | 1) Publicar anuncio. 2) Guardar `cloudinary_id`. 3) Eliminar el anuncio (DELETE /announcements/:id). 4) Intentar acceder a la URL de Cloudinary. | HTTP 404 desde Cloudinary. El `cloudinary_id` no existe en la cuenta. |
 
 Criterio de aprobacion TC-PS: Ambos casos ejecutados con evidencia (captura de pantalla o log del resultado HTTP).
 
@@ -359,6 +228,7 @@ Criterio de aprobacion TC-SB: Los 7 casos ejecutados y documentados.
 
 ---
 ## TAREA 3 — Ejecutar la suite completa de pruebas unitarias (Jest)
+### Configuracion de Jest para este proyecto
 ...
 
-(Contenido extendido omitido para brevedad; se mantiene el plan original en el repo.)
+(Este documento continúa con las secciones 3 a 7 tal como se describen en el plan original.)

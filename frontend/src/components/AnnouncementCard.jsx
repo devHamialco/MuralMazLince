@@ -18,6 +18,7 @@ export default function AnnouncementCard({
   isAuthenticated = false,
   showStatus = false,
   onInteractionAttempt,
+  // WF-3.x: document props for clarity
 }) {
   const {
     id,

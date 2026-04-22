@@ -524,13 +524,13 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
 
 #### SPRINT 11
 
-- [ ] Inicializar el proyecto React (Create React App o Vite) e instalar dependencias: Bootstrap 5, browser-image-compression
-- [ ] Configurar las variables de entorno del frontend (.env con REACT_APP_API_URL apuntando al backend en Railway)
-- [ ] Implementar el sistema de diseño base:
+- [x] Inicializar el proyecto React (Create React App o Vite) e instalar dependencias: Bootstrap 5, browser-image-compression
+- [x] Configurar las variables de entorno del frontend (.env con REACT_APP_API_URL apuntando al backend en Railway)
+- [x] Implementar el sistema de diseño base:
       · Variables CSS con los tokens de color (BG_BASE, PRIMARY, ACCENT, etc.)
       · Configuración del tema oscuro global
       · Importar fuente Inter desde Google Fonts
-- [ ] Implementar los componentes reutilizables:
+- [x] Implementar los componentes reutilizables:
       · AnnouncementCard (tarjeta del feed con imagen, título, categoría, likes, rating, nombre del emprendedor desde display_name)
       · CategoryBadge (chip de categoría con color por grupo)
       · StarRating (3 estrellas interactivas + modo solo lectura)
@@ -540,41 +540,41 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · ImageUploader (zona de drag/tap, compresión con browser-image-compression, barra de progreso, preview)
       · ReportModal (lista de motivos, confirmación, manejo de reporte duplicado)
       · ToastNotification (feedback flotante de acciones)
-- [ ] Implementar WF-3.1.1: Feed Principal
+- [x] Implementar WF-3.1.1: Feed Principal
       · Scroll infinito con paginación por cursor (llamada al API al llegar al 80% del scroll para cargar el bloque siguiente)
       · Skeleton loading mientras carga
       · En modo visitante: StarRating y LikeButton en modo readonly con tooltip "Regístrate para valorar"
-- [ ] Implementar WF-3.1.2: Detalle de Anuncio
+- [x] Implementar WF-3.1.2: Detalle de Anuncio
       · Vista completa con imagen, descripción, enlace [wa.me](http://wa.me/) (solo para usuarios autenticados), botón de reporte (oculto para ROL-01)
-- [ ] Implementar WF-3.2.x: Flujos de autenticación
+- [x] Implementar WF-3.2.x: Flujos de autenticación
       · Pantalla de bienvenida con selección de tipo
       · Registro como estudiante (checksum en tiempo real)
       · Registro como emprendedor (campo display_name obligatorio con filtro bad-words al perder el foco, checkbox de aviso de privacidad obligatorio)
       · Inicio de sesión (contraseña opcional, manejo de cuenta suspendida)
       · Flujo de reclamo de matrícula
-- [ ] Implementar WF-3.3.1: Feed autenticado con filtros
+- [x] Implementar WF-3.3.1: Feed autenticado con filtros
       · Chips de categoría en scroll horizontal bajo la NavBar
       · LikeButton y StarRating interactivos con lógica del umbral de intención (registra timestamp de cada acción; si el mismo usuario la revierte en menos de 5 segundos, la marca como accidental sin feedback visual especial)
-- [ ] Implementar WF-3.3.2: Modal de reporte de anuncio
-- [ ] Implementar WF-3.4.x: Panel completo del emprendedor
+- [x] Implementar WF-3.3.2: Modal de reporte de anuncio
+- [x] Implementar WF-3.4.x: Panel completo del emprendedor
       · WF-3.4.1: Panel principal (lista de proyectos, contadores, acciones)
       · WF-3.4.2: Detalle de proyecto con anuncios, portafolio e historial
       · WF-3.4.3: Formulario de creación de anuncio con ImageUploader y selector de vigencia
       · WF-3.4.4: Panel de notificaciones con los 5 tipos de mensaje
-- [ ] Implementar WF-3.5.x: Panel de administrador
+- [x] Implementar WF-3.5.x: Panel de administrador
       · WF-3.5.1: Cola de moderación ordenada por urgencia con badge pulsante para anuncios en alerta de urgencia (RF-37)
       · WF-3.5.2: Vista de comparativa lado a lado para casos de hashing
       · WF-3.5.3: Generador de QR con botón de descarga PNG
-- [ ] Configurar el manifest.json para PWA:
+- [x] Configurar el manifest.json para PWA:
       · name: "Mural Maz Lince", íconos en múltiples resoluciones, theme_color: #961749, display: "standalone"
-- [ ] Configurar el Service Worker:
+- [x] Configurar el Service Worker:
       · Cache-First para recursos estáticos (HTML, CSS, JS, íconos)
       · Network-First para todas las llamadas a la API del feed
       · Fallback de feed cacheado cuando no hay conexión
-- [ ] Integrar el frontend con todos los endpoints del backend en Railway y verificar que todos los flujos funcionan en producción
-- [ ] Elaborar la documentación del código fuente (JSDoc en funciones clave de los módulos críticos: checksum, dHash, moderación, métricas)
-- [ ] Poblar el Sprint 11 en Jira
-- [ ] HITO-08: Frontend completo e integrado
+- [x] Integrar el frontend con todos los endpoints del backend en Railway y verificar que todos los flujos funcionan en producción
+- [x] Elaborar la documentación del código fuente (JSDoc en funciones clave de los módulos críticos: checksum, dHash, moderación, métricas)
+- [x] Poblar el Sprint 11 en Jira
+- [x] HITO-08: Frontend completo e integrado
 
 ### EPICA 5 - TESTING
 

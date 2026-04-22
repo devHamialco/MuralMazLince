@@ -163,16 +163,9 @@ export default function Register() {
         }}
       >
         {/* Logo */}
-        <div className="fade-in" style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
-          <span style={{ fontSize: '48px' }}>
-            <span style={{ color: 'var(--primary)' }}>◉</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}> M</span>
-          </span>
-        </div>
-        
-        <p className="body-sm text-secondary fade-in" style={{ marginBottom: '40px', animationDelay: '150ms' }}>
-          El mural emprendedor de tu universidad
-        </p>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+          <img src="/icons/icon-512.png" alt="Mural Maz Lince" style={{ width: '150px', height: '150px', objectFit: 'cover', marginBottom: '100px' }} />
+        </Link>
 
         {/* Botón explorar sin cuenta */}
         <Link

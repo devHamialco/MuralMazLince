@@ -99,11 +99,12 @@ export default function Feed() {
     
     const observer = new IntersectionObserver(
       (entries) => {
+        // Cargar más cuando llegue al 80% del scroll (WF-3.1.1)
         if (entries[0].isIntersecting && !loadingMore && hasMore) {
           loadAnnouncements(cursor, selectedCategory);
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.8 }
     );
     
     if (loadMoreRef.current) {
