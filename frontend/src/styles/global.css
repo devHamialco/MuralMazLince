@@ -24,7 +24,7 @@ body {
   min-height: 100vh;
 }
 
-# Ensure full height coverage on root elements for dark theme
+/* Ensure full height coverage on root elements for dark theme */
 html, #root {
   height: 100%;
 }

@@ -1,5 +1,22 @@
+/**
+ * @fileoverview AnnouncementCard — Tarjeta del feed principal (T15, implementacion-11.md)
+ *
+ * Renderiza un anuncio con imagen, título, nombre del emprendedor (display_name,
+ * nunca el número de WhatsApp), métricas de likes / estrellas y acciones
+ * contextuales según el rol del usuario (SRS RN-09, PRINC-02).
+ *
+ * Modos:
+ *   - Visitante (ROL-01)     : LikeButton y StarRating en readonly; boton de reporte oculto.
+ *   - Autenticado (ROL-02/03): Interacciones activas; botón de reporte visible.
+ *   - Panel emprendedor      : `showStatus=true` muestra StatusBadge sobre la imagen.
+ *
+ * Soporta estado skeleton: cuando `announcement` no contiene datos, el componente
+ * puede recibir props sin crashes gracias a los valores por defecto.
+ *
+ * Referencia: SRS RF-08, RF-09, RF-12, RF-13, RN-09, wireframes-spec WF-3.1.1
+ */
+
 /* AnnouncementCard -wireframes-spec.md WF-3.1.1 */
-/* Referencia: DDC 2.5, wireframes-spec.md */
 
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
@@ -9,6 +26,30 @@ import StarRating from './StarRating';
 import LikeButton from './LikeButton';
 import StatusBadge from './StatusBadge';
 
+/**
+ * Tarjeta de anuncio para el feed y el panel del emprendedor.
+ *
+ * @param {object}    props
+ * @param {object}    props.announcement              - Datos del anuncio desde la API.
+ * @param {number|string} props.announcement.id       - ID único del anuncio.
+ * @param {string}    [props.announcement.image_url]  - URL Cloudinary de la imagen. Puede ser null durante carga.
+ * @param {string}    props.announcement.title        - Título del anuncio (truncado a 2 líneas).
+ * @param {string}    [props.announcement.project_name] - Nombre del proyecto padre.
+ * @param {string}    props.announcement.category     - Código de categoría (para CategoryBadge).
+ * @param {string}    [props.announcement.display_name] - Nombre público del emprendedor.
+ * @param {string}    [props.announcement.description]  - Descripción truncada a 2 líneas.
+ * @param {number}    [props.announcement.likes_count=0] - Likes activos (excluyendo accidentales y revertidos).
+ * @param {number}    [props.announcement.average_rating] - Promedio de estrellas válidas.
+ * @param {string}    [props.announcement.status]     - Estado del anuncio (para StatusBadge).
+ * @param {string}    [props.announcement.created_at] - Timestamp ISO 8601 de creación.
+ * @param {Function}  [props.onLike]                  - Callback `(announcementId) => void` al dar/quitar like.
+ * @param {Function}  [props.onReport]                - Callback `(announcementId) => void` al abrir el modal de reporte.
+ * @param {boolean}   [props.userLiked=false]         - Si el usuario actual ya le dio like.
+ * @param {number}    [props.userRating=0]            - Valoración actual del usuario (1-3 o 0 si no valoró).
+ * @param {boolean}   [props.isAuthenticated=false]   - Si hay sesión activa. Controla readonly de interacciones.
+ * @param {boolean}   [props.showStatus=false]        - Si `true`, muestra StatusBadge sobre la imagen (panel emprendedor).
+ * @param {Function}  [props.onInteractionAttempt]    - Callback `() => void` llamado cuando un visitante intenta interactuar.
+ */
 export default function AnnouncementCard({
   announcement,
   onLike,
@@ -34,6 +75,13 @@ export default function AnnouncementCard({
     created_at,
   } = announcement;
 
+  /**
+   * Formatea un timestamp ISO 8601 como texto relativo legible en español.
+   * Usa convenciones móviles: “ahora” < 1 min, “hace Xm” < 1h, “hace Xh” < 24h, etc.
+   *
+   * @param   {string|Date} date - Timestamp válido.
+   * @returns {string} Texto relativo. Ejemplo: “hace 3h”, “hace 2d”, “23/04”.
+   */
   const formatTimeAgo = (date) => {
     const now = new Date();
     const then = new Date(date);
@@ -49,6 +97,15 @@ export default function AnnouncementCard({
     return then.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
   };
 
+  /**
+   * Maneja intentos de interacción por parte de un visitante no autenticado.
+   * Si el usuario no está autenticado, previene el evento por defecto y llama
+   * a `onInteractionAttempt` para mostrar el tooltip / modal de registro.
+   * Si está autenticado, ejecuta la acción recibida.
+   *
+   * @param {React.SyntheticEvent} e      - Evento del DOM a interceptar.
+   * @param {Function}             [action] - Función a ejecutar si autenticado.
+   */
   const handleInteraction = (e, action) => {
     if (!isAuthenticated) {
       e.preventDefault();

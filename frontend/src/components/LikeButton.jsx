@@ -1,16 +1,44 @@
-/* LikeButton - wireframes-spec.md WF-3.3.1 */
-/* Referencia: DDC 2.5, wireframes-spec.md */
+/**
+ * @fileoverview LikeButton — Toggle de like con animación y contador (T15, implementacion-11.md)
+ *
+ * Comportamiento:
+ *   - Modo interactivo (ROL-02/ROL-03): toggle activo/inactivo con animación pop.
+ *   - Modo readonly (ROL-01 visitante): botón deshabilitado con tooltip.
+ *
+ * Lógica de umbral de intención:
+ *   El timestamp de cada acción (like / unlike) se registra en el
+ *   componente padre o en el store para que el backend pueda determinar si
+ *   la acción fue accidental (RFC-14, ventana < 5000 ms).
+ *
+ * Referencia: SRS RF-12, RF-14, RN-08, wireframes-spec WF-3.3.1
+ */
 
 import PropTypes from 'prop-types';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 
-export default function LikeButton({ 
+/**
+ * Botón de like con contador y animación de pop.
+ *
+ * @param {object}   props
+ * @param {boolean}  [props.liked=false]    - Si el usuario ya dio like.
+ * @param {number}   [props.count=0]        - Número total de likes activos (no revertidos ni accidentales).
+ * @param {Function} [props.onClick]        - Callback `() => void` al hacer click en modo interactivo.
+ * @param {boolean}  [props.disabled=false] - Si `true`, no dispara onClick y muestra tooltip de registro.
+ * @param {number}   [props.size=20]        - Tamaño del ícono en px.
+ */
+export default function LikeButton({
   liked = false, 
   count = 0, 
   onClick, 
   disabled = false,
   size = 20,
 }) {
+  /**
+   * Gestiona el click previniendo propagación al contenedor padre.
+   * No invoca `onClick` si el componente está deshabilitado.
+   *
+   * @param {React.MouseEvent} e
+   */
   const handleClick = (e) => {
     e.stopPropagation();
     if (!disabled && onClick) {

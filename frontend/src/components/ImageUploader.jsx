@@ -1,5 +1,20 @@
-/* ImageUploader - wireframes-spec.md WF-3.4.3 */
-/* Referencia: DDC 2.5, wireframes-spec.md */
+/**
+ * @fileoverview ImageUploader — Zona de subida con compresión y preview (T15, implementacion-11.md)
+ *
+ * Flujo:
+ *   1. El usuario arrastra o toca para seleccionar una imagen.
+ *   2. Se valida tipo (JPEG/PNG) y tamaño máximo (10 MB antes de comprimir).
+ *   3. `browser-image-compression` reduce el archivo a MAX_SIZE_MB con barra de progreso.
+ *   4. Se genera un preview local en base64.
+ *   5. `onImageChange(compressedFile, base64Preview)` notifica al padre para enviar al backend.
+ *
+ * Límites actuales (descubiertos en el repositorio — regla 1 del sprint: no hardcodear):
+ *   - MAX_SIZE_MB         = 0.5  (500 KB target post-compresión)
+ *   - MAX_WIDTH_OR_HEIGHT = 1200 px
+ *   - Formatos aceptados  = image/jpeg, image/png
+ *
+ * Referencia: SRS RNF-04, DDC 2.5, wireframes-spec WF-3.4.3
+ */
 
 import { useState, useRef, useCallback } from 'react';
 import PropTypes from 'prop-types';
@@ -9,6 +24,16 @@ import { FiImage, FiX } from 'react-icons/fi';
 const MAX_SIZE_MB = 0.5;
 const MAX_WIDTH_OR_HEIGHT = 1200;
 
+/**
+ * Componente de subida de imagen con drag-and-drop, compresión automática y preview local.
+ *
+ * @param {object}        props
+ * @param {Function}      [props.onImageChange]  - Callback `(file: File, preview: string) => void`
+ *                                                 llamado cuando la imagen es seleccionada y comprimida.
+ *                                                 Si el usuario limpia, se llama con `(null, null)`.
+ * @param {string}        [props.initialImage]   - URL de imagen preexistente para mostrar como preview inicial.
+ * @param {boolean}       [props.disabled=false] - Si `true`, deshabilita interacción y cursor.
+ */
 export default function ImageUploader({ onImageChange, initialImage, disabled = false }) {
   const [preview, setPreview] = useState(initialImage || null);
   const [state, setState] = useState('idle'); // idle, compressing, uploading, error
@@ -16,6 +41,14 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
 
+  /**
+   * Comprime el archivo usando `browser-image-compression` y emite el resultado.
+   * Actualiza el estado de progreso (0-100) durante el proceso.
+   *
+   * @param   {File}           file - Archivo de imagen ya validado.
+   * @returns {Promise<File|null>}   Archivo comprimido o `null` si falla.
+   * @sideeffects Actualiza `state` ('compressing' | 'idle' | 'error'), `progress` y `preview`.
+   */
   const compressImage = useCallback(async (file) => {
     try {
       setError(null);
@@ -53,6 +86,13 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
     }
   }, [onImageChange]);
 
+  /**
+   * Maneja la selección de archivos desde el input nativo.
+   * Valida tipo y tamaño máximo (10 MB) antes de comprimir.
+   *
+   * @param   {React.ChangeEvent<HTMLInputElement>} e
+   * @returns {Promise<void>}
+   */
   const handleFileSelect = useCallback(async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -72,6 +112,13 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
     await compressImage(file);
   }, [compressImage]);
 
+  /**
+   * Maneja el evento `drop` de drag-and-drop.
+   * Solo procesa el primer archivo soltado si es una imagen válida.
+   *
+   * @param   {React.DragEvent} e
+   * @returns {Promise<void>}
+   */
   const handleDrop = useCallback(async (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -88,6 +135,13 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
     e.stopPropagation();
   }, []);
 
+  /**
+   * Limpia el estado del componente y notifica al padre con `(null, null)`.
+   * Resetea el input file para permitir re-seleccionar el mismo archivo.
+   *
+   * @param   {React.MouseEvent} e
+   * @returns {void}
+   */
   const handleClear = useCallback((e) => {
     e.stopPropagation();
     setPreview(null);

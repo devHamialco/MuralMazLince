@@ -1,21 +1,55 @@
-/* StarRating - wireframes-spec.md WF-3.3.1 */
-/* Referencia: DDC 2.5, wireframes-spec.md */
+/**
+ * @fileoverview StarRating — Componente de valoración de 1 a 3 estrellas (T15, implementacion-11.md)
+ *
+ * Escala: 1, 2 o 3 estrellas (SAD §6.2, RF-13). No se usa la escala clásica de 5.
+ *
+ * Modos:
+ *   - Interactivo (ROL-02/ROL-03): el usuario puede seleccionar su valoración.
+ *   - Readonly   (ROL-01 visitante): solo visualización del promedio; no dispara mutación.
+ *
+ * Accesibilidad:
+ *   - En modo readonly: `role="img"` con aria-label descriptivo.
+ *   - En modo interactivo: `role="radiogroup"` con botones ARIA-pressed por estrella.
+ *
+ * Referencia: SRS RF-13, RN-08, wireframes-spec WF-3.3.1
+ */
 
 import PropTypes from 'prop-types';
 import { FaStar } from 'react-icons/fa';
 
+/**
+ * Valoración visual de 3 estrellas, interactiva o readonly.
+ *
+ * @param {object}   props
+ * @param {number}   [props.value=0]       - Valoración actual (1-3) o promedio para modo lectura.
+ * @param {Function} [props.onChange]      - Callback `(rating: number) => void`; solo en modo interactivo.
+ * @param {boolean}  [props.readonly=false]- Si `true`, no permite selección y usa role="img".
+ * @param {number}   [props.size=16]       - Tamaño del ícono de estrella en px.
+ */
 export default function StarRating({ 
   value = 0, 
   onChange, 
   readonly = false,
   size = 16,
 }) {
+  /**
+   * Invoca `onChange` con la valoración seleccionada.
+   * No-op si el componente está en modo readonly.
+   *
+   * @param {number} rating - Valor entre 1 y 3.
+   */
   const handleClick = (rating) => {
     if (!readonly && onChange) {
       onChange(rating);
     }
   };
 
+  /**
+   * Genera el arreglo de elementos JSX de estrellas según el modo.
+   * En readonly devuelve `<FaStar>` estáticos; en interactivo devuelve `<button>`.
+   *
+   * @returns {JSX.Element[]} Array de 3 elementos representando la escala.
+   */
   const getStars = () => {
     const stars = [];
     const displayValue = Math.round(value);
