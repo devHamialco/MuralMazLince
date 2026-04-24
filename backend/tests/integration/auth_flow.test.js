@@ -1,7 +1,14 @@
-const path = require('path')
-const request = require('supertest')
-const app = require('../../src/app')
-const { execSync } = require('child_process')
+const request = require('supertest');
+const path = require('path');
+
+// Inyectar variables de entorno ANTES de cargar app (evita que db/index.js falle)
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:password@localhost:5433/mural_maz_lince_test';
+process.env.JWT_SECRET = 'test_secret';
+process.env.PORT = '0';
+process.env.NODE_ENV = 'test';
+
+const app = require('../../src/app');
+const { execSync } = require('child_process');
 
 describe('Auth Flow Integration Tests', () => {
   let agent

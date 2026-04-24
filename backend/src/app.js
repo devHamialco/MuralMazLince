@@ -34,11 +34,28 @@ app.use(morgan('dev'));
 app.use(express.json());
 
 app.get('/health', async (_req, res) => {
+  const healthcheck = {
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    dbConnected: false,
+    version: process.env.npm_package_version || '1.0.0',
+  };
+
   try {
-    await pool.query('SELECT 1');
-    res.status(200).json({ status: 'ok', dbConnected: true });
+    // Forzar un handshake real con la base de datos
+    const client = await pool.connect();
+    try {
+      await client.query('SELECT 1');
+      healthcheck.dbConnected = true;
+    } finally {
+      client.release();
+    }
+    res.status(200).json(healthcheck);
   } catch (error) {
-    res.status(500).json({ status: 'error', dbConnected: false, error: error.message });
+    healthcheck.status = 'error';
+    healthcheck.error = error.message;
+    res.status(503).json(healthcheck); // 503 Service Unavailable es más semántico para healthchecks fallidos
   }
 });
 
