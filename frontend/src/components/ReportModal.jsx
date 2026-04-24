@@ -223,6 +223,6 @@ ReportModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
-  announcementId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  announcementId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   alreadyReported: PropTypes.bool,
 };

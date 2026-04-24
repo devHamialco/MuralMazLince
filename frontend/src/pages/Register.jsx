@@ -153,7 +153,7 @@ export default function Register() {
       <div
         style={{
           minHeight: '100vh',
-          background: 'radial-gradient(ellipse at 50% 0%, rgba(196,24,74,0.15) 0%, transparent 60%)',
+          backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(196,24,74,0.15) 0%, transparent 60%)',
           backgroundColor: 'var(--bg-base)',
           display: 'flex',
           flexDirection: 'column',

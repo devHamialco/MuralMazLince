@@ -46,6 +46,8 @@ services:
       MAX_ACTIVE_ANNOUNCEMENTS_PER_PROJECT: 3
       VISION_API_MONTHLY_LIMIT: 1000
       VISION_API_ALERT_PERCENTAGE: 80
+      VISION_MOCK: 'true'
+      VISION_MOCK_RESULT: 'safe'
       CORS_ALLOWED_ORIGIN: http://localhost:5173
       APP_PRODUCTION_URL: http://localhost:3000
     ports:

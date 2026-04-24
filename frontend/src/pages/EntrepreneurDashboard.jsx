@@ -73,6 +73,7 @@ export default function EntrepreneurDashboard() {
       await api.createProject(newProject);
       showToast('Proyecto creado correctamente', 'success');
       setShowCreateProject(false);
+      setActiveTab('projects');
       setNewProject({ name: '', description: '', category: '' });
       loadProjects();
     } catch (error) {
@@ -95,7 +96,7 @@ export default function EntrepreneurDashboard() {
       const formData = new FormData();
       formData.append('title', newAnnouncement.title);
       formData.append('description', newAnnouncement.description);
-      formData.append('category', newAnnouncement.category);
+      formData.append('custom_category', newAnnouncement.category);
       formData.append('image', newAnnouncement.image);
       if (newAnnouncement.expires_at) {
         formData.append('expires_at', newAnnouncement.expires_at);
@@ -105,6 +106,7 @@ export default function EntrepreneurDashboard() {
       await api.createAnnouncement(formData);
       showToast('Anuncio creado correctamente', 'success');
       setShowCreateAnnouncement(false);
+      setActiveTab('projects');
       setNewAnnouncement({
         title: '',
         description: '',
@@ -330,7 +332,7 @@ export default function EntrepreneurDashboard() {
                             </p>
                             
                             <div className="mb-3">
-                              <CategoryBadge category={project.category} />
+                              <CategoryBadge category={project.category_name || 'Sin categoría'} />
                             </div>
                             
                             <div className="d-flex justify-content-between align-items-center">

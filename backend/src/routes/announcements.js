@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const multer = require('multer');
 const feedController = require('../controllers/feedController');
 const announcementController = require('../controllers/announcementController');
 const interactionController = require('../controllers/interactionController');
@@ -7,12 +8,18 @@ const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = Router();
 
+// Configuración de multer (máximo 5MB, en memoria)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
 // Público
 router.get('/', feedController.getFeed);
 router.get('/:id', feedController.getAnnouncementDetail);
 
 // CRUD anuncios (emprendedor)
-router.post('/', requireAuth, requireRole('entrepreneur'), announcementController.createAnnouncement);
+router.post('/', requireAuth, requireRole('entrepreneur'), upload.single('image'), announcementController.createAnnouncement);
 router.patch('/:id', requireAuth, requireRole('entrepreneur'), announcementController.updateAnnouncement);
 router.delete('/:id', requireAuth, requireRole('entrepreneur'), announcementController.deleteAnnouncement);
 

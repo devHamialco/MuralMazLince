@@ -16,7 +16,7 @@ import ToastNotification from './components/ToastNotification';
 
 function AppContent() {
   const { user, loading, isAuthenticated } = useAuth();
-  const { toast, setToast } = useNotification();
+  const { toast, hideToast } = useNotification();
 
   if (loading) {
     return (
@@ -107,7 +107,7 @@ function AppContent() {
       </Routes>
       
       {/* Toast global */}
-      <ToastNotification toast={toast} onClose={() => setToast(null)} />
+      <ToastNotification toast={toast} onClose={hideToast} />
     </div>
   );
 }

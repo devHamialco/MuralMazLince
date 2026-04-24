@@ -1,11 +1,15 @@
 const { Router } = require('express');
 const authController = require('../controllers/authController');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { requireAuth } = require('../middleware/auth');
 
 const router = Router();
 
 // Ruta pública — sin rate limit (es solo una página estática de información legal)
 router.get('/privacy', authController.getPrivacy);
+
+// Obtener datos del usuario logueado
+router.get('/me', requireAuth, authController.getMe);
 
 // Rutas sensibles — aplica rate limit individualmente (10 intentos / 15 min)
 router.post('/register/student', authLimiter, authController.registerStudent);

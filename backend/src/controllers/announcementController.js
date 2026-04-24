@@ -21,15 +21,16 @@ const createAnnouncement = async (req, res) => {
     description,
     category_id: categoryId, // eslint-disable-line camelcase
     custom_category: customCategory, // eslint-disable-line camelcase
-    image_base64: imageBase64, // eslint-disable-line camelcase
     expires_at: expiresAt, // eslint-disable-line camelcase
   } = req.body;
 
   if (!projectId || !title || !title.trim()) {
     return res.status(400).json({ error: 'project_id y title son obligatorios' });
   }
-  if (!imageBase64 || typeof imageBase64 !== 'string') {
-    return res.status(400).json({ error: 'image_base64 es obligatorio' });
+  
+  const imageBuffer = req.file ? req.file.buffer : null;
+  if (!imageBuffer) {
+    return res.status(400).json({ error: 'La imagen es obligatoria' });
   }
   if (!expiresAt) {
     return res.status(400).json({ error: 'expires_at es obligatorio' });
@@ -56,7 +57,6 @@ const createAnnouncement = async (req, res) => {
       });
     }
 
-    const imageBuffer = Buffer.from(imageBase64, 'base64');
     const moderation = await moderationPipeline(
       imageBuffer,
       title.trim(),

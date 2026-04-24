@@ -33,6 +33,10 @@ export function NotificationProvider({ children }) {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
+  const hideToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
   /**
    * Agrega una notificación al inicio de la lista e incrementa `unreadCount`.
    * Usar cuando el backend emite una notificación nueva que aún no está en el estado.
@@ -87,6 +91,7 @@ export function NotificationProvider({ children }) {
     unreadCount,
     toast,
     showToast,
+    hideToast,
     addNotification,
     markAsRead,
     markAllAsRead,

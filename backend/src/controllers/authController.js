@@ -80,7 +80,13 @@ const registerEntrepreneur = async (req, res) => {
     );
 
     await client.query('COMMIT');
-    return res.status(201).json({ message: 'Emprendedor registrado', userId });
+    const userResponse = {
+      id: userId,
+      matricula,
+      role: 'entrepreneur',
+      display_name: display_name.trim(),
+    };
+    return res.status(201).json({ message: 'Emprendedor registrado', user: userResponse });
   } catch (error) {
     await client.query('ROLLBACK');
     if (error.code === '23505') {
@@ -104,7 +110,12 @@ const login = async (req, res) => {
   }
 
   try {
-    const result = await db.query('SELECT * FROM users WHERE matricula = $1', [matricula]);
+    const result = await db.query(`
+      SELECT u.*, ep.display_name 
+      FROM users u 
+      LEFT JOIN entrepreneur_profiles ep ON u.id = ep.user_id 
+      WHERE u.matricula = $1
+    `, [matricula]);
     const user = result.rows[0];
 
     if (!user) {
@@ -146,7 +157,13 @@ const login = async (req, res) => {
       maxAge: hours * 3600000,
     });
 
-    return res.json({ message: 'Login exitoso', role: user.role });
+    const userResponse = {
+      id: user.id,
+      matricula: user.matricula,
+      role: user.role,
+      display_name: user.display_name,
+    };
+    return res.json({ message: 'Login exitoso', user: userResponse });
   } catch (err) {
     return res.status(500).json({ error: 'Error de login' });
   }
@@ -220,6 +237,26 @@ const getPrivacy = (req, res) => {
   return res.status(200).send(html);
 };
 
+const getMe = async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT u.id, u.matricula, u.role, ep.display_name 
+      FROM users u 
+      LEFT JOIN entrepreneur_profiles ep ON u.id = ep.user_id 
+      WHERE u.id = $1
+    `, [req.user.id]);
+    
+    const user = result.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    return res.json({ user });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error al obtener usuario' });
+  }
+};
+
 module.exports = {
   registerStudent,
   registerEntrepreneur,
@@ -227,4 +264,5 @@ module.exports = {
   logout,
   claimMatricula,
   getPrivacy,
+  getMe,
 };
