@@ -6,8 +6,8 @@ const db = require('../db');
  * @param {string} type - Tipo ENUM: 'approved','rejected','pending','expiring_soon','shadowban'
  * @param {string} message - Texto descriptivo de la notificación
  */
-async function createNotification(userId, type, message) {
-  await db.query(
+async function createNotification(userId, type, message, client = db) {
+  await client.query(
     'INSERT INTO notifications (user_id, type, message) VALUES ($1, $2, $3)',
     [userId, type, message],
   );

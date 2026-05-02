@@ -30,13 +30,15 @@ const registerStudent = async (req, res) => {
 };
 
 const registerEntrepreneur = async (req, res) => {
-  /* eslint-disable camelcase */
   const {
-    matricula, password, whatsapp_number, display_name, privacy_accepted,
+    matricula,
+    password,
+    whatsapp_number: whatsappNumber,
+    display_name: displayName,
+    privacy_accepted: privacyAccepted,
   } = req.body;
-  /* eslint-enable camelcase */
 
-  if (privacy_accepted !== true) { // eslint-disable-line camelcase
+  if (privacyAccepted !== true) {
     return res.status(400).json({ error: 'Debe aceptar el aviso de privacidad explícitamente' });
   }
   if (!matricula || !isValidMatricula(matricula)) {
@@ -45,13 +47,13 @@ const registerEntrepreneur = async (req, res) => {
   if (!password || password.length < 8) {
     return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
   }
-  if (!whatsapp_number || !WHATSAPP_REGEX.test(whatsapp_number)) { // eslint-disable-line camelcase
+  if (!whatsappNumber || !WHATSAPP_REGEX.test(whatsappNumber)) {
     return res.status(400).json({ error: 'Número de WhatsApp inválido. Usa solo dígitos (7-15 caracteres)' });
   }
-  if (!display_name || display_name.trim() === '') { // eslint-disable-line camelcase
+  if (!displayName || displayName.trim() === '') {
     return res.status(400).json({ error: 'El nombre a mostrar es obligatorio' });
   }
-  if (filter.isProfane(display_name)) { // eslint-disable-line camelcase
+  if (filter.isProfane(displayName)) {
     return res.status(400).json({ error: 'El nombre a mostrar no es válido (contiene expresiones ofensivas)' });
   }
 
@@ -69,22 +71,43 @@ const registerEntrepreneur = async (req, res) => {
     const userResult = await client.query(
       `INSERT INTO users (matricula, role, password_hash, whatsapp_number, privacy_accepted)
        VALUES ($1, 'entrepreneur', $2, $3, true) RETURNING id`,
-      [matricula, hashedPw, whatsapp_number], // eslint-disable-line camelcase
+      [matricula, hashedPw, whatsappNumber],
     );
 
     const userId = userResult.rows[0].id;
 
     await client.query(
       'INSERT INTO entrepreneur_profiles (user_id, display_name) VALUES ($1, $2)',
-      [userId, display_name.trim()], // eslint-disable-line camelcase
+      [userId, displayName.trim()],
     );
 
     await client.query('COMMIT');
+
+    const payload = {
+      id: userId,
+      matricula,
+      role: 'entrepreneur',
+    };
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      return res.status(500).json({ error: 'Configuración incompleta del servidor (JWT_SECRET)' });
+    }
+    const hours = Number(process.env.JWT_EXPIRATION_HOURS) || 8;
+    const token = jwt.sign(payload, secret, { expiresIn: `${hours}h` });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: hours * 3600000,
+    });
+
     const userResponse = {
       id: userId,
       matricula,
       role: 'entrepreneur',
-      display_name: display_name.trim(),
+      display_name: displayName.trim(),
     };
     return res.status(201).json({ message: 'Emprendedor registrado', user: userResponse });
   } catch (error) {
@@ -111,9 +134,9 @@ const login = async (req, res) => {
 
   try {
     const result = await db.query(`
-      SELECT u.*, ep.display_name 
-      FROM users u 
-      LEFT JOIN entrepreneur_profiles ep ON u.id = ep.user_id 
+      SELECT u.*, ep.display_name
+      FROM users u
+      LEFT JOIN entrepreneur_profiles ep ON u.id = ep.user_id
       WHERE u.matricula = $1
     `, [matricula]);
     const user = result.rows[0];
@@ -128,7 +151,7 @@ const login = async (req, res) => {
 
     if (user.role !== 'visitor_registered') {
       if (!password) {
-        return res.status(401).json({ error: 'Se requiere contraseña para la cuenta' });
+        return res.status(401).json({ error: 'Se requiere contraseña para la cuenta', requirePassword: true });
       }
       const match = await bcrypt.compare(password, user.password_hash);
       if (!match) {
@@ -179,22 +202,23 @@ const logout = (req, res) => {
 };
 
 const claimMatricula = async (req, res) => {
-  /* eslint-disable camelcase */
-  const { disputed_matricula, claimant_whatsapp } = req.body;
-  if (!disputed_matricula || !claimant_whatsapp) {
+  const {
+    disputed_matricula: disputedMatricula,
+    claimant_whatsapp: claimantWhatsapp,
+  } = req.body;
+  if (!disputedMatricula || !claimantWhatsapp) {
     return res.status(400).json({ error: 'La matrícula a disputar y el whatsapp de contacto son requeridos' });
   }
 
   try {
     const result = await db.query(
       'INSERT INTO claim_tickets (disputed_matricula, claimant_whatsapp) VALUES ($1, $2) RETURNING id',
-      [disputed_matricula, claimant_whatsapp],
+      [disputedMatricula, claimantWhatsapp],
     );
     return res.status(201).json({ message: 'Reclamo ingresado para su revisión', ticketId: result.rows[0].id });
   } catch (err) {
     return res.status(500).json({ error: 'Error del servidor al ingresar reclamo' });
   }
-  /* eslint-enable camelcase */
 };
 
 const getPrivacy = (req, res) => {
@@ -240,17 +264,17 @@ const getPrivacy = (req, res) => {
 const getMe = async (req, res) => {
   try {
     const result = await db.query(`
-      SELECT u.id, u.matricula, u.role, ep.display_name 
-      FROM users u 
-      LEFT JOIN entrepreneur_profiles ep ON u.id = ep.user_id 
+      SELECT u.id, u.matricula, u.role, ep.display_name
+      FROM users u
+      LEFT JOIN entrepreneur_profiles ep ON u.id = ep.user_id
       WHERE u.id = $1
     `, [req.user.id]);
-    
+
     const user = result.rows[0];
     if (!user) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
-    
+
     return res.json({ user });
   } catch (err) {
     return res.status(500).json({ error: 'Error al obtener usuario' });

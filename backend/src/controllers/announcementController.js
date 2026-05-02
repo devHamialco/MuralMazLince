@@ -27,13 +27,16 @@ const createAnnouncement = async (req, res) => {
   if (!projectId || !title || !title.trim()) {
     return res.status(400).json({ error: 'project_id y title son obligatorios' });
   }
-  
+
   const imageBuffer = req.file ? req.file.buffer : null;
   if (!imageBuffer) {
     return res.status(400).json({ error: 'La imagen es obligatoria' });
   }
-  if (!expiresAt) {
-    return res.status(400).json({ error: 'expires_at es obligatorio' });
+  let finalExpiresAt = expiresAt;
+  if (!finalExpiresAt) {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    finalExpiresAt = d.toISOString();
   }
 
   try {
@@ -84,7 +87,7 @@ const createAnnouncement = async (req, res) => {
           uploaded.url,
           uploaded.public_id,
           nextStatus,
-          expiresAt,
+          finalExpiresAt,
         ],
       );
 
@@ -104,9 +107,9 @@ const createAnnouncement = async (req, res) => {
             [announcement.id, trigger.type, trigger.detail],
           )),
         );
-        await createNotification(req.user.id, 'pending', `Tu anuncio "${title.trim()}" quedó en revisión`);
+        await createNotification(req.user.id, 'pending', `Tu anuncio "${title.trim()}" quedó en revisión`, client);
       } else {
-        await createNotification(req.user.id, 'approved', `Tu anuncio "${title.trim()}" ha sido publicado`);
+        await createNotification(req.user.id, 'approved', `Tu anuncio "${title.trim()}" ha sido publicado`, client);
       }
 
       await client.query('COMMIT');
@@ -120,13 +123,19 @@ const createAnnouncement = async (req, res) => {
       });
     } catch (error) {
       await client.query('ROLLBACK');
-      await deleteFromCloudinary(uploaded.public_id);
-      return res.status(500).json({ error: 'Error al crear anuncio' });
+      if (uploaded && uploaded.public_id) {
+        await deleteFromCloudinary(uploaded.public_id);
+      }
+      // eslint-disable-next-line no-console
+      console.error('Error in transaction:', error);
+      return res.status(500).json({ error: `Error al crear anuncio: ${error.message || String(error)}` });
     } finally {
       client.release();
     }
   } catch (err) {
-    return res.status(500).json({ error: 'Error al crear anuncio' });
+    // eslint-disable-next-line no-console
+    console.error('Error in createAnnouncement:', err);
+    return res.status(500).json({ error: `Error al crear anuncio: ${err.message || String(err)}` });
   }
 };
 

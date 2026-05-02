@@ -24,12 +24,13 @@ const getFeed = async (req, res) => {
 
   try {
     let query = `
-      SELECT a.id, a.title, a.description, a.cloudinary_url, a.status, a.expires_at, a.created_at,
+      SELECT a.id, a.title, a.description, a.cloudinary_url AS image_url, a.status, a.expires_at, a.created_at,
              a.category_id, a.custom_category,
              c.name AS category_name, c.code AS category_code,
+             COALESCE(c.name, a.custom_category) AS category,
              p.name AS project_name, p.id AS project_id,
              ep.display_name,
-             (SELECT COUNT(*) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
+             (SELECT CAST(COUNT(*) AS INTEGER) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
              (SELECT COALESCE(AVG(stars)::numeric(2,1), 0) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating
       FROM announcements a
       JOIN projects p ON p.id = a.project_id
@@ -82,13 +83,14 @@ const getAnnouncementDetail = async (req, res) => {
   try {
     const viewer = req.user || parseOptionalUser(req);
     const result = await db.query(
-      `SELECT a.id, a.title, a.description, a.cloudinary_url, a.status, a.expires_at, a.created_at,
+      `SELECT a.id, a.title, a.description, a.cloudinary_url AS image_url, a.status, a.expires_at, a.created_at,
               a.category_id, a.custom_category,
               c.name AS category_name, c.code AS category_code,
+              COALESCE(c.name, a.custom_category) AS category,
               p.name AS project_name, p.id AS project_id,
               ep.display_name,
               u.whatsapp_number,
-              (SELECT COUNT(*) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
+              (SELECT CAST(COUNT(*) AS INTEGER) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
               (SELECT COALESCE(AVG(stars)::numeric(2,1), 0) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating
        FROM announcements a
        JOIN projects p ON p.id = a.project_id

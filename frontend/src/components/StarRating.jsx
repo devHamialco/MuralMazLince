@@ -36,9 +36,12 @@ export default function StarRating({
    * Invoca `onChange` con la valoración seleccionada.
    * No-op si el componente está en modo readonly.
    *
+   * @param {Event}  e      - Evento de clic
    * @param {number} rating - Valor entre 1 y 3.
    */
-  const handleClick = (rating) => {
+  const handleClick = (e, rating) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!readonly && onChange) {
       onChange(rating);
     }
@@ -72,7 +75,7 @@ export default function StarRating({
         stars.push(
           <button
             key={i}
-            onClick={() => handleClick(i)}
+            onClick={(e) => handleClick(e, i)}
             style={{
               background: 'none',
               border: 'none',

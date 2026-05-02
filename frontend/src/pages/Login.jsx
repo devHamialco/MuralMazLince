@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FiArrowLeft, FiCheck, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiX, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 
@@ -23,6 +23,7 @@ export default function Login() {
   const [matriculaValid, setMatriculaValid] = useState(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [requirePassword, setRequirePassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -34,6 +35,9 @@ export default function Login() {
     } else {
       setMatriculaValid(null);
     }
+    // Si cambia la matrícula, reiniciamos el paso de contraseña
+    setRequirePassword(false);
+    setPassword('');
   };
 
   const handleSubmit = async (e) => {
@@ -58,7 +62,10 @@ export default function Login() {
       }
     } catch (err) {
       console.error('Login error:', err);
-      if (err.status === 401) {
+      if (err.data?.requirePassword) {
+        setRequirePassword(true);
+        setError(null); // Borrar error previo si lo hay para limpiar UX
+      } else if (err.status === 401) {
         setError('Contraseña incorrecta.');
       } else if (err.status === 404) {
         setError('Matrícula no encontrada.');
@@ -73,146 +80,169 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)', padding: 'var(--spacing-md)' }}>
-      {/* Header */}
-      <button
-        onClick={() => navigate(-1)}
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-base)' }}>
+      {/* Navbar estandarizado */}
+      <nav
         style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-primary)',
-          fontSize: '14px',
-          padding: 'var(--spacing-sm)',
-          cursor: 'pointer',
+          backgroundColor: 'var(--bg-surface)',
+          height: '56px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 'var(--z-sticky)',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
-          marginBottom: 'var(--spacing-md)',
+          padding: '0 var(--spacing-md)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
-        <FiArrowLeft size={20} />
-        Volver
-      </button>
+        <button 
+          onClick={() => navigate(-1)}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px',
+            color: 'var(--text-primary)',
+            fontSize: '14px',
+            textDecoration: 'none',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0
+          }}
+        >
+          <img src="/icons/icon-512.png" alt="Mural Maz Lince" style={{ width: '32px', height: '32px', objectFit: 'cover' }} />
+          <FiArrowLeft size={20} />
+          <span>Volver al Mural</span>
+        </button>
+      </nav>
 
-      <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginTop: 'var(--spacing-lg)' }}>
-        Iniciar sesión
-      </h1>
-      <p className="body-sm" style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-xl)' }}>
-        Ingresa tu matrícula para continuar
-      </p>
+      <div style={{ maxWidth: '400px', margin: '0 auto', padding: 'var(--spacing-lg) var(--spacing-md)' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Iniciar sesión
+        </h1>
+        <p className="body-sm" style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-xl)' }}>
+          Ingresa tu matrícula para continuar
+        </p>
 
-      <form onSubmit={handleSubmit}>
-        {/* Campo matrícula */}
-        <div style={{ marginBottom: 'var(--spacing-md)' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-            Número de matrícula
-          </label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type="tel"
-              value={matricula}
-              onChange={(e) => handleMatriculaChange(e.target.value)}
-              placeholder="20240001"
-              maxLength={8}
-              style={{
-                width: '100%',
-                height: '52px',
-                backgroundColor: 'var(--bg-card)',
-                border: `1px solid ${matriculaValid === false ? 'var(--status-rejected)' : matriculaValid === true ? 'var(--status-active)' : 'var(--border)'}`,
-                borderRadius: 'var(--radius-md)',
-                padding: '0 44px 0 16px',
-                fontSize: '16px',
-                color: 'var(--text-primary)',
-                outline: 'none',
-              }}
-            />
-            <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-25px)', display: 'flex' }}>
-              {matriculaValid === true && <FiCheck size={20} style={{ color: 'var(--status-active)' }} />}
-              {matriculaValid === false && <FiX size={20} style={{ color: 'var(--status-rejected)' }} />}
+        <form onSubmit={handleSubmit}>
+          {/* Campo matrícula */}
+          <div style={{ marginBottom: 'var(--spacing-md)' }}>
+            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              Número de matrícula
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="tel"
+                value={matricula}
+                onChange={(e) => handleMatriculaChange(e.target.value)}
+                maxLength={8}
+                disabled={requirePassword}
+                style={{
+                  width: '100%',
+                  height: '52px',
+                  backgroundColor: 'var(--bg-card)',
+                  border: `1px solid ${matriculaValid === false ? 'var(--status-rejected)' : matriculaValid === true ? 'var(--status-active)' : 'var(--border)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0 44px 0 16px',
+                  fontSize: '16px',
+                  color: requirePassword ? 'var(--text-muted)' : 'var(--text-primary)',
+                  outline: 'none',
+                }}
+              />
+              <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-25px)', display: 'flex' }}>
+                {matriculaValid === true && <FiCheck size={20} style={{ color: 'var(--status-active)' }} />}
+                {matriculaValid === false && <FiX size={20} style={{ color: 'var(--status-rejected)' }} />}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Campo contraseña - wireframes-spec:503-509 */}
-        <div style={{ marginBottom: 'var(--spacing-md)' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-            Contraseña <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional)</span>
-          </label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Si eres solo estudiante, deja la contraseña en blanco"
-              style={{
-                width: '100%',
-                height: '52px',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0 44px 0 16px',
-                fontSize: '16px',
-                color: 'var(--text-primary)',
-                outline: 'none',
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
+          {/* Campo contraseña (Se muestra solo si se requiere) */}
+          {requirePassword && (
+            <div style={{ marginBottom: 'var(--spacing-md)', animation: 'slideDown 200ms ease-out' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                Contraseña
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Ingresa tu contraseña"
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    height: '52px',
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '0 44px 0 16px',
+                    fontSize: '16px',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px'
+                  }}
+                >
+                  {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Mensajes de error */}
+          {error && (
+            <div 
+              style={{ 
+                backgroundColor: 'rgba(229,62,62,0.1)', 
+                borderLeft: '2px solid var(--status-rejected)',
+                padding: '12px',
+                marginBottom: 'var(--spacing-md)',
+                animation: 'fadeIn 200ms ease-out'
               }}
             >
-              {showPassword ? '😵' : '👁️'}
-            </button>
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-            Si eres solo estudiante, deja la contraseña en blanco.
-          </p>
-        </div>
+              <p style={{ fontSize: '14px', color: 'var(--status-rejected)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiX size={16} />
+                {error}
+              </p>
+            </div>
+          )}
 
-        {/* Mensajes de error - wireframes-spec:514-522 */}
-        {error && (
-          <div 
-            style={{ 
-              backgroundColor: 'rgba(229,62,62,0.1)', 
-              borderLeft: '2px solid var(--status-rejected)',
-              padding: '12px',
-              marginBottom: 'var(--spacing-md)',
-            }}
+          {/* Botón CTA */}
+          <button
+            type="submit"
+            disabled={loading || !matriculaValid || (requirePassword && password.length === 0)}
+            className="btn-cta btn-cta-primary"
+            style={{ width: '100%', height: '52px', fontSize: '18px' }}
           >
-            <p style={{ fontSize: '14px', color: 'var(--status-rejected)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FiX size={16} />
-              {error}
-            </p>
-          </div>
-        )}
+            {loading ? 'Iniciando sesion...' : 'Continuar'}
+          </button>
+        </form>
 
-        {/* Botón CTA */}
-        <button
-          type="submit"
-          disabled={loading || !matriculaValid}
-          className="btn-cta btn-cta-primary"
-          style={{ width: '100%', height: '52px' }}
-        >
-          {loading ? 'Iniciando sesi��n...' : 'Iniciar sesión'}
-        </button>
-      </form>
-
-      {/* Link registro */}
-      <p style={{ textAlign: 'center', marginTop: 'var(--spacing-lg)', fontSize: '14px', color: 'var(--text-muted)' }}>
-        ¿No tienes cuenta?{' '}
-        <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>
-          Registrarse
-        </Link>
-      </p>
+        {/* Link registro */}
+        <p style={{ textAlign: 'center', marginTop: 'var(--spacing-lg)', fontSize: '14px', color: 'var(--text-muted)' }}>
+          ¿No tienes cuenta?{' '}
+          <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+            Registrarse
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

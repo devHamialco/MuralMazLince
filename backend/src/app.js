@@ -55,7 +55,8 @@ app.get('/health', async (_req, res) => {
   } catch (error) {
     healthcheck.status = 'error';
     healthcheck.error = error.message;
-    res.status(503).json(healthcheck); // 503 Service Unavailable es más semántico para healthchecks fallidos
+    // 503 Service Unavailable es más semántico para healthchecks fallidos
+    res.status(503).json(healthcheck);
   }
 });
 

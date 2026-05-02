@@ -25,7 +25,7 @@ const CATEGORIES = [
 
 export default function Feed() {
   const { user, isAuthenticated, logout } = useAuth();
-  const { showToast, toast, setToast } = useNotification();
+  const { showToast, toast, hideToast } = useNotification();
   const navigate = useNavigate();
   
   const [announcements, setAnnouncements] = useState([]);
@@ -38,9 +38,7 @@ export default function Feed() {
   const [reportedAnnouncements, setReportedAnnouncements] = useState(new Set());
   
   const [reportModalOpen, setReportModalOpen] = useState(false);
-  const [reportAnnouncementId, setReportAnnouncementId] = useState(null);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-  
+  const [reportAnnouncementId, setReportAnnouncementId] = useState(null);  
   const observerRef = useRef(null);
   const loadMoreRef = useRef(null);
 
@@ -128,14 +126,17 @@ export default function Feed() {
     
     try {
       const response = await api.toggleLike(announcementId);
-      const { liked, likes_count } = response.data;
+      const { liked } = response.data;
       
       setAnnouncements(prev =>
-        prev.map(a => 
-          a.id === announcementId 
-            ? { ...a, likes_count, user_liked: liked }
-            : a
-        )
+        prev.map(a => {
+          if (a.id === announcementId) {
+            const currentLikes = Number(a.likes_count) || 0;
+            const newLikesCount = liked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+            return { ...a, likes_count: newLikesCount, user_liked: liked };
+          }
+          return a;
+        })
       );
     } catch (error) {
       showToast('Error al dar like', 'error');
@@ -143,7 +144,7 @@ export default function Feed() {
   };
 
   const handleInteractionAttempt = () => {
-    setShowLoginPrompt(true);
+    navigate('/register');
   };
 
   const handleReport = (announcementId) => {
@@ -194,7 +195,7 @@ export default function Feed() {
         }}
       >
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-          <img src="/icons/icon-512.png" alt="Mural Maz Lince" style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+          <img src="/icons/icon-512.png" alt="Mural Maz Lince" style={{ width: '48px', height: '48px', objectFit: 'cover' }} />
         </Link>
 
         <div className="d-flex align-items-center gap-2">
@@ -360,32 +361,6 @@ export default function Feed() {
         )}
       </div>
 
-      {/* CTA sticky para visitantes - wireframes-spec:124-134 */}
-      {showLoginPrompt && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: 'var(--bg-surface)',
-            backdropFilter: 'blur(8px)',
-            borderTop: '1px solid var(--border)',
-            padding: 'var(--spacing-md)',
-            zIndex: 'var(--z-sticky)',
-            animation: 'slideUp 200ms ease-out',
-          }}
-          onClick={() => {
-            setShowLoginPrompt(false);
-            navigate('/register');
-          }}
-        >
-          <p style={{ textAlign: 'center', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600, margin: 0 }}>
-            Inicia sesión para interactuar
-          </p>
-        </div>
-      )}
-
       {/* Report Modal - wireframes-spec: WF-3.3.2 */}
       <ReportModal
         isOpen={reportModalOpen}
@@ -399,7 +374,7 @@ export default function Feed() {
       />
 
       {/* Toast - wireframes-spec:939-945 */}
-      <ToastNotification toast={toast} onClose={() => setToast(null)} />
+      <ToastNotification toast={toast} onClose={hideToast} />
 
       <style>{`
         @keyframes spin {

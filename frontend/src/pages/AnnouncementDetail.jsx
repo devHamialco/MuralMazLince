@@ -16,7 +16,7 @@ import ReportModal from '../components/ReportModal';
 export default function AnnouncementDetail() {
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
-  const { showToast, setToast } = useNotification();
+  const { showToast } = useNotification();
   const navigate = useNavigate();
   
   const [announcement, setAnnouncement] = useState(null);
@@ -37,7 +37,7 @@ export default function AnnouncementDetail() {
       setLoading(true);
       const response = await api.getAnnouncement(id);
       const data = response.data;
-      setAnnouncement(data);
+      setAnnouncement(data.announcement);
       
       if (isAuthenticated) {
         setUserLiked(data.user_liked || false);
@@ -60,9 +60,13 @@ export default function AnnouncementDetail() {
     
     try {
       const response = await api.toggleLike(id);
-      const { liked, likes_count } = response.data;
+      const { liked } = response.data;
       setUserLiked(liked);
-      setAnnouncement(prev => ({ ...prev, likes_count }));
+      setAnnouncement(prev => {
+        const currentLikes = Number(prev.likes_count) || 0;
+        const newLikesCount = liked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+        return { ...prev, likes_count: newLikesCount };
+      });
     } catch (err) {
       showToast('Error al dar like', 'error');
     }
@@ -212,17 +216,9 @@ export default function AnnouncementDetail() {
         }}
       >
         <Link 
-          to="/" 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '4px',
-            color: 'var(--text-primary)',
-            fontSize: '14px',
-          }}
+          to="/"
         >
-          <FiArrowLeft size={20} />
-          Volver al Mural
+          <img src="/icons/icon-512.png" alt="Mural Maz Lince" style={{ width: '48px', height: '48px', objectFit: 'cover' }} />
         </Link>
       </nav>
 
@@ -385,7 +381,7 @@ export default function AnnouncementDetail() {
           >
             <FiLock size={24} style={{ color: 'var(--text-muted)', marginBottom: 'var(--spacing-sm)' }} />
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
-              🔒 Inicia sesión para ver los datos de contacto
+              Inicia sesión para ver los datos de contacto
             </p>
             <Link 
               to="/register"
@@ -438,10 +434,10 @@ export default function AnnouncementDetail() {
               Valora este anuncio:
             </p>
             <div className="d-flex align-items-center gap-3">
-              <div onClick={() => handleLike()}>
+              <div>
                 <LikeButton liked={userLiked} count={likes_count} onClick={handleLike} />
               </div>
-              <div onClick={() => handleRating(userRating < 3 ? userRating + 1 : 1)}>
+              <div>
                 <StarRating value={userRating} onChange={handleRating} size={20} />
               </div>
             </div>
@@ -457,8 +453,6 @@ export default function AnnouncementDetail() {
         announcementId={id}
         alreadyReported={userReported}
       />
-
-      <ToastNotification toast={null} onClose={() => {}} />
     </div>
   );
 }

@@ -107,9 +107,9 @@ export default function AnnouncementCard({
    * @param {Function}             [action] - Función a ejecutar si autenticado.
    */
   const handleInteraction = (e, action) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!isAuthenticated) {
-      e.preventDefault();
-      e.stopPropagation();
       onInteractionAttempt?.();
       return;
     }
@@ -156,17 +156,16 @@ export default function AnnouncementCard({
             />
           ) : null}
           <div
-            className="d-flex align-items-center justify-content-center"
             style={{
               position: image_url ? 'absolute' : 'relative',
               inset: image_url ? 0 : 'auto',
-              display: image_url && !announcement.image_url ? 'flex' : 'none',
+              display: image_url ? 'none' : 'flex',
               backgroundColor: 'var(--bg-surface)',
               color: 'var(--text-muted)',
               fontSize: '14px',
             }}
           >
-            Sin imagen
+            Sin imagen para mostrar
           </div>
 
           {/* Badges sobre imagen */}
@@ -241,7 +240,7 @@ export default function AnnouncementCard({
               marginRight: 'var(--spacing-sm)',
             }}
           >
-            {project_name || title}
+            {title}
           </h2>
         </div>
 
@@ -265,7 +264,6 @@ export default function AnnouncementCard({
             }}
           >
             {description}
-            <span style={{ color: 'var(--primary)', fontWeight: 600 }}> Ver más</span>
           </p>
         )}
 
