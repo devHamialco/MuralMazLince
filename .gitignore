@@ -73,3 +73,14 @@ public/uploads/
 # la especificación fuente (swagger.yaml o anotaciones) SÍ se versiona
 swagger-ui-dist/
 
+# Google Cloud credentials
+google-credentials.js
+google-credentials.json
+*credentials*.json
+service-account*.json
+
+# Archivos HAR (contienen cookies, tokens, URLs con datos de sesión)
+*.har
+
+# Scripts de testing con credenciales hardcodeadas
+backend/scripts/bootstrap_integration.js
