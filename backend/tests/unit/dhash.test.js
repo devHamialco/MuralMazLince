@@ -25,7 +25,7 @@ describe('dHash and Hamming Distance Module', () => {
       top: 0, left: 0,
     }]).png().toBuffer();
 
-    // Redimensionada 
+    // Redimensionada
     imageResized = await sharp(image1).resize(90, 80).png().toBuffer();
 
     // Dos fotos distintas de "mismo tipo de producto" (casos donde Hamming no debe marcar duplicado)
@@ -84,7 +84,7 @@ describe('dHash and Hamming Distance Module', () => {
     it('Lanza error si uno de los argumentos no es string', () => {
       expect(() => hammingDistance('0000000000000000', 1234)).toThrow(TypeError);
     });
-    
+
     it('Lanza error si las longitudes son distintas', () => {
       expect(() => hammingDistance('aa', 'aaa')).toThrow(Error);
     });

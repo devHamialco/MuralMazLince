@@ -28,7 +28,7 @@ const TOAST_TYPES = {
   },
 };
 
-export default function ToastNotification({ toast, onClose }) {
+export default function ToastNotification({ toast = null, onClose = null }) {
   const [visible, setVisible] = useState(false);
   const [currentToast, setCurrentToast] = useState(null);
 

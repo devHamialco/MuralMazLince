@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -15,11 +16,10 @@ export default class ErrorBoundary extends React.Component {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null,
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error) {
     return { hasError: true };
   }
 
@@ -27,23 +27,22 @@ export default class ErrorBoundary extends React.Component {
     // Log the error to console for debugging
     // eslint-disable-next-line no-console
     console.error('ErrorBoundary caught an error:', error, errorInfo.componentStack);
-    this.setState({
-      error,
-      errorInfo,
-    });
+    this.setState({ error });
   }
 
   handleReset = () => {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null,
     });
   };
 
   render() {
-    if (this.state.hasError) {
-      const errorMessage = this.state.error?.toString() || 'Unknown error';
+    const { hasError, error } = this.state;
+    const { children } = this.props;
+
+    if (hasError) {
+      const errorMessage = error?.toString() || 'Unknown error';
 
       return (
         <div
@@ -127,6 +126,10 @@ export default class ErrorBoundary extends React.Component {
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.node.isRequired,
+};

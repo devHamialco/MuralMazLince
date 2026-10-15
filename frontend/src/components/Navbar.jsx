@@ -31,6 +31,11 @@ const buttonBase = {
   gap: '6px',
 };
 
+const updateTextColor = (color) => (event) => {
+  const target = event.currentTarget;
+  target.style.color = color;
+};
+
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const { unreadCount } = useNotification();
@@ -78,8 +83,10 @@ export default function Navbar() {
       <Link
         to="/login"
         style={{ ...linkBase, color: 'var(--text-primary)' }}
-        onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'}
-        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+        onMouseOver={updateTextColor('var(--primary)')}
+        onFocus={updateTextColor('var(--primary)')}
+        onMouseOut={updateTextColor('var(--text-primary)')}
+        onBlur={updateTextColor('var(--text-primary)')}
       >
         Iniciar sesión
       </Link>
@@ -109,10 +116,13 @@ export default function Navbar() {
       <LogoCentral />
 
       <button
+        type="button"
         onClick={handleLogout}
         style={{ ...buttonBase, color: 'var(--text-secondary)' }}
-        onMouseOver={(e) => e.currentTarget.style.color = 'var(--status-rejected)'}
-        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+        onMouseOver={updateTextColor('var(--status-rejected)')}
+        onFocus={updateTextColor('var(--status-rejected)')}
+        onMouseOut={updateTextColor('var(--text-secondary)')}
+        onBlur={updateTextColor('var(--text-secondary)')}
       >
         <FiLogOut size={18} />
       </button>
@@ -172,10 +182,13 @@ export default function Navbar() {
         </Link>
 
         <button
+          type="button"
           onClick={handleLogout}
           style={{ ...buttonBase, color: 'var(--text-secondary)', padding: '8px' }}
-          onMouseOver={(e) => e.currentTarget.style.color = 'var(--status-rejected)'}
-          onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+          onMouseOver={updateTextColor('var(--status-rejected)')}
+          onFocus={updateTextColor('var(--status-rejected)')}
+          onMouseOut={updateTextColor('var(--text-secondary)')}
+          onBlur={updateTextColor('var(--text-secondary)')}
           title="Cerrar sesión"
         >
           <FiLogOut size={18} />
@@ -197,10 +210,13 @@ export default function Navbar() {
       <LogoCentral />
 
       <button
+        type="button"
         onClick={handleLogout}
         style={{ ...buttonBase, color: 'var(--text-secondary)' }}
-        onMouseOver={(e) => e.currentTarget.style.color = 'var(--status-rejected)'}
-        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+        onMouseOver={updateTextColor('var(--status-rejected)')}
+        onFocus={updateTextColor('var(--status-rejected)')}
+        onMouseOut={updateTextColor('var(--text-secondary)')}
+        onBlur={updateTextColor('var(--text-secondary)')}
       >
         <FiLogOut size={18} />
       </button>

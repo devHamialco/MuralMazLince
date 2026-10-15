@@ -20,16 +20,16 @@ import { FaHeart, FaRegHeart } from 'react-icons/fa';
  * Botón de like con contador y animación de pop.
  *
  * @param {object}   props
- * @param {boolean}  [props.liked=false]    - Si el usuario ya dio like.
- * @param {number}   [props.count=0]        - Número total de likes activos (no revertidos ni accidentales).
- * @param {Function} [props.onClick]        - Callback `() => void` al hacer click en modo interactivo.
- * @param {boolean}  [props.disabled=false] - Si `true`, no dispara onClick y muestra tooltip de registro.
- * @param {number}   [props.size=20]        - Tamaño del ícono en px.
+ * @param {boolean} [props.liked=false] Si el usuario ya dio like.
+ * @param {number} [props.count=0] Número total de likes activos.
+ * @param {Function} [props.onClick] Callback para el modo interactivo.
+ * @param {boolean} [props.disabled=false] Si deshabilita el botón.
+ * @param {number} [props.size=20] Tamaño del ícono en px.
  */
 export default function LikeButton({
   liked = false,
   count = 0,
-  onClick,
+  onClick = null,
   disabled = false,
   size = 20,
 }) {
@@ -48,6 +48,7 @@ export default function LikeButton({
 
   return (
     <button
+      type="button"
       className="d-inline-flex align-items-center gap-1"
       onClick={handleClick}
       disabled={disabled}

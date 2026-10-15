@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiCheck, FiX, FiLock, FiArrowLeft, FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
-import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
@@ -21,8 +20,24 @@ const isValidWhatsApp = (phone) => {
   return digits.length === 10;
 };
 
+const getMatriculaValidationStyles = (valid) => {
+  if (valid === true) {
+    return {
+      borderColor: 'var(--status-active)',
+      boxShadow: '0 0 12px rgba(16, 185, 129, 0.2)',
+    };
+  }
+  if (valid === false) {
+    return {
+      borderColor: 'var(--status-rejected)',
+      boxShadow: '0 0 12px rgba(239, 68, 68, 0.2)',
+    };
+  }
+  return { borderColor: 'var(--border)', boxShadow: 'none' };
+};
+
 export default function Register() {
-  const { registerStudent, registerEntrepreneur, login } = useAuth();
+  const { registerStudent, registerEntrepreneur } = useAuth();
   const { showToast } = useNotification();
   const navigate = useNavigate();
   const location = useLocation();
@@ -149,6 +164,13 @@ export default function Register() {
     }
   };
 
+  const isEntrepreneurSubmitDisabled = loading
+    || !matriculaValid
+    || password.length < 8
+    || !isValidWhatsApp(whatsapp)
+    || displayName.length < 2
+    || !privacyAccepted;
+
   if (step === 'bienvenido') {
     return (
       <div className="app-container bg-base">
@@ -218,6 +240,7 @@ export default function Register() {
           <div className="card-mml" style={{ width: '100%', maxWidth: '420px', padding: 'var(--spacing-2xl) var(--spacing-xl)' }}>
             <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
               <button
+                type="button"
                 onClick={() => setStep('bienvenido')}
                 style={{
                   position: 'absolute',
@@ -239,17 +262,19 @@ export default function Register() {
                 Estudiante
               </h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-                Obten todos los detalles de los proyectos y apoya a la comunidad emprendedora de la universidad.
+                Obten todos los detalles de los proyectos y apoya a la
+                comunidad emprendedora de la universidad.
               </p>
             </div>
 
             <form onSubmit={handleStudentSubmit}>
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <label htmlFor="entrepreneur-matricula" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Matrícula
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="entrepreneur-matricula"
                     type="tel"
                     value={matricula}
                     onChange={(e) => handleMatriculaChange(e.target.value)}
@@ -259,12 +284,7 @@ export default function Register() {
                       width: '100%',
                       paddingRight: '44px',
                       color: 'var(--text-primary)',
-                      borderColor: matriculaValid === false ? 'var(--status-rejected)' : matriculaValid === true ? 'var(--status-active)' : 'var(--border)',
-                      boxShadow: matriculaValid === true
-                        ? '0 0 12px rgba(16, 185, 129, 0.2)'
-                        : matriculaValid === false
-                          ? '0 0 12px rgba(239, 68, 68, 0.2)'
-                          : 'none',
+                      ...getMatriculaValidationStyles(matriculaValid),
                     }}
                   />
                   <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
@@ -314,6 +334,7 @@ export default function Register() {
           <div className="card-mml" style={{ width: '100%', maxWidth: '420px', padding: 'var(--spacing-2xl) var(--spacing-xl)' }}>
             <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
               <button
+                type="button"
                 onClick={() => setStep('bienvenido')}
                 style={{
                   position: 'absolute',
@@ -341,11 +362,12 @@ export default function Register() {
 
             <form onSubmit={handleEntrepreneurSubmit}>
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <label htmlFor="student-matricula" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Matrícula
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="student-matricula"
                     type="tel"
                     value={matricula}
                     onChange={(e) => handleMatriculaChange(e.target.value)}
@@ -355,12 +377,7 @@ export default function Register() {
                       width: '100%',
                       paddingRight: '44px',
                       color: 'var(--text-primary)',
-                      borderColor: matriculaValid === false ? 'var(--status-rejected)' : matriculaValid === true ? 'var(--status-active)' : 'var(--border)',
-                      boxShadow: matriculaValid === true
-                        ? '0 0 12px rgba(16, 185, 129, 0.2)'
-                        : matriculaValid === false
-                          ? '0 0 12px rgba(239, 68, 68, 0.2)'
-                          : 'none',
+                      ...getMatriculaValidationStyles(matriculaValid),
                     }}
                   />
                   <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
@@ -371,11 +388,12 @@ export default function Register() {
               </div>
 
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <label htmlFor="entrepreneur-password" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Contraseña
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="entrepreneur-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -408,10 +426,11 @@ export default function Register() {
               </div>
 
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <label htmlFor="entrepreneur-display-name" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Nombre Público
                 </label>
                 <input
+                  id="entrepreneur-display-name"
                   type="text"
                   value={displayName}
                   onChange={(e) => {
@@ -436,11 +455,12 @@ export default function Register() {
               </div>
 
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <label htmlFor="entrepreneur-whatsapp" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   WhatsApp
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="entrepreneur-whatsapp"
                     type="tel"
                     value={whatsapp}
                     onChange={(e) => handleWhatsappChange(e.target.value)}
@@ -479,33 +499,21 @@ export default function Register() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
-                  <div
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      backgroundColor: privacyAccepted ? 'var(--primary)' : 'var(--bg-card)',
-                      border: '2px solid var(--border)',
-                      borderRadius: 'var(--radius-sm)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      transition: 'background-color 150ms',
-                      marginTop: '2px',
-                    }}
-                    onClick={() => setPrivacyAccepted(!privacyAccepted)}
-                  >
-                    {privacyAccepted && <FiCheck size={14} style={{ color: 'var(--text-primary)' }} />}
-                  </div>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                    He leído y acepto el{' '}
-                    <a href="/privacy" target="_blank" style={{ color: 'var(--secondary)', textDecoration: 'underline' }}>
-                      Aviso de Privacidad
-                    </a>
-                  </span>
-                </label>
+              <div className="d-flex align-items-start gap-2" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <input
+                  id="privacy-accepted"
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                  required
+                  style={{ width: '20px', height: '20px', accentColor: 'var(--primary)', marginTop: '2px' }}
+                />
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  <label htmlFor="privacy-accepted">He leído y acepto el</label>{' '}
+                  <a href="/privacy" target="_blank" style={{ color: 'var(--secondary)', textDecoration: 'underline' }}>
+                    Aviso de Privacidad
+                  </a>
+                </span>
               </div>
 
               {error && (
@@ -527,7 +535,7 @@ export default function Register() {
 
               <button
                 type="submit"
-                disabled={loading || !matriculaValid || password.length < 8 || !isValidWhatsApp(whatsapp) || displayName.length < 2 || !privacyAccepted}
+                disabled={isEntrepreneurSubmitDisabled}
                 className="btn-cta btn-cta-primary"
                 style={{ width: '100%', height: '52px' }}
               >

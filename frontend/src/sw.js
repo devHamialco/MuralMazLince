@@ -12,7 +12,7 @@ const STATIC_ASSETS = [
 ];
 
 // Install event - cache static assets
-self.addEventListener('install', (event) => {
+globalThis.addEventListener('install', (event) => {
   console.log('[SW] Installing...');
 
   event.waitUntil(
@@ -22,11 +22,11 @@ self.addEventListener('install', (event) => {
     }),
   );
 
-  self.skipWaiting();
+  globalThis.skipWaiting();
 });
 
 // Activate event - clean old caches
-self.addEventListener('activate', (event) => {
+globalThis.addEventListener('activate', (event) => {
   console.log('[SW] Activating...');
 
   event.waitUntil(
@@ -40,32 +40,7 @@ self.addEventListener('activate', (event) => {
     )),
   );
 
-  self.clients.claim();
-});
-
-// Fetch event - caching strategy
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  // Skip Chrome extensions and other non-http(s) requests
-  if (!url.protocol.startsWith('http')) {
-    return;
-  }
-
-  // API requests - Network First
-  if (url.pathname.startsWith('/api') || url.hostname !== self.location.hostname) {
-    event.respondWith(networkFirst(request, API_CACHE_NAME));
-    return;
-  }
-
-  // Static assets - Cache First
-  event.respondWith(cacheFirst(request, CACHE_NAME));
+  globalThis.clients.claim();
 });
 
 // Cache First strategy for static assets
@@ -132,10 +107,25 @@ async function networkFirst(request, cacheName) {
   }
 }
 
+// Fetch event - caching strategy
+globalThis.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
+
+  if (url.pathname.startsWith('/api') || url.hostname !== globalThis.location.hostname) {
+    event.respondWith(networkFirst(request, API_CACHE_NAME));
+    return;
+  }
+
+  event.respondWith(cacheFirst(request, CACHE_NAME));
+});
+
 // Handle messages from the main app
-self.addEventListener('message', (event) => {
+globalThis.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+    globalThis.skipWaiting();
   }
 });
 

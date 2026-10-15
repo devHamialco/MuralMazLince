@@ -25,6 +25,7 @@ export default function ChipNav({ options, activeValue, onChange }) {
         return (
           <button
             key={value}
+            type="button"
             onClick={() => onChange(value)}
             style={{
               padding: '6px 16px',

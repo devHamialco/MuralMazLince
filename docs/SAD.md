@@ -374,7 +374,7 @@ graph LR
   Router --> C5
   Router --> C6
   Router --> C10
-  
+
 C4 -- "Orquesta pipeline" --> C7
   C4 -- "Upload / Delete" --> C8
   C7 -- "Safe Search" --> GCV
@@ -648,7 +648,7 @@ sequenceDiagram
     Note over FE: Imagen ya comprimida ≤500KB
 
     BE->>BE: Valida tamaño/res (RF-31)
-    
+
     alt Si falla validación técnica
         BE-->>FE: HTTP 413 Payload Too Large
     else Validación técnica exitosa
@@ -704,9 +704,9 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     FE->>BE: POST /auth/login {matricula, password}
-    
+
     BE->>BE: checksum(matricula)
-    
+
     alt Formato Inválido
         BE-->>FE: HTTP 400 Bad Request
     else Formato Válido
@@ -722,7 +722,7 @@ sequenceDiagram
         else Credenciales Correctas
             BE->>BE: jwt.sign({user_id, role, matricula})
             Note right of BE: Payload sin datos sensibles (RN-09)
-            
+
             Note over BE,FE: Cookie: HttpOnly, Secure, SameSite=Strict
             BE-->>FE: HTTP 200 OK {role: 'entrepreneur'}
         end
@@ -745,7 +745,7 @@ sequenceDiagram
     FE->>BE: POST /announcements/:id/report {reason}
     BE->>DB: SELECT COUNT(*) FROM reports (Verifica duplicado)
     DB-->>BE: count
-    
+
     alt Ya reportado
         BE-->>FE: HTTP 409 Conflict
     else Nuevo reporte
@@ -756,7 +756,7 @@ sequenceDiagram
         opt total_reports >= 3 AND No existe alerta previa
             BE->>DB: INSERT moderation_queue {trigger: 'report_threshold'}
         end
-        
+
         BE-->>FE: HTTP 200 "Reporte registrado"
     end
 
@@ -765,7 +765,7 @@ sequenceDiagram
     loop Evaluación Cron
         CRN->>DB: SELECT * FROM moderation_queue (Pendientes > 12h)
         DB-->>CRN: [Anuncios elegibles]
-        
+
         opt Si re-verifica >= 5 reportes
             CRN->>DB: UPDATE announcements SET status = 'shadowban'
             CRN->>DB: UPDATE moderation_queue SET shadowban_at = NOW()
@@ -778,7 +778,7 @@ sequenceDiagram
     loop Restauración Cron
         CRN->>DB: SELECT * FROM announcements (Status shadowban + 48h)
         DB-->>CRN: [Anuncios a restaurar]
-        
+
         CRN->>DB: UPDATE announcements SET status = 'active'
         CRN->>DB: INSERT notifications {type: 'approved'}
     end

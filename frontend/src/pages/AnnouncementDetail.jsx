@@ -1,7 +1,7 @@
 /* AnnouncementDetail - wireframes-spec.md WF-3.1.2 */
 /* Referencia: DDC, wireframes-spec.md */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiUser, FiStar, FiHeart, FiMessageCircle, FiLock, FiCalendar, FiAlertTriangle } from 'react-icons/fi';
 import api from '../services/api';
@@ -11,7 +11,6 @@ import Navbar from '../components/Navbar';
 import CategoryBadge from '../components/CategoryBadge';
 import StarRating from '../components/StarRating';
 import LikeButton from '../components/LikeButton';
-import StatusBadge from '../components/StatusBadge';
 import ReportModal from '../components/ReportModal';
 
 export default function AnnouncementDetail() {
@@ -29,11 +28,7 @@ export default function AnnouncementDetail() {
 
   const [reportModalOpen, setReportModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadAnnouncement();
-  }, [id]);
-
-  const loadAnnouncement = async () => {
+  const loadAnnouncement = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.getAnnouncement(id);
@@ -51,7 +46,11 @@ export default function AnnouncementDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, isAuthenticated]);
+
+  useEffect(() => {
+    loadAnnouncement();
+  }, [loadAnnouncement]);
 
   const handleLike = async () => {
     if (!isAuthenticated) {
@@ -180,19 +179,93 @@ export default function AnnouncementDetail() {
   }
 
   const {
-    image_url,
+    image_url: imageUrl,
     title,
-    project_name,
+    project_name: projectName,
     description,
     category,
-    display_name,
-    wa_link,
-    likes_count = 0,
-    average_rating,
-    status,
-    created_at,
-    expires_at,
+    display_name: displayName,
+    wa_link: waLink,
+    likes_count: likesCount = 0,
+    average_rating: averageRating,
+    expires_at: expiresAt,
   } = announcement;
+
+  let contactContent;
+  if (isAuthenticated && waLink) {
+    contactContent = (
+      <a
+        href={waLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn-cta"
+        style={{
+          width: '100%',
+          height: '44px',
+          backgroundColor: '#25D366',
+          color: 'var(--text-primary)',
+          marginBottom: 'var(--spacing-md)',
+          textDecoration: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderRadius: 'var(--radius-md)',
+        }}
+      >
+        Contactar por WhatsApp
+      </a>
+    );
+  } else if (isAuthenticated) {
+    contactContent = (
+      <div
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border)',
+          padding: 'var(--spacing-md)',
+          marginBottom: 'var(--spacing-md)',
+          textAlign: 'center',
+        }}
+      >
+        <FiUser size={24} style={{ color: 'var(--text-muted)', marginBottom: 'var(--spacing-sm)' }} />
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
+          El emprendedor no ha configurado un enlace de contacto
+        </p>
+      </div>
+    );
+  } else {
+    contactContent = (
+      <div
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border)',
+          padding: 'var(--spacing-md)',
+          marginBottom: 'var(--spacing-md)',
+          textAlign: 'center',
+        }}
+      >
+        <FiLock size={24} style={{ color: 'var(--text-muted)', marginBottom: 'var(--spacing-sm)' }} />
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
+          Inicia sesión para ver los datos de contacto
+        </p>
+        <Link
+          to="/register"
+          className="btn-cta btn-cta-primary"
+          style={{
+            width: '100%',
+            height: '44px',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          Crear cuenta o iniciar sesión
+        </Link>
+      </div>
+    );
+  }
 
   // wireframes-spec: WF-3.1.2 - Header
   return (
@@ -201,9 +274,9 @@ export default function AnnouncementDetail() {
 
       {/* Imagen principal - wireframes-spec:173-178 */}
       <div style={{ width: '375px', height: '250px', position: 'relative' }}>
-        {image_url ? (
+        {imageUrl ? (
           <img
-            src={image_url}
+            src={imageUrl}
             alt={title}
             style={{
               width: '100%',
@@ -250,7 +323,7 @@ export default function AnnouncementDetail() {
         {/* Nombre del proyecto + badge */}
         <div className="d-flex align-items-center gap-2" style={{ marginBottom: 'var(--spacing-sm)' }}>
           <span style={{ fontSize: '16px', color: 'var(--secondary)' }}>
-            {project_name}
+            {projectName}
           </span>
           <CategoryBadge category={category} />
         </div>
@@ -258,7 +331,7 @@ export default function AnnouncementDetail() {
         {/* Nombre del emprendedor */}
         <div className="d-flex align-items-center" style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: 'var(--spacing-md)' }}>
           <FiUser size={16} style={{ marginRight: '4px' }} />
-          <span>{display_name}</span>
+          <span>{displayName}</span>
         </div>
 
         {/* Bloque de métricas - wireframes-spec:201-207 */}
@@ -277,7 +350,7 @@ export default function AnnouncementDetail() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <FiStar size={16} style={{ color: 'var(--accent)' }} />
             <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-              {average_rating ? average_rating.toFixed(1) : '0.0'}
+              {averageRating ? averageRating.toFixed(1) : '0.0'}
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               ({announcement.ratings_count || 0} valoraciones)
@@ -288,7 +361,7 @@ export default function AnnouncementDetail() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <FiHeart size={16} style={{ color: 'var(--text-muted)' }} />
             <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
-              {likes_count}
+              {likesCount}
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>me gusta</span>
           </div>
@@ -306,98 +379,30 @@ export default function AnnouncementDetail() {
         </div>
 
         {/* Fecha de vigencia - wireframes-spec:217-223 */}
-        {expires_at && (
+        {expiresAt && (
           <div
             className="d-flex align-items-center gap-2"
             style={{
               fontSize: '14px',
-              color: isExpiringSoon(expires_at) ? 'var(--accent)' : 'var(--text-muted)',
+              color: isExpiringSoon(expiresAt) ? 'var(--accent)' : 'var(--text-muted)',
               marginBottom: 'var(--spacing-md)',
             }}
           >
             <FiCalendar size={16} />
-            <span>Válido hasta: {formatDate(expires_at)}</span>
-            {isExpiringSoon(expires_at) && (
+            <span>Válido hasta: {formatDate(expiresAt)}</span>
+            {isExpiringSoon(expiresAt) && (
               <FiAlertTriangle size={16} />
             )}
           </div>
         )}
 
         {/* Bloque de contacto - wireframes-spec:227-233 */}
-        {isAuthenticated ? (
-          wa_link ? (
-            <a
-              href={wa_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-cta"
-              style={{
-                width: '100%',
-                height: '44px',
-                backgroundColor: '#25D366',
-                color: 'var(--text-primary)',
-                marginBottom: 'var(--spacing-md)',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 'var(--radius-md)',
-              }}
-            >
-              Contactar por WhatsApp
-            </a>
-          ) : (
-            <div
-              style={{
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border)',
-                padding: 'var(--spacing-md)',
-                marginBottom: 'var(--spacing-md)',
-                textAlign: 'center',
-              }}
-            >
-              <FiUser size={24} style={{ color: 'var(--text-muted)', marginBottom: 'var(--spacing-sm)' }} />
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
-                El emprendedor no ha configurado un enlace de contacto
-              </p>
-            </div>
-          )
-        ) : (
-          <div
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border)',
-              padding: 'var(--spacing-md)',
-              marginBottom: 'var(--spacing-md)',
-              textAlign: 'center',
-            }}
-          >
-            <FiLock size={24} style={{ color: 'var(--text-muted)', marginBottom: 'var(--spacing-sm)' }} />
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
-              Inicia sesión para ver los datos de contacto
-            </p>
-            <Link
-              to="/register"
-              className="btn-cta btn-cta-primary"
-              style={{
-                width: '100%',
-                height: '44px',
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              Crear cuenta o iniciar sesión
-            </Link>
-          </div>
-        )}
+        {contactContent}
 
         {/* Botón de reporte - wireframes-spec:237-239 - Solo para ROL-02 y ROL-03 */}
         {isAuthenticated && user?.role !== 'visitor_registered' && (
           <button
+            type="button"
             onClick={() => setReportModalOpen(true)}
             style={{
               backgroundColor: 'transparent',
@@ -430,7 +435,7 @@ export default function AnnouncementDetail() {
             </p>
             <div className="d-flex align-items-center gap-3">
               <div>
-                <LikeButton liked={userLiked} count={likes_count} onClick={handleLike} />
+                <LikeButton liked={userLiked} count={likesCount} onClick={handleLike} />
               </div>
               <div>
                 <StarRating value={userRating} onChange={handleRating} size={20} />

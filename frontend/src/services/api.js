@@ -155,9 +155,9 @@ class ApiClient {
    * Obtiene el feed paginado por cursor (RF-08, RF-09, ADR-03).
    * Solo devuelve anuncios con status='active'. Nunca incluye `whatsapp_number`.
    *
-   * @param   {number|null} [cursor=null]   - ID del último anuncio recibido. Null = primera página.
-   * @param   {string|null} [category=null] - Código de categoría para filtrar. Null = todas.
-   * @returns {Promise<{ data: { announcements: Array, nextCursor: number|null, hasMore: boolean }, status: number }>}
+  * @param {number|null} [cursor=null] ID del último anuncio; null inicia la página.
+  * @param {string|null} [category=null] Código para filtrar; null incluye todas.
+  * @returns {Promise<{data: object, status: number}>} Página y metadatos de paginación.
    */
   async getAnnouncements(cursor = null, category = null) {
     const params = new URLSearchParams();
@@ -293,7 +293,7 @@ class ApiClient {
   /**
    * Obtiene métricas agregadas de todos los proyectos del emprendedor (RF-24).
    *
-   * @returns {Promise<{ data: { metrics: { total_likes: number, avg_rating: number, total_announcements: number } }, status: number }>}
+  * @returns {Promise<{data: object, status: number}>} Métricas agregadas del emprendedor.
    */
   async getMetrics() {
     return this.request('/projects/metrics');
@@ -304,7 +304,7 @@ class ApiClient {
    * Solo accesible para el dueño.
    *
    * @param   {number|string} id
-   * @returns {Promise<{ data: { project: object, announcements: Array, metrics: object }, status: number }>}
+  * @returns {Promise<{data: object, status: number}>} Proyecto y datos relacionados.
    * @throws  {Error} HTTP 404 si no encontrado o no es el dueño.
    */
   async getProject(id) {
@@ -447,7 +447,6 @@ class ApiClient {
   async resolveClaimTicket(id) {
     return this.request(`/admin/claim-tickets/${id}/resolve`, { method: 'PATCH' });
   }
-
 }
 
 const api = new ApiClient();

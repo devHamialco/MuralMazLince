@@ -3,7 +3,7 @@
 
 :root {
   /* Colores - Fondo (OLED Black for premium mobile feel & battery saving) */
-  --bg-base: #000000; 
+  --bg-base: #000000;
   --bg-card: #0F0F11;
   --bg-surface: #18181B; /* Carbon gray for elevated surfaces */
   --bg-elevated: #242427; /* Lighter gray for interactive elements */
@@ -21,7 +21,7 @@
   --text-muted: #52525B;
 
   /* Colores - Borde (Ultra thin, translucent borders for a sleek look) */
-  --border: rgba(255, 255, 255, 0.08); 
+  --border: rgba(255, 255, 255, 0.08);
 
   /* Colores - Estados semánticos */
   --status-active: #10B981;

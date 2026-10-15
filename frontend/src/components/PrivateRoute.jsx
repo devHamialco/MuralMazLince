@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-export default function PrivateRoute({ children, allowedRoles }) {
+export default function PrivateRoute({ children, allowedRoles = null }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   const [showDenied, setShowDenied] = useState(false);
@@ -15,6 +15,7 @@ export default function PrivateRoute({ children, allowedRoles }) {
       const timer = setTimeout(() => setShowDenied(false), 2000);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [loading, user, allowedRoles]);
 
   if (loading) {

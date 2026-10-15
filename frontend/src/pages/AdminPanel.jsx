@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
@@ -9,7 +7,6 @@ import ChipNav from '../components/ChipNav';
 import AnnouncementCard from '../components/AnnouncementCard';
 
 export default function AdminPanel() {
-  const { user } = useAuth();
   const { showToast } = useNotification();
 
   const [activeTab, setActiveTab] = useState('moderation');
@@ -19,12 +16,7 @@ export default function AdminPanel() {
   const [rejectReason, setRejectReason] = useState('');
   const [claimTickets, setClaimTickets] = useState([]);
 
-  useEffect(() => {
-    loadModerationQueue();
-    loadClaimTickets();
-  }, []);
-
-  const loadModerationQueue = async () => {
+  const loadModerationQueue = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.getModerationQueue();
@@ -35,16 +27,21 @@ export default function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
-  const loadClaimTickets = async () => {
+  const loadClaimTickets = useCallback(async () => {
     try {
       const response = await api.getClaimTickets();
       setClaimTickets(response.data.tickets || []);
     } catch (error) {
       console.error('Error loading claim tickets:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadModerationQueue();
+    loadClaimTickets();
+  }, [loadModerationQueue, loadClaimTickets]);
 
   const handleApprove = async (announcementId) => {
     try {
@@ -70,17 +67,6 @@ export default function AdminPanel() {
       loadModerationQueue();
     } catch (error) {
       showToast('Error al rechazar', 'error');
-    }
-  };
-
-  const handleSuspendUser = async (userId) => {
-    if (!confirm('¿Estás seguro de suspender a este usuario?')) return;
-
-    try {
-      await api.suspendUser(userId);
-      showToast('Usuario suspendido', 'success');
-    } catch (error) {
-      showToast('Error al suspender usuario', 'error');
     }
   };
 
@@ -126,16 +112,17 @@ export default function AdminPanel() {
               <div>
                 <h4 className="mb-4" style={{ color: 'var(--text-primary)' }}>Cola de Moderación</h4>
 
-                {loading ? (
+                {loading && (
                   <div className="text-center py-5">
                     <div className="spinner-border" role="status" style={{ color: 'var(--primary)' }} />
                   </div>
-                ) : sortedQueue.length === 0 ? (
+                )}
+                {!loading && sortedQueue.length === 0 && (
                   <div className="text-center py-5">
                     <p style={{ color: 'var(--text-secondary)' }}>No hay anuncios pendientes de revisión</p>
                   </div>
-                ) : (
-
+                )}
+                {!loading && sortedQueue.length > 0 && (
                   <div className="row">
                     {sortedQueue.map((announcement) => (
                       <div key={announcement.id} className="col-12 col-md-6 col-lg-4 mb-4">
@@ -160,131 +147,141 @@ export default function AdminPanel() {
                             {/* Custom Actions for Admin */}
                             <div className="mt-3 d-flex gap-2">
                               {announcement.status === 'pending_review' && (
-                                 <>
-                                   <button
-                                     className="btn-cta"
-                                     onClick={() => handleApprove(announcement.id)}
-                                     style={{
-                                       backgroundColor: 'var(--status-active)',
-                                       color: 'var(--text-primary)',
-                                       border: 'none',
-                                       fontSize: '12px',
-                                       padding: '4px 8px',
-                                       borderRadius: 'var(--radius-sm)',
-                                       cursor: 'pointer',
-                                     }}
-                                   >
-                                     Aprobar
-                                   </button>
-                                   <button
-                                     className="btn-cta-outline"
-                                     onClick={() => setSelectedAnnouncement({ ...announcement, showReject: true })}
-                                     style={{
-                                       backgroundColor: 'transparent',
-                                       border: '1px solid var(--border)',
-                                       color: 'var(--text-secondary)',
-                                       fontSize: '12px',
-                                       padding: '4px 8px',
-                                       borderRadius: 'var(--radius-sm)',
-                                       cursor: 'pointer',
-                                     }}
-                                   >
-                                     Rechazar
-                                   </button>
-                                 </>
-                               )}
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn-cta"
+                                  onClick={() => handleApprove(announcement.id)}
+                                  style={{
+                                    backgroundColor: 'var(--status-active)',
+                                    color: 'var(--text-primary)',
+                                    border: 'none',
+                                    fontSize: '12px',
+                                    padding: '4px 8px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Aprobar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn-cta-outline"
+                                  onClick={() => setSelectedAnnouncement({
+                                    ...announcement,
+                                    showReject: true,
+                                  })}
+                                  style={{
+                                    backgroundColor: 'transparent',
+                                    border: '1px solid var(--border)',
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '12px',
+                                    padding: '4px 8px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Rechazar
+                                </button>
+                              </>
+                              )}
                               {announcement.status === 'shadowban' && (
-                                 <button
-                                   className="btn-cta"
-                                   onClick={() => handleApprove(announcement.id)}
-                                   style={{
-                                     backgroundColor: 'var(--status-pending)',
-                                     color: 'var(--text-primary)',
-                                     border: 'none',
-                                     fontSize: '12px',
-                                     padding: '4px 8px',
-                                     borderRadius: 'var(--radius-sm)',
-                                     cursor: 'pointer',
-                                   }}
-                                 >
-                                   Restaurar
-                                 </button>
-                               )}
+                              <button
+                                type="button"
+                                className="btn-cta"
+                                onClick={() => handleApprove(announcement.id)}
+                                style={{
+                                  backgroundColor: 'var(--status-pending)',
+                                  color: 'var(--text-primary)',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  padding: '4px 8px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Restaurar
+                              </button>
+                              )}
                             </div>
 
                             {/* Comparison Action */}
                             {announcement.hash_match && (
                             <div className="mt-2">
-                                 <button
-                                   className="btn-cta-outline"
-                                   onClick={() => setSelectedAnnouncement(announcement)}
-                                   style={{
-                                     width: '100%',
-                                     backgroundColor: 'transparent',
-                                     border: '1px solid var(--border)',
-                                     color: 'var(--text-secondary)',
-                                     fontSize: '12px',
-                                     padding: '4px 8px',
-                                     borderRadius: 'var(--radius-sm)',
-                                     cursor: 'pointer',
-                                   }}
-                                 >
-                                   Ver comparación de imagen
-                                 </button>
-                               </div>
+                              <button
+                                type="button"
+                                className="btn-cta-outline"
+                                onClick={() => setSelectedAnnouncement(announcement)}
+                                style={{
+                                  width: '100%',
+                                  backgroundColor: 'transparent',
+                                  border: '1px solid var(--border)',
+                                  color: 'var(--text-secondary)',
+                                  fontSize: '12px',
+                                  padding: '4px 8px',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Ver comparación de imagen
+                              </button>
+                            </div>
                             )}
 
                             {/* Rejection Form */}
-                            {selectedAnnouncement?.id === announcement.id && selectedAnnouncement.showReject && (
-                            <div className="mt-3">
-                                 <textarea
-                                   className="form-control mb-2"
-                                   placeholder="Motivo del rechazo"
-                                   value={rejectReason}
-                                   onChange={(e) => setRejectReason(e.target.value)}
-                                   rows={2}
-                                   style={{
-                                     backgroundColor: 'var(--bg-elevated)',
-                                     border: '1px solid var(--border)',
-                                     color: 'var(--text-primary)',
-                                   }}
-                                 />
-                                 <div className="d-flex gap-2">
-                                   <button
-                                     className="btn-cta"
-                                     onClick={() => handleReject(announcement.id)}
-                                     style={{
-                                       backgroundColor: 'var(--status-rejected)',
-                                       color: 'var(--text-primary)',
-                                       border: 'none',
-                                       fontSize: '12px',
-                                       padding: '4px 8px',
-                                       borderRadius: 'var(--radius-sm)',
-                                       cursor: 'pointer',
-                                     }}
-                                   >
-                                     Confirmar Rechazo
-                                   </button>
-                                   <button
-                                     className="btn-cta-outline"
-                                     onClick={() => {
-                                       setSelectedAnnouncement(null);
-                                       setRejectReason('');
-                                     }}
-                                     style={{
-                                       backgroundColor: 'transparent',
-                                       border: '1px solid var(--border)',
-                                       color: 'var(--text-secondary)',
-                                       fontSize: '12px',
-                                       padding: '4px 8px',
-                                       borderRadius: 'var(--radius-sm)',
-                                       cursor: 'pointer',
-                                     }}
-                                   >
-                                     Cancelar
-                                   </button>
-                                 </div>
-                               </div>
+                            {selectedAnnouncement?.id === announcement.id
+                              && selectedAnnouncement.showReject && (
+                              <div className="mt-3">
+                                <textarea
+                                  className="form-control mb-2"
+                                  placeholder="Motivo del rechazo"
+                                  value={rejectReason}
+                                  onChange={(e) => setRejectReason(e.target.value)}
+                                  rows={2}
+                                  style={{
+                                    backgroundColor: 'var(--bg-elevated)',
+                                    border: '1px solid var(--border)',
+                                    color: 'var(--text-primary)',
+                                  }}
+                                />
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn-cta"
+                                    onClick={() => handleReject(announcement.id)}
+                                    style={{
+                                      backgroundColor: 'var(--status-rejected)',
+                                      color: 'var(--text-primary)',
+                                      border: 'none',
+                                      fontSize: '12px',
+                                      padding: '4px 8px',
+                                      borderRadius: 'var(--radius-sm)',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    Confirmar Rechazo
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-cta-outline"
+                                    onClick={() => {
+                                      setSelectedAnnouncement(null);
+                                      setRejectReason('');
+                                    }}
+                                    style={{
+                                      backgroundColor: 'transparent',
+                                      border: '1px solid var(--border)',
+                                      color: 'var(--text-secondary)',
+                                      fontSize: '12px',
+                                      padding: '4px 8px',
+                                      borderRadius: 'var(--radius-sm)',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -319,37 +316,38 @@ export default function AdminPanel() {
                           <div className="card-body">
                             <div className="d-flex justify-content-between align-items-start">
                               <div>
-                                 <h6 className="mb-1" style={{ color: 'var(--text-primary)' }}>
-                                   Matrícula: {ticket.matricula}
-                                 </h6>
-                                 <p className="mb-1" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                   WhatsApp del reclamante: {ticket.whatsapp_number}
-                                 </p>
-                                 <small style={{ color: 'var(--text-muted)' }}>
-                                   {new Date(ticket.created_at).toLocaleString('es-MX')}
-                                 </small>
-                               </div>
+                                <h6 className="mb-1" style={{ color: 'var(--text-primary)' }}>
+                                  Matrícula: {ticket.matricula}
+                                </h6>
+                                <p className="mb-1" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                  WhatsApp del reclamante: {ticket.whatsapp_number}
+                                </p>
+                                <small style={{ color: 'var(--text-muted)' }}>
+                                  {new Date(ticket.created_at).toLocaleString('es-MX')}
+                                </small>
+                              </div>
                               <div>
-                                 <StatusBadge status={ticket.status} />
-                                 {ticket.status === 'pending' && (
-                                   <button
-                                     className="btn-cta"
-                                     onClick={() => handleResolveClaim(ticket.id)}
-                                     style={{
-                                       backgroundColor: 'var(--primary)',
-                                       color: 'var(--text-primary)',
-                                       border: 'none',
-                                       padding: '4px 12px',
-                                       borderRadius: 'var(--radius-sm)',
-                                       fontWeight: 600,
-                                       cursor: 'pointer',
-                                       marginTop: '8px',
-                                     }}
-                                   >
-                                     Resolver
-                                   </button>
-                                 )}
-                               </div>
+                                <StatusBadge status={ticket.status} />
+                                {ticket.status === 'pending' && (
+                                <button
+                                  type="button"
+                                  className="btn-cta"
+                                  onClick={() => handleResolveClaim(ticket.id)}
+                                  style={{
+                                    backgroundColor: 'var(--primary)',
+                                    color: 'var(--text-primary)',
+                                    border: 'none',
+                                    padding: '4px 12px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    marginTop: '8px',
+                                  }}
+                                >
+                                  Resolver
+                                </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

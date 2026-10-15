@@ -1,5 +1,6 @@
 /**
- * @fileoverview StarRating — Componente de valoración de 1 a 3 estrellas (T15, implementacion-11.md)
+ * @fileoverview StarRating — Componente de valoración de 1 a 3 estrellas.
+ * (T15, implementacion-11.md)
  *
  * Escala: 1, 2 o 3 estrellas (SAD §6.2, RF-13). No se usa la escala clásica de 5.
  *
@@ -21,14 +22,14 @@ import { FaStar } from 'react-icons/fa';
  * Valoración visual de 3 estrellas, interactiva o readonly.
  *
  * @param {object}   props
- * @param {number}   [props.value=0]       - Valoración actual (1-3) o promedio para modo lectura.
- * @param {Function} [props.onChange]      - Callback `(rating: number) => void`; solo en modo interactivo.
- * @param {boolean}  [props.readonly=false]- Si `true`, no permite selección y usa role="img".
- * @param {number}   [props.size=16]       - Tamaño del ícono de estrella en px.
+ * @param {number} [props.value=0] Valoración actual (1-3) o promedio para modo lectura.
+ * @param {Function} [props.onChange] Callback para el modo interactivo.
+ * @param {boolean} [props.readonly=false] Si no permite selección y usa role="img".
+ * @param {number} [props.size=16] Tamaño del ícono en px.
  */
 export default function StarRating({
   value = 0,
-  onChange,
+  onChange = null,
   readonly = false,
   size = 16,
 }) {
@@ -57,7 +58,7 @@ export default function StarRating({
     const stars = [];
     const displayValue = Math.round(value);
 
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 3; i += 1) {
       const isFilled = i <= displayValue;
 
       if (readonly) {
@@ -75,6 +76,7 @@ export default function StarRating({
         stars.push(
           <button
             key={i}
+            type="button"
             onClick={(e) => handleClick(e, i)}
             style={{
               background: 'none',

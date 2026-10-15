@@ -17,7 +17,10 @@ export default function StatsCard({ label, value, icon, color = 'var(--primary)'
   useEffect(() => {
     const start = 0;
     const end = parseInt(value, 10) || 0;
-    if (start === end) return;
+    if (start === end) {
+      setCount(0);
+      return undefined;
+    }
 
     // Calculate duration based on value to keep animation snappy
     const duration = 1000; // 1 second total

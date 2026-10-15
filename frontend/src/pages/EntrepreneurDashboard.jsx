@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { FiHeart, FiStar, FiFileText } from 'react-icons/fi';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
 import CategoryBadge from '../components/CategoryBadge';
@@ -12,9 +10,21 @@ import StatsCard from '../components/StatsCard';
 import ChipNav from '../components/ChipNav';
 import { CATEGORIES } from '../constants/categories';
 
+const notificationIcons = {
+  approved: '✓',
+  review: '⏳',
+  warning: '⚠',
+};
+
 export default function EntrepreneurDashboard() {
-  const { user } = useAuth();
-  const { showToast, notifications, unreadCount, markAsRead, markAllAsRead, loadNotifications } = useNotification();
+  const {
+    showToast,
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    loadNotifications,
+  } = useNotification();
 
   const [activeTab, setActiveTab] = useState('projects');
   const [projects, setProjects] = useState([]);
@@ -35,12 +45,16 @@ export default function EntrepreneurDashboard() {
     expires_at: '',
   });
 
-  useEffect(() => {
-    loadProjects();
-    loadNotificationsFromContext();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const loadMetrics = useCallback(async () => {
+    try {
+      const response = await api.getMetrics();
+      setMetrics(response.data.metrics);
+    } catch (error) {
+      console.error('Error loading metrics:', error);
+    }
+  }, []);
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.getProjects();
@@ -52,22 +66,18 @@ export default function EntrepreneurDashboard() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadMetrics = async () => {
-    try {
-      const response = await api.getMetrics();
-      setMetrics(response.data.metrics);
-    } catch (error) {
-      console.error('Error loading metrics:', error);
-    }
-  };
+  }, [loadMetrics, showToast]);
 
   const loadNotificationsFromContext = useCallback(async () => {
     if (loadNotifications) {
       await loadNotifications();
     }
   }, [loadNotifications]);
+
+  useEffect(() => {
+    loadProjects();
+    loadNotificationsFromContext();
+  }, [loadProjects, loadNotificationsFromContext]);
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
@@ -126,7 +136,8 @@ export default function EntrepreneurDashboard() {
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (!confirm('¿Estás seguro de eliminar este proyecto y todos sus anuncios?')) return;
+    // eslint-disable-next-line no-alert -- Keep a native confirmation before destructive deletion.
+    if (!window.confirm('¿Estás seguro de eliminar este proyecto y todos sus anuncios?')) return;
 
     try {
       await api.deleteProject(projectId);
@@ -195,6 +206,7 @@ export default function EntrepreneurDashboard() {
                 <div className="d-flex justify-content-between align-items-center mb-4">
                   <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>Mis Proyectos</h4>
                   <button
+                    type="button"
                     className="btn-cta"
                     onClick={() => {
                       setShowCreateAnnouncement(true);
@@ -215,14 +227,16 @@ export default function EntrepreneurDashboard() {
                   </button>
                 </div>
 
-                {loading ? (
+                {loading && (
                   <div className="text-center py-5">
                     <div className="spinner-border" role="status" style={{ color: 'var(--primary)' }} />
                   </div>
-                ) : projects.length === 0 ? (
+                )}
+                {!loading && projects.length === 0 && (
                   <div className="text-center py-5">
                     <p style={{ color: 'var(--text-secondary)' }}>No tienes proyectos aún</p>
                     <button
+                      type="button"
                       className="btn-cta"
                       onClick={() => setShowCreateProject(true)}
                       style={{ backgroundColor: 'var(--primary)', color: 'var(--text-primary)', border: 'none', padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontWeight: 600, cursor: 'pointer' }}
@@ -230,7 +244,8 @@ export default function EntrepreneurDashboard() {
                       Crear mi primer proyecto
                     </button>
                   </div>
-                ) : (
+                )}
+                {!loading && projects.length > 0 && (
                   <div className="row">
                     {projects.map((project) => (
                       <div key={project.id} className="col-12 col-md-6 mb-4">
@@ -265,37 +280,42 @@ export default function EntrepreneurDashboard() {
 
                               <div className="d-flex gap-2">
                                 <button
-                                      className="btn-cta-outline"
-                                      onClick={() => handleToggleProjectStatus(project.id, project.status)}
-                                      style={{
-                                        fontSize: '12px',
-                                        padding: '4px 8px',
-                                        borderRadius: 'var(--radius-sm)',
-                                        border: '1px solid var(--border)',
-                                        backgroundColor: 'transparent',
-                                        color: 'var(--text-secondary)',
-                                        cursor: 'pointer',
-                                        transition: 'var(--transition-fast)',
-                                      }}
-                                    >
-                                      {project.status === 'active' ? 'Suspender' : 'Activar'}
-                                    </button>
+                                  type="button"
+                                  className="btn-cta-outline"
+                                  onClick={() => handleToggleProjectStatus(
+                                    project.id,
+                                    project.status,
+                                  )}
+                                  style={{
+                                    fontSize: '12px',
+                                    padding: '4px 8px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid var(--border)',
+                                    backgroundColor: 'transparent',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'var(--transition-fast)',
+                                  }}
+                                >
+                                  {project.status === 'active' ? 'Suspender' : 'Activar'}
+                                </button>
                                 <button
-                                      className="btn-cta-outline"
-                                      onClick={() => handleDeleteProject(project.id)}
-                                      style={{
-                                        fontSize: '12px',
-                                        padding: '4px 8px',
-                                        borderRadius: 'var(--radius-sm)',
-                                        border: '1px solid var(--border)',
-                                        backgroundColor: 'transparent',
-                                        color: 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                        transition: 'var(--transition-fast)',
-                                      }}
-                                    >
-                                      Eliminar
-                                    </button>
+                                  type="button"
+                                  className="btn-cta-outline"
+                                  onClick={() => handleDeleteProject(project.id)}
+                                  style={{
+                                    fontSize: '12px',
+                                    padding: '4px 8px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid var(--border)',
+                                    backgroundColor: 'transparent',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    transition: 'var(--transition-fast)',
+                                  }}
+                                >
+                                  Eliminar
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -322,10 +342,11 @@ export default function EntrepreneurDashboard() {
 
                 <form onSubmit={handleCreateProject}>
                   <div className="mb-3">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label htmlFor="project-name" className="form-label" style={{ color: 'var(--text-secondary)' }}>
                       Nombre del proyecto
                     </label>
                     <input
+                      id="project-name"
                       type="text"
                       className="form-control"
                       value={newProject.name}
@@ -340,13 +361,21 @@ export default function EntrepreneurDashboard() {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label
+                      htmlFor="project-description"
+                      className="form-label"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
                       Descripción
                     </label>
                     <textarea
+                      id="project-description"
                       className="form-control"
                       value={newProject.description}
-                      onChange={(e) => setNewProject((prev) => ({ ...prev, description: e.target.value }))}
+                      onChange={(event) => setNewProject((previous) => ({
+                        ...previous,
+                        description: event.target.value,
+                      }))}
                       rows={3}
                       style={{
                         backgroundColor: 'var(--bg-elevated)',
@@ -357,13 +386,17 @@ export default function EntrepreneurDashboard() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label htmlFor="project-category" className="form-label" style={{ color: 'var(--text-secondary)' }}>
                       Categoría
                     </label>
                     <select
+                      id="project-category"
                       className="form-select"
                       value={newProject.category}
-                      onChange={(e) => setNewProject((prev) => ({ ...prev, category: e.target.value }))}
+                      onChange={(event) => setNewProject((previous) => ({
+                        ...previous,
+                        category: event.target.value,
+                      }))}
                       required
                       style={{
                         backgroundColor: 'var(--bg-elevated)',
@@ -419,10 +452,11 @@ export default function EntrepreneurDashboard() {
 
                 <form onSubmit={handleCreateAnnouncement}>
                   <div className="mb-3">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label htmlFor="announcement-project" className="form-label" style={{ color: 'var(--text-secondary)' }}>
                       Proyecto
                     </label>
                     <select
+                      id="announcement-project"
                       className="form-select"
                       value={selectedProject || ''}
                       onChange={(e) => setSelectedProject(e.target.value)}
@@ -441,14 +475,22 @@ export default function EntrepreneurDashboard() {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label
+                      htmlFor="announcement-title"
+                      className="form-label"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
                       Título
                     </label>
                     <input
+                      id="announcement-title"
                       type="text"
                       className="form-control"
                       value={newAnnouncement.title}
-                      onChange={(e) => setNewAnnouncement((prev) => ({ ...prev, title: e.target.value }))}
+                      onChange={(event) => setNewAnnouncement((previous) => ({
+                        ...previous,
+                        title: event.target.value,
+                      }))}
                       required
                       style={{
                         backgroundColor: 'var(--bg-elevated)',
@@ -459,13 +501,17 @@ export default function EntrepreneurDashboard() {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label htmlFor="announcement-description" className="form-label" style={{ color: 'var(--text-secondary)' }}>
                       Descripción
                     </label>
                     <textarea
+                      id="announcement-description"
                       className="form-control"
                       value={newAnnouncement.description}
-                      onChange={(e) => setNewAnnouncement((prev) => ({ ...prev, description: e.target.value }))}
+                      onChange={(event) => setNewAnnouncement((previous) => ({
+                        ...previous,
+                        description: event.target.value,
+                      }))}
                       rows={4}
                       required
                       style={{
@@ -477,13 +523,21 @@ export default function EntrepreneurDashboard() {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label
+                      htmlFor="announcement-category"
+                      className="form-label"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
                       Categoría
                     </label>
                     <select
+                      id="announcement-category"
                       className="form-select"
                       value={newAnnouncement.category}
-                      onChange={(e) => setNewAnnouncement((prev) => ({ ...prev, category: e.target.value }))}
+                      onChange={(event) => setNewAnnouncement((previous) => ({
+                        ...previous,
+                        category: event.target.value,
+                      }))}
                       required
                       style={{
                         backgroundColor: 'var(--bg-elevated)',
@@ -499,9 +553,7 @@ export default function EntrepreneurDashboard() {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
-                      Imagen
-                    </label>
+                    <p className="form-label" style={{ color: 'var(--text-secondary)' }}>Imagen</p>
                     <ImageUploader
                       onImageChange={handleImageChange}
                       initialImage={newAnnouncement.imagePreview}
@@ -509,14 +561,18 @@ export default function EntrepreneurDashboard() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="form-label" style={{ color: 'var(--text-secondary)' }}>
+                    <label htmlFor="announcement-expiry" className="form-label" style={{ color: 'var(--text-secondary)' }}>
                       Fecha de vencimiento (opcional)
                     </label>
                     <input
+                      id="announcement-expiry"
                       type="date"
                       className="form-control"
                       value={newAnnouncement.expires_at}
-                      onChange={(e) => setNewAnnouncement((prev) => ({ ...prev, expires_at: e.target.value }))}
+                      onChange={(event) => setNewAnnouncement((previous) => ({
+                        ...previous,
+                        expires_at: event.target.value,
+                      }))}
                       style={{
                         backgroundColor: 'var(--bg-elevated)',
                         border: '1px solid var(--border)',
@@ -562,6 +618,7 @@ export default function EntrepreneurDashboard() {
                 </span>
                 )}
                 <button
+                  type="button"
                   className="btn-cta-outline"
                   onClick={markAllAsRead}
                   style={{
@@ -583,10 +640,14 @@ export default function EntrepreneurDashboard() {
                 <div className="row">
                   {notifications.map((notif) => (
                     <div key={notif.id} className="col-12 mb-2">
-                      <div
+                      <button
+                        type="button"
                         className="card card-mml"
                         onClick={() => markAsRead(notif.id)}
                         style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
                           cursor: 'pointer',
                           backgroundColor: notif.is_read ? 'var(--bg-surface)' : 'var(--bg-elevated)',
                           border: '1px solid var(--border)',
@@ -594,14 +655,18 @@ export default function EntrepreneurDashboard() {
                           padding: 'var(--spacing-sm)',
                         }}
                       >
-                        <div className="d-flex justify-content-between align-items-center">
-                          <div className="d-flex align-items-center gap-2">
-                               <span style={{ fontSize: '18px' }} aria-label="notif-icon">{notif.type === 'approved' ? '✓' : notif.type === 'review' ? '⏳' : notif.type === 'warning' ? '⚠' : '✗'}</span>
-                               <span style={{ color: 'var(--text-primary)' }}>{notif.message}</span>
-                             </div>
-                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(notif.created_at).toLocaleString('es-MX')}</span>
-                        </div>
-                      </div>
+                        <span className="d-flex justify-content-between align-items-center">
+                          <span className="d-flex align-items-center gap-2">
+                            <span style={{ fontSize: '18px' }} aria-hidden="true">
+                              {notificationIcons[notif.type] || '✗'}
+                            </span>
+                            <span style={{ color: 'var(--text-primary)' }}>{notif.message}</span>
+                          </span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            {new Date(notif.created_at).toLocaleString('es-MX')}
+                          </span>
+                        </span>
+                      </button>
                     </div>
                   ))}
                 </div>

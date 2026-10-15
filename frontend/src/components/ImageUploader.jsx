@@ -27,14 +27,16 @@ const MAX_WIDTH_OR_HEIGHT = 1200;
 /**
  * Componente de subida de imagen con drag-and-drop, compresión automática y preview local.
  *
- * @param {object}        props
- * @param {Function}      [props.onImageChange]  - Callback `(file: File, preview: string) => void`
- *                                                 llamado cuando la imagen es seleccionada y comprimida.
- *                                                 Si el usuario limpia, se llama con `(null, null)`.
- * @param {string}        [props.initialImage]   - URL de imagen preexistente para mostrar como preview inicial.
- * @param {boolean}       [props.disabled=false] - Si `true`, deshabilita interacción y cursor.
+ * @param {object} props
+ * @param {Function} [props.onImageChange] Callback con el archivo y preview comprimidos.
+ * @param {string} [props.initialImage] URL de imagen preexistente para el preview.
+ * @param {boolean} [props.disabled=false] Deshabilita interacción y cursor.
  */
-export default function ImageUploader({ onImageChange, initialImage, disabled = false }) {
+export default function ImageUploader({
+  onImageChange = null,
+  initialImage = null,
+  disabled = false,
+}) {
   const [preview, setPreview] = useState(initialImage || null);
   const [state, setState] = useState('idle'); // idle, compressing, uploading, error
   const [progress, setProgress] = useState(0);
@@ -162,13 +164,104 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
     }
   };
 
+  const handleKeyDown = (event) => {
+    if ((event.key === 'Enter' || event.key === ' ') && !disabled && state === 'idle') {
+      event.preventDefault();
+      inputRef.current?.click();
+    }
+  };
+
+  let borderColor = 'var(--border)';
+  if (error) {
+    borderColor = 'var(--status-rejected)';
+  } else if (state !== 'idle') {
+    borderColor = 'var(--primary)';
+  }
+
+  let uploadContent;
+  if (state === 'compressing' || state === 'uploading') {
+    uploadContent = (
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '8px' }}>
+          {state === 'compressing' ? 'Optimizando imagen...' : 'Subiendo...'}
+        </span>
+        <div style={{ width: '80%', height: '4px', backgroundColor: 'var(--border)', borderRadius: '2px' }}>
+          <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary)', borderRadius: '2px', transition: 'width 150ms' }} />
+        </div>
+      </div>
+    );
+  } else if (preview) {
+    uploadContent = (
+      <>
+        <img
+          src={preview}
+          alt="Preview"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+          }}
+        />
+        <button
+          type="button"
+          onClick={handleClear}
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: 'var(--text-primary)',
+          }}
+          aria-label="Eliminar imagen"
+        >
+          <FiX size={16} />
+        </button>
+      </>
+    );
+  } else if (state === 'error') {
+    uploadContent = (
+      <div style={{ color: 'var(--status-rejected)', textAlign: 'center' }}>
+        <FiX size={32} />
+        <p style={{ fontSize: '12px', marginTop: '8px' }}>{error || 'Error'}</p>
+      </div>
+    );
+  } else {
+    uploadContent = (
+      <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+        <FiImage size={32} />
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '4px' }}>
+          Toca para subir una imagen
+        </p>
+        <p style={{ fontSize: '12px' }}>JPG, PNG, máx. 500 KB</p>
+      </div>
+    );
+  }
+
   return (
-    <div onClick={handleClick}>
+    <div>
       <div
         style={{
           width: '343px',
           height: '200px',
-          border: `2px dashed ${error ? 'var(--status-rejected)' : state !== 'idle' ? 'var(--primary)' : 'var(--border)'}`,
+          border: `2px dashed ${borderColor}`,
           borderRadius: 'var(--radius-lg)',
           backgroundColor: 'var(--bg-card)',
           display: 'flex',
@@ -182,76 +275,13 @@ export default function ImageUploader({ onImageChange, initialImage, disabled = 
         }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
         role="button"
         tabIndex={disabled ? -1 : 0}
+        aria-label="Seleccionar imagen para subir"
       >
-        {state === 'compressing' || state === 'uploading' ? (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <span style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '8px' }}>
-              {state === 'compressing' ? 'Optimizando imagen...' : 'Subiendo...'}
-            </span>
-            <div style={{ width: '80%', height: '4px', backgroundColor: 'var(--border)', borderRadius: '2px' }}>
-              <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary)', borderRadius: '2px', transition: 'width 150ms' }} />
-            </div>
-          </div>
-        ) : preview ? (
-          <>
-            <img
-              src={preview}
-              alt="Preview"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleClear}
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: 'var(--text-primary)',
-              }}
-              aria-label="Eliminar imagen"
-            >
-              <FiX size={16} />
-            </button>
-          </>
-        ) : state === 'error' ? (
-          <div style={{ color: 'var(--status-rejected)', textAlign: 'center' }}>
-            <FiX size={32} />
-            <p style={{ fontSize: '12px', marginTop: '8px' }}>{error || 'Error'}</p>
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-            <FiImage size={32} />
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px', marginBottom: '4px' }}>
-              Toca para subir una imagen
-            </p>
-            <p style={{ fontSize: '12px' }}>JPG, PNG, máx. 500 KB</p>
-          </div>
-        )}
+        {uploadContent}
       </div>
 
       <input

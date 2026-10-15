@@ -13,7 +13,16 @@
  * Referencia: DDC, wireframes-spec.md, SRS RF-01 a RF-07
  */
 
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
+import PropTypes from 'prop-types';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -23,12 +32,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const authChecked = useRef(false);
 
-  useEffect(() => {
-    if (authChecked.current) return;
-    authChecked.current = true;
-    checkAuth();
-  }, []);
-
   /**
    * Verifica si existe una sesión activa consultando `/auth/me`.
    * Si la cookie HttpOnly es válida, establece `user` con los datos del perfil.
@@ -36,7 +39,7 @@ export function AuthProvider({ children }) {
    *
    * @returns {Promise<void>}
    */
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await api.getMe();
       setUser(response.data.user);
@@ -45,7 +48,13 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (authChecked.current) return;
+    authChecked.current = true;
+    checkAuth();
+  }, [checkAuth]);
 
   /**
    * Inicia sesión con matrícula y contraseña opcional (ROL-01 no usa contraseña).
@@ -56,11 +65,11 @@ export function AuthProvider({ children }) {
    * @returns {Promise<object>} Objeto `user` del backend con id, role y display_name.
    * @throws {Error} Si las credenciales son inválidas o la cuenta está suspendida.
    */
-  const login = async (matricula, password = null) => {
+  const login = useCallback(async (matricula, password = null) => {
     const response = await api.login(matricula, password);
     setUser(response.data.user);
     return response.data.user;
-  };
+  }, []);
 
   /**
    * Registra un estudiante (ROL-01) usando solo su matrícula.
@@ -70,10 +79,10 @@ export function AuthProvider({ children }) {
    * @returns {Promise<object>} Datos de la respuesta del backend.
    * @throws {Error} Si la matrícula ya existe (HTTP 409) o el checksum falla (HTTP 400).
    */
-  const registerStudent = async (matricula) => {
+  const registerStudent = useCallback(async (matricula) => {
     const response = await api.registerStudent(matricula);
     return response.data;
-  };
+  }, []);
 
   /**
    * Registra un emprendedor (ROL-02/ROL-03) y establece sesión si la creación es exitosa.
@@ -87,13 +96,13 @@ export function AuthProvider({ children }) {
    * @returns {Promise<object>} Datos del usuario recién creado.
    * @throws {Error} Si la matrícula ya existe, el display_name es inapropiado o falta algún campo.
    */
-  const registerEntrepreneur = async (data) => {
+  const registerEntrepreneur = useCallback(async (data) => {
     const response = await api.registerEntrepreneur(data);
     if (response.status === 201) {
       setUser(response.data.user);
     }
     return response.data;
-  };
+  }, []);
 
   /**
    * Cierra la sesión actual. El backend invalida la cookie HttpOnly.
@@ -101,24 +110,36 @@ export function AuthProvider({ children }) {
    *
    * @returns {Promise<void>}
    */
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await api.logout();
     setUser(null);
-  };
+  }, []);
 
-  const value = {
+  const hasRole = useCallback((role) => user?.role === role, [user]);
+  const isAdmin = useCallback(() => user?.role === 'admin', [user]);
+  const value = useMemo(() => ({
     user,
     loading,
     isAuthenticated: !!user,
     role: user?.role || null,
-    hasRole: (role) => user?.role === role,
-    isAdmin: () => user?.role === 'admin',
+    hasRole,
+    isAdmin,
     login,
     registerStudent,
     registerEntrepreneur,
     logout,
     checkAuth,
-  };
+  }), [
+    user,
+    loading,
+    hasRole,
+    isAdmin,
+    login,
+    registerStudent,
+    registerEntrepreneur,
+    logout,
+    checkAuth,
+  ]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -126,6 +147,10 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 /**
  * Hook que expone el contexto de autenticación.

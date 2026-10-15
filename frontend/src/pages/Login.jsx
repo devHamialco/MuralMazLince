@@ -76,6 +76,16 @@ export default function Login() {
     }
   };
 
+  let matriculaBorderColor = 'var(--border)';
+  let matriculaBoxShadow = 'none';
+  if (matriculaValid === true) {
+    matriculaBorderColor = 'var(--status-active)';
+    matriculaBoxShadow = '0 0 12px rgba(16, 185, 129, 0.2)';
+  } else if (matriculaValid === false) {
+    matriculaBorderColor = 'var(--status-rejected)';
+    matriculaBoxShadow = '0 0 12px rgba(239, 68, 68, 0.2)';
+  }
+
   return (
     <div className="app-container bg-base">
       <Navbar />
@@ -88,17 +98,30 @@ export default function Login() {
               Iniciar Sesión
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
-              Ingresa para descubrir todo de tu emprendimiento favorito y estar al tanto de las últimas novedades
+              Ingresa para descubrir tu emprendimiento favorito y estar al tanto
+              de las últimas novedades
             </p>
           </div>
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <label
+                htmlFor="login-matricula"
+                style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: 'var(--primary)',
+                  marginBottom: '8px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
                 Matrícula
               </label>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="login-matricula"
                   type="tel"
                   value={matricula}
                   onChange={(e) => handleMatriculaChange(e.target.value)}
@@ -110,12 +133,8 @@ export default function Login() {
                     paddingRight: '44px',
                     color: 'var(--text-primary)',
                     backgroundColor: requirePassword ? 'var(--bg-surface)' : 'var(--bg-surface)',
-                    borderColor: matriculaValid === false ? 'var(--status-rejected)' : matriculaValid === true ? 'var(--status-active)' : 'var(--border)',
-                    boxShadow: matriculaValid === true
-                      ? '0 0 12px rgba(16, 185, 129, 0.2)'
-                      : matriculaValid === false
-                        ? '0 0 12px rgba(239, 68, 68, 0.2)'
-                        : 'none',
+                    borderColor: matriculaBorderColor,
+                    boxShadow: matriculaBoxShadow,
                   }}
                 />
                 <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
@@ -127,16 +146,27 @@ export default function Login() {
 
             {requirePassword && (
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <label
+                  htmlFor="login-password"
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--primary)',
+                    marginBottom: '8px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
                   Contraseña
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Ingresa tu contraseña"
-                    autoFocus
                     className="form-control"
                     style={{ width: '100%', paddingRight: '44px', color: 'var(--text-primary)' }}
                   />

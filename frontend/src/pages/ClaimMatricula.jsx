@@ -59,8 +59,9 @@ export default function ClaimMatricula() {
         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-md)' }}>La matrícula ya está en uso. Completa los datos para iniciar el reclamo.</p>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 'var(--spacing-md)' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>Matricula</label>
+            <label htmlFor="claim-matricula" style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>Matricula</label>
             <input
+              id="claim-matricula"
               type="tel"
               placeholder="20240001"
               maxLength={8}
@@ -70,8 +71,9 @@ export default function ClaimMatricula() {
             />
           </div>
           <div style={{ marginBottom: 'var(--spacing-md)' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>WhatsApp</label>
+            <label htmlFor="claim-whatsapp" style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>WhatsApp</label>
             <input
+              id="claim-whatsapp"
               type="tel"
               placeholder="+52 1234567890"
               value={whatsapp}

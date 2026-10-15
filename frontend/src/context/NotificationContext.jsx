@@ -11,9 +11,16 @@
  *
  * Referencia: SRS RF-25, SAD COMP-10, wireframes-spec WF-3.4.4
  */
-import { createContext, useContext, useState, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
+import PropTypes from 'prop-types';
 import api from '../services/api';
-import logger from '../utils/logger';
+import { api as logApi, error as logError } from '../utils/logger';
 
 const NotificationContext = createContext(null);
 
@@ -39,9 +46,10 @@ export function NotificationProvider({ children }) {
 
   /**
    * Agrega una notificación al inicio de la lista e incrementa `unreadCount`.
-   * Usar cuando el backend emite una notificación nueva que aún no está en el estado.
+  * Usar cuando el backend emite una notificación nueva que aún no está
+  * en el estado.
    *
-   * @param {{ id: number, type: string, message: string, is_read: boolean, created_at: string }} notification
+  * @param {object} notification Notification data returned by the API.
    * @returns {void}
    */
   const addNotification = useCallback((notification) => {
@@ -97,13 +105,13 @@ export function NotificationProvider({ children }) {
       setNotifications(notifs);
       const unread = notifs.filter((n) => !n.is_read && !n.read).length;
       setUnreadCount(unread);
-      logger.api('GET', '/notifications', 'Loaded', notifs.length, 'notifications');
+      logApi('GET', '/notifications', 'Loaded', notifs.length, 'notifications');
     } catch (err) {
-      logger.error('Failed to load notifications:', err.message);
+      logError('Failed to load notifications:', err.message);
     }
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     notifications,
     unreadCount,
     toast,
@@ -114,7 +122,18 @@ export function NotificationProvider({ children }) {
     markAllAsRead,
     clearNotifications,
     loadNotifications,
-  };
+  }), [
+    notifications,
+    unreadCount,
+    toast,
+    showToast,
+    hideToast,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    clearNotifications,
+    loadNotifications,
+  ]);
 
   return (
     <NotificationContext.Provider value={value}>
@@ -139,3 +158,7 @@ export function useNotification() {
   }
   return context;
 }
+
+NotificationProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};

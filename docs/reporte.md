@@ -1,8 +1,8 @@
 # Reporte de Auditoría UI — Panel del Emprendedor
 
-> **Fecha:** Octubre 2026  
-> **Auditor:** Frontend Senior — Mobile-First  
-> **Alcance:** `EntrepreneurDashboard.jsx` y componentes relacionados  
+> **Fecha:** Octubre 2026<br>
+> **Auditor:** Frontend Senior — Mobile-First<br>
+> **Alcance:** `EntrepreneurDashboard.jsx` y componentes relacionados<br>
 > **Viewport de referencia:** 375px (iPhone SE — mínimo estándar mobile-first)
 
 ---

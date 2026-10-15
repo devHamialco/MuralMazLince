@@ -1,7 +1,7 @@
 /* App - Mural Maz Lince */
 /* Sprint 11 - Frontend */
 
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { NotificationProvider, useNotification } from './context/NotificationContext';
 import Feed from './pages/Feed';

@@ -20,8 +20,7 @@
 
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { FiUser, FiHeart, FiMessageCircle } from 'react-icons/fi';
-import CategoryBadge from './CategoryBadge';
+import { FiMessageCircle } from 'react-icons/fi';
 import StarRating from './StarRating';
 import LikeButton from './LikeButton';
 import StatusBadge from './StatusBadge';
@@ -30,49 +29,45 @@ import StatusBadge from './StatusBadge';
  * Tarjeta de anuncio para el feed y el panel del emprendedor.
  *
  * @param {object}    props
- * @param {object}    props.announcement              - Datos del anuncio desde la API.
- * @param {number|string} props.announcement.id       - ID único del anuncio.
- * @param {string}    [props.announcement.image_url]  - URL Cloudinary de la imagen. Puede ser null durante carga.
- * @param {string}    props.announcement.title        - Título del anuncio (truncado a 2 líneas).
- * @param {string}    [props.announcement.project_name] - Nombre del proyecto padre.
- * @param {string}    props.announcement.category     - Código de categoría (para CategoryBadge).
- * @param {string}    [props.announcement.display_name] - Nombre público del emprendedor.
- * @param {string}    [props.announcement.description]  - Descripción truncada a 2 líneas.
- * @param {number}    [props.announcement.likes_count=0] - Likes activos (excluyendo accidentales y revertidos).
- * @param {number}    [props.announcement.average_rating] - Promedio de estrellas válidas.
- * @param {string}    [props.announcement.status]     - Estado del anuncio (para StatusBadge).
- * @param {string}    [props.announcement.created_at] - Timestamp ISO 8601 de creación.
- * @param {Function}  [props.onLike]                  - Callback `(announcementId) => void` al dar/quitar like.
- * @param {Function}  [props.onReport]                - Callback `(announcementId) => void` al abrir el modal de reporte.
- * @param {boolean}   [props.userLiked=false]         - Si el usuario actual ya le dio like.
- * @param {number}    [props.userRating=0]            - Valoración actual del usuario (1-3 o 0 si no valoró).
- * @param {boolean}   [props.isAuthenticated=false]   - Si hay sesión activa. Controla readonly de interacciones.
- * @param {boolean}   [props.showStatus=false]        - Si `true`, muestra StatusBadge sobre la imagen (panel emprendedor).
- * @param {Function}  [props.onInteractionAttempt]    - Callback `() => void` llamado cuando un visitante intenta interactuar.
+ * @param {object} props.announcement - Datos del anuncio desde la API.
+ * @param {number|string} props.announcement.id - ID único del anuncio.
+ * @param {string} [props.announcement.image_url] - URL de imagen; puede faltar durante la carga.
+ * @param {string} props.announcement.title - Título del anuncio.
+ * @param {string} [props.announcement.project_name] - Nombre del proyecto padre.
+ * @param {string} props.announcement.category - Código de categoría.
+ * @param {string} [props.announcement.display_name] - Nombre público del emprendedor.
+ * @param {string} [props.announcement.description] - Descripción del anuncio.
+ * @param {number} [props.announcement.likes_count=0] - Likes activos.
+ * @param {number} [props.announcement.average_rating] - Promedio de estrellas válidas.
+ * @param {string} [props.announcement.status] - Estado del anuncio.
+ * @param {string} [props.announcement.created_at] - Fecha de creación en formato ISO 8601.
+ * @param {Function} [props.onLike] - Callback al dar o quitar like.
+ * @param {Function} [props.onReport] - Callback al abrir el reporte.
+ * @param {boolean} [props.userLiked=false] - Si el usuario ya dio like.
+ * @param {boolean} [props.isAuthenticated=false] - Si hay una sesión activa.
+ * @param {boolean} [props.showStatus=false] - Si se muestra el estado en la imagen.
+ * @param {Function} [props.onInteractionAttempt] - Callback para visitantes sin sesión.
  */
 export default function AnnouncementCard({
   announcement,
-  onLike,
-  onReport,
+  onLike = null,
+  onReport = null,
   userLiked = false,
-  userRating = 0,
   isAuthenticated = false,
   showStatus = false,
-  onInteractionAttempt,
+  onInteractionAttempt = null,
   // WF-3.x: document props for clarity
 }) {
   const {
     id,
-    image_url,
+    image_url: imageUrl,
     title,
-    project_name,
-    category,
-    display_name,
+    project_name: projectName,
     description,
-    likes_count = 0,
-    average_rating,
+    likes_count: likesCount = 0,
+    average_rating: averageRating,
     status,
-    created_at,
+    created_at: createdAt,
   } = announcement;
 
   /**
@@ -95,25 +90,6 @@ export default function AnnouncementCard({
     if (diffHours < 24) return `hace ${diffHours}h`;
     if (diffDays < 7) return `hace ${diffDays}d`;
     return then.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
-  };
-
-  /**
-   * Maneja intentos de interacción por parte de un visitante no autenticado.
-   * Si el usuario no está autenticado, previene el evento por defecto y llama
-   * a `onInteractionAttempt` para mostrar el tooltip / modal de registro.
-   * Si está autenticado, ejecuta la acción recibida.
-   *
-   * @param {React.SyntheticEvent} e      - Evento del DOM a interceptar.
-   * @param {Function}             [action] - Función a ejecutar si autenticado.
-   */
-  const handleInteraction = (e, action) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isAuthenticated) {
-      onInteractionAttempt?.();
-      return;
-    }
-    action?.();
   };
 
   return (
@@ -140,9 +116,9 @@ export default function AnnouncementCard({
             overflow: 'hidden',
           }}
         >
-          {image_url ? (
+          {imageUrl ? (
             <img
-              src={image_url}
+              src={imageUrl}
               alt={title}
               style={{
                 width: '100%',
@@ -157,9 +133,9 @@ export default function AnnouncementCard({
           ) : null}
           <div
             style={{
-              position: image_url ? 'absolute' : 'relative',
-              inset: image_url ? 0 : 'auto',
-              display: image_url ? 'none' : 'flex',
+              position: imageUrl ? 'absolute' : 'relative',
+              inset: imageUrl ? 0 : 'auto',
+              display: imageUrl ? 'none' : 'flex',
               backgroundColor: 'var(--bg-surface)',
               color: 'var(--text-muted)',
               fontSize: '14px',
@@ -167,8 +143,6 @@ export default function AnnouncementCard({
           >
             Sin imagen para mostrar
           </div>
-
-          
 
           {showStatus && status && status !== 'active' && (
             <div
@@ -213,10 +187,10 @@ export default function AnnouncementCard({
 
       {/* Zona de contenido - wireframes-spec:88-110 */}
       <div style={{ padding: 'var(--spacing-sm) var(--spacing-md)', paddingBottom: 'var(--spacing-md)' }}>
-        
+
         {/* Badges sobre imagen con backdrop para legibilidad */}
-          <div>
-            {project_name && (
+        <div>
+          {projectName && (
             <div style={{
               color: 'var(--text-primary)',
               fontSize: '11px',
@@ -225,10 +199,10 @@ export default function AnnouncementCard({
               letterSpacing: '0.05em',
             }}
             >
-              {project_name}
+              {projectName}
             </div>
-            )}
-          </div>
+          )}
+        </div>
 
         {/* Fila 1: Nombre del proyecto + CategoryBadge */}
         <div className="d-flex align-items-center justify-content-between mb-2">
@@ -274,14 +248,14 @@ export default function AnnouncementCard({
             {/* LikeButton - wireframes-spec:108 */}
             <LikeButton
               liked={userLiked}
-              count={likes_count}
+              count={likesCount}
               disabled={!isAuthenticated}
               onClick={isAuthenticated ? () => onLike?.(id) : onInteractionAttempt}
             />
 
             {/* StarRating - wireframes-spec:109 */}
             <StarRating
-              value={average_rating || 0}
+              value={averageRating || 0}
               readonly={!isAuthenticated}
               size={16}
             />
@@ -289,7 +263,7 @@ export default function AnnouncementCard({
 
           {/* Timestamp */}
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            {formatTimeAgo(created_at)}
+            {formatTimeAgo(createdAt)}
           </span>
         </div>
 
@@ -333,7 +307,6 @@ AnnouncementCard.propTypes = {
   onLike: PropTypes.func,
   onReport: PropTypes.func,
   userLiked: PropTypes.bool,
-  userRating: PropTypes.number,
   isAuthenticated: PropTypes.bool,
   showStatus: PropTypes.bool,
   onInteractionAttempt: PropTypes.func,

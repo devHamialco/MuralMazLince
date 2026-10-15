@@ -1,18 +1,17 @@
 // Feed.jsx - Página principal del mural de anuncios
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
 import AnnouncementCard from '../components/AnnouncementCard';
 import CategoryBadge from '../components/CategoryBadge';
-import NotificationDot from '../components/NotificationDot';
 import ReportModal from '../components/ReportModal';
 import { CATEGORIES } from '../constants/categories';
 
 export default function Feed() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { showToast } = useNotification();
   const navigate = useNavigate();
 
@@ -26,67 +25,64 @@ export default function Feed() {
 
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportAnnouncementId, setReportAnnouncementId] = useState(null);
-  const observerRef = useRef(null);
   const loadMoreRef = useRef(null);
 
   // Cargar anuncios
-  const loadAnnouncements = useCallback(async (cursorParam = null, category = null, reset = false) => {
-    try {
-      if (reset) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
+  const loadAnnouncements = useCallback(
+    async (cursorParam = null, category = null, reset = false) => {
+      try {
+        if (reset) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
+
+        const response = await api.getAnnouncements(cursorParam, category);
+        const { announcements: newAnnouncements, nextCursor } = response.data;
+
+        if (reset) {
+          setAnnouncements(newAnnouncements);
+        } else {
+          setAnnouncements((prev) => [...prev, ...newAnnouncements]);
+        }
+
+        setCursor(nextCursor);
+        setHasMore(!!nextCursor);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+        if (reset) setHasMore(false);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-
-      const response = await api.getAnnouncements(cursorParam, category);
-      const { announcements: newAnnouncements, nextCursor } = response.data;
-
-      if (reset) {
-        setAnnouncements(newAnnouncements);
-      } else {
-        setAnnouncements((prev) => [...prev, ...newAnnouncements]);
-      }
-
-      setCursor(nextCursor);
-      setHasMore(!!nextCursor);
-    } catch (error) {
-      console.error('Error loading announcements:', error);
-      if (reset) setHasMore(false);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     loadAnnouncements(null, selectedCategory, true);
-  }, [selectedCategory]);
+  }, [loadAnnouncements, selectedCategory]);
 
   // Infinite scroll - wireframes-spec:151-155
   useEffect(() => {
-    if (loading || !hasMore) return;
+    let observer;
+    if (!loading && hasMore) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          // Cargar más cuando llegue al 80% del scroll (WF-3.1.1)
+          if (entries[0].isIntersecting && !loadingMore && hasMore) {
+            loadAnnouncements(cursor, selectedCategory);
+          }
+        },
+        { threshold: 0.8 },
+      );
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Cargar más cuando llegue al 80% del scroll (WF-3.1.1)
-        if (entries[0].isIntersecting && !loadingMore && hasMore) {
-          loadAnnouncements(cursor, selectedCategory);
-        }
-      },
-      { threshold: 0.8 },
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+      if (loadMoreRef.current) {
+        observer.observe(loadMoreRef.current);
+      }
     }
 
-    observerRef.current = observer;
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
+    return () => observer?.disconnect();
   }, [loading, loadingMore, hasMore, cursor, selectedCategory, loadAnnouncements]);
 
   const handleLike = async (announcementId) => {
@@ -141,6 +137,74 @@ export default function Feed() {
     setSelectedCategory((prev) => (prev === category ? null : category));
   };
 
+  let announcementsContent;
+  if (loading) {
+    announcementsContent = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+        {[1, 2, 3].map((item) => (
+          <div key={item}>
+            <div className="skeleton" style={{ width: '100%', height: '257px', marginBottom: 'var(--spacing-sm)', borderRadius: 'var(--radius-lg)' }} />
+            <div className="skeleton" style={{ width: '60%', height: '20px', marginBottom: '8px' }} />
+            <div className="skeleton" style={{ width: '40%', height: '14px' }} />
+          </div>
+        ))}
+      </div>
+    );
+  } else if (!announcements || announcements.length === 0) {
+    announcementsContent = (
+      <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl) var(--spacing-xl)', marginTop: 'var(--spacing-xl)' }}>
+        <div style={{
+          backgroundColor: 'var(--bg-card)',
+          padding: 'var(--spacing-xl)',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border)',
+        }}
+        >
+          <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: 'var(--spacing-md)' }}>
+            No hay anuncios disponibles en este momento
+          </p>
+          {selectedCategory && (
+            <button
+              type="button"
+              onClick={() => setSelectedCategory(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--primary)',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '14px',
+              }}
+            >
+              Ver todas las categorías
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  } else {
+    announcementsContent = (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
+        {announcements.map((announcement, index) => (
+          <div
+            key={announcement.id}
+            className="fade-in"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <AnnouncementCard
+              announcement={announcement}
+              onLike={handleLike}
+              onReport={handleReport}
+              userLiked={announcement.user_liked}
+              isAuthenticated={isAuthenticated}
+              onInteractionAttempt={handleInteractionAttempt}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="app-container bg-base">
       <Navbar />
@@ -188,64 +252,7 @@ export default function Feed() {
 
       {/* Feed - wireframes-spec:67-155 */}
       <div style={{ padding: 'var(--spacing-md)', paddingBottom: '80px' }}>
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i}>
-                <div className="skeleton" style={{ width: '100%', height: '257px', marginBottom: 'var(--spacing-sm)', borderRadius: 'var(--radius-lg)' }} />
-                <div className="skeleton" style={{ width: '60%', height: '20px', marginBottom: '8px' }} />
-                <div className="skeleton" style={{ width: '40%', height: '14px' }} />
-              </div>
-            ))}
-          </div>
-        ) : !announcements || announcements.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl) var(--spacing-xl)', marginTop: 'var(--spacing-xl)' }}>
-            <div style={{
-              backgroundColor: 'var(--bg-card)',
-              padding: 'var(--spacing-xl)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border)',
-            }}
-            >
-              <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: 'var(--spacing-md)' }}>No hay anuncios disponibles en este momento</p>
-              {selectedCategory && (
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--primary)',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
-                >
-                  Ver todas las categorías
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
-            {announcements.map((announcement, index) => (
-              <div
-                key={announcement.id}
-                className="fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <AnnouncementCard
-                  announcement={announcement}
-                  onLike={handleLike}
-                  onReport={handleReport}
-                  userLiked={announcement.user_liked}
-                  userRating={announcement.user_rating}
-                  isAuthenticated={isAuthenticated}
-                  onInteractionAttempt={handleInteractionAttempt}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        {announcementsContent}
 
         {hasMore && !loading && (
           <div ref={loadMoreRef} style={{ textAlign: 'center', padding: 'var(--spacing-xl) 0' }}>

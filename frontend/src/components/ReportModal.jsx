@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { FiFlag, FiCheck, FiX } from 'react-icons/fi';
+import { FiFlag, FiCheck } from 'react-icons/fi';
 
 const REPORT_REASONS = [
   { value: 'offensive', label: 'Contenido ofensivo o inapropiado' },
@@ -12,7 +12,13 @@ const REPORT_REASONS = [
   { value: 'other', label: 'Otro' },
 ];
 
-export default function ReportModal({ isOpen, onClose, onSubmit, announcementId, alreadyReported = false }) {
+export default function ReportModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  announcementId = null,
+  alreadyReported = false,
+}) {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -46,12 +52,6 @@ export default function ReportModal({ isOpen, onClose, onSubmit, announcementId,
     onClose();
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
-  };
-
   return (
     <div
       style={{
@@ -63,10 +63,28 @@ export default function ReportModal({ isOpen, onClose, onSubmit, announcementId,
         justifyContent: 'center',
         zIndex: 300,
       }}
-      onClick={handleOverlayClick}
     >
-      <div
+      <button
+        type="button"
+        aria-label="Cerrar diálogo de reporte"
+        onClick={handleClose}
         style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'default',
+        }}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-modal-title"
+        style={{
+          position: 'relative',
+          zIndex: 1,
           backgroundColor: 'var(--bg-surface)',
           borderRadius: '16px 16px 0 0',
           padding: 'var(--spacing-lg)',
@@ -89,7 +107,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, announcementId,
         {/* Título */}
         <div className="d-flex align-items-center gap-2" style={{ marginBottom: 'var(--spacing-sm)' }}>
           <FiFlag size={20} style={{ color: 'var(--text-primary)' }} />
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+          <h2 id="report-modal-title" style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
             Reportar este anuncio
           </h2>
         </div>
@@ -116,6 +134,7 @@ export default function ReportModal({ isOpen, onClose, onSubmit, announcementId,
               Ya enviaste un reporte para este anuncio.
             </p>
             <button
+              type="button"
               onClick={handleClose}
               style={{
                 backgroundColor: 'transparent',
@@ -133,9 +152,9 @@ export default function ReportModal({ isOpen, onClose, onSubmit, announcementId,
         ) : (
           <form onSubmit={handleSubmit}>
             {/* Lista de motivos */}
-            <div style={{ marginBottom: 'var(--spacing-md)' }}>
+            <div role="radiogroup" aria-label="Motivo del reporte" style={{ marginBottom: 'var(--spacing-md)' }}>
               {REPORT_REASONS.map((r) => (
-                <div
+                <label
                   key={r.value}
                   style={{
                     display: 'flex',
@@ -144,35 +163,19 @@ export default function ReportModal({ isOpen, onClose, onSubmit, announcementId,
                     borderBottom: '1px solid var(--border)',
                     cursor: 'pointer',
                   }}
-                  onClick={() => setReason(r.value)}
                 >
-                  <div
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      border: `2px solid ${reason === r.value ? 'var(--primary)' : 'var(--border)'}`,
-                      marginRight: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {reason === r.value && (
-                      <div
-                        style={{
-                          width: '10px',
-                          height: '10px',
-                          borderRadius: '50%',
-                          backgroundColor: 'var(--primary)',
-                        }}
-                      />
-                    )}
-                  </div>
+                  <input
+                    type="radio"
+                    name="report-reason"
+                    value={r.value}
+                    checked={reason === r.value}
+                    onChange={() => setReason(r.value)}
+                    style={{ marginRight: '12px', accentColor: 'var(--primary)' }}
+                  />
                   <span style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
                     {r.label}
                   </span>
-                </div>
+                </label>
               ))}
             </div>
 

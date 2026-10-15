@@ -31,6 +31,9 @@
     "import/extensions": "off",
     "no-trailing-spaces": "warn",
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "camelcase": ["error", { "properties": "never" }],
+    "jsx-a11y/label-has-associated-control": ["error", { "assert": "either" }],
+    "react/require-default-props": ["error", { "functions": "defaultArguments" }],
     "react/jsx-one-expression-per-line": "off",
     "object-curly-newline": "off"
   }

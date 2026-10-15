@@ -8,7 +8,7 @@ export default function CategoryBadge({
   category,
   selected = false,
   clickable = false,
-  onClick,
+  onClick = null,
 }) {
   const group = CATEGORY_GROUPS[category] || 'otro';
   const color = GROUP_COLORS[group] || GROUP_COLORS.otro;
@@ -29,7 +29,7 @@ export default function CategoryBadge({
         className="category-badge"
         style={{
           backgroundColor: `${color}22`,
-          color: color,
+          color,
           fontSize: '11px',
           fontWeight: 600,
           padding: '3px 8px',

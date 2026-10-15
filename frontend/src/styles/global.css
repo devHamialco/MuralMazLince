@@ -8,7 +8,7 @@
   margin: 0;
   padding: 0;
   /* Prevent blue tap highlight on mobile PWAs */
-  -webkit-tap-highlight-color: transparent; 
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -53,7 +53,7 @@ body {
 .form-control:focus, .form-select:focus {
   background-color: var(--bg-card);
   border-color: var(--primary);
-  box-shadow: 0 0 0 1px var(--primary), 0 0 12px rgba(255, 42, 45, 0.2); 
+  box-shadow: 0 0 0 1px var(--primary), 0 0 12px rgba(255, 42, 45, 0.2);
   outline: none;
 }
 
@@ -114,7 +114,7 @@ body {
   top: 0;
   z-index: var(--z-sticky);
   /* Safe area for iPhone notches */
-  padding-top: env(safe-area-inset-top); 
+  padding-top: env(safe-area-inset-top);
 }
 
 /* Skeleton Loaders - Stealth sweep */
