@@ -1,0 +1,76 @@
+/* Tokens de diseño - Mural Maz Lince (OLED & Neon Red Trend) */
+/* Referencia: DDC v3.0 - PWA Mobile First */
+
+:root {
+  /* Colores - Fondo (OLED Black for premium mobile feel & battery saving) */
+  --bg-base: #000000; 
+  --bg-card: #0F0F11;
+  --bg-surface: #18181B; /* Carbon gray for elevated surfaces */
+  --bg-elevated: #242427; /* Lighter gray for interactive elements */
+
+  /* Colores - Acción y acentos (El Rojo es el Rey) */
+  --primary: #FF2A2D; /* Electric, vibrant brand red */
+  --secondary: #2e5bff; /* Replaced blue with a stealthy dark gray */
+  --tertiary: #FFC82C; /* Brand yellow, kept for stars/badges */
+  --accent: #F0C040; /* Yellow for stars, highlights - DDC v1.2 */
+  --warning: #F59E0B; /* Warning state - same as status-pending */
+
+  /* Colores - Texto */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-muted: #52525B;
+
+  /* Colores - Borde (Ultra thin, translucent borders for a sleek look) */
+  --border: rgba(255, 255, 255, 0.08); 
+
+  /* Colores - Estados semánticos */
+  --status-active: #10B981;
+  --status-pending: #F59E0B;
+  --status-rejected: #EF4444;
+
+  /* Espaciado */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+
+  /* Bordes (Slightly sharper for a "tech/hacker" modern edge) */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Sombras (Neon glows instead of flat drop shadows) */
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-button: 0 0 16px rgba(255, 42, 45, 0.35); /* Neon red glow */
+  --shadow-modal: 0 24px 48px rgba(0, 0, 0, 0.8);
+
+  /* Transiciones (Snappy, fast micro-interactions) */
+  --transition-fast: 100ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Z-index */
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-modal-backdrop: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-notification-dot: 600;
+
+  /* Uppercase token aliases */
+  --BG_BASE: var(--bg-base);
+  --BG_CARD: var(--bg-card);
+  --BG_SURFACE: var(--bg-surface);
+  --PRIMARY: var(--primary);
+  --SECONDARY: var(--secondary);
+  --ACCENT: var(--accent);
+  --TEXT_PRIMARY: var(--text-primary);
+  --TEXT_SECONDARY: var(--text-secondary);
+  --TEXT_MUTED: var(--text-muted);
+  --BORDER: var(--border);
+}
