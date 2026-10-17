@@ -76,3 +76,6 @@ service-account*.json
 
 # Archivos HAR (contienen cookies, tokens, URLs con datos de sesión)
 *.har
+
+# Personal audit notes - not project documentation
+docs/reporte.md
