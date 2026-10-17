@@ -33,7 +33,12 @@ const listProjects = async (req, res) => {
  * POST /projects — Crear proyecto validando límite N=5 (RF-15, RN-03).
  */
 const createProject = async (req, res) => {
-  const { name, description, category_id: categoryId } = req.body; // eslint-disable-line camelcase
+  const {
+    name,
+    description,
+    category_id: categoryId, // eslint-disable-line camelcase
+    category,
+  } = req.body;
   if (!name || name.trim() === '') {
     return res.status(400).json({ error: 'El nombre del proyecto es obligatorio' });
   }
@@ -50,6 +55,16 @@ const createProject = async (req, res) => {
       });
     }
 
+    // El frontend envía el nombre de la categoría; resolverlo a id (fallback: null)
+    let resolvedCategoryId = categoryId || null;
+    if (!resolvedCategoryId && category) {
+      const catResult = await db.query(
+        'SELECT id FROM categories WHERE name = $1 AND is_active',
+        [category],
+      );
+      resolvedCategoryId = catResult.rows.length > 0 ? catResult.rows[0].id : null;
+    }
+
     const result = await db.query(
       `INSERT INTO projects (user_id, name, description, category_id)
        VALUES ($1, $2, $3, $4)
@@ -58,7 +73,7 @@ const createProject = async (req, res) => {
         req.user.id,
         name.trim(),
         description || null,
-        categoryId || null,
+        resolvedCategoryId,
       ],
     );
     return res.status(201).json({

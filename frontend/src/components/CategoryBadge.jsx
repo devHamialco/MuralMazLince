@@ -2,7 +2,7 @@
 /* Referencia: DDC 2.5, wireframes-spec.md */
 
 import PropTypes from 'prop-types';
-import { CATEGORY_GROUPS, GROUP_COLORS } from '../constants/categories';
+import { CATEGORY_DISPLAY_LABELS, CATEGORY_GROUPS, GROUP_COLORS } from '../constants/categories';
 
 export default function CategoryBadge({
   category,
@@ -12,6 +12,8 @@ export default function CategoryBadge({
 }) {
   const group = CATEGORY_GROUPS[category] || 'otro';
   const color = GROUP_COLORS[group] || GROUP_COLORS.otro;
+  // Solo para mostrar: onClick y aria-label usan SIEMPRE el nombre completo.
+  const label = CATEGORY_DISPLAY_LABELS[category] || category;
 
   const handleClick = (e) => {
     if (clickable && onClick) {
@@ -40,7 +42,7 @@ export default function CategoryBadge({
         }}
       >
         <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {category?.substring(0, 20) || 'Categoría'}
+          {label || 'Categoría'}
         </span>
       </span>
     );
@@ -74,7 +76,7 @@ export default function CategoryBadge({
       }}
     >
       <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {category?.substring(0, 22) || 'Categoría'}
+        {label || 'Categoría'}
       </span>
     </Element>
   );

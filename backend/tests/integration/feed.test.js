@@ -73,6 +73,23 @@ describe('Feed / Projects / Interactions / Reports — Integration', () => {
     return response.body.announcement;
   }
 
+  async function createAnnouncementWithCustomCategory(cookie, projectId, title, customCategory) {
+    const tinyPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8/5+hHgAHggJ/PX3yvQAAAABJRU5ErkJggg==';
+    const response = await request(app)
+      .post('/announcements')
+      .set('Cookie', cookie)
+      .send({
+        project_id: projectId,
+        title,
+        description: 'Detalle',
+        custom_category: customCategory,
+        image_base64: tinyPngBase64,
+        expires_at: '2099-12-31T23:59:59.000Z',
+      });
+    expect(response.statusCode).toBe(201);
+    return response.body.announcement;
+  }
+
   async function cleanupData() {
     await db.query('DELETE FROM notifications');
     await db.query('DELETE FROM moderation_queue');
@@ -345,5 +362,127 @@ describe('Feed / Projects / Interactions / Reports — Integration', () => {
     expect(detailAuth.statusCode).toBe(200);
     expect(detailAuth.body.announcement.wa_link).toContain('https://wa.me/');
     expect(JSON.stringify(detailAuth.body)).not.toContain('whatsapp_number');
+  });
+
+  it('resuelve category por nombre real a un category_id no nulo al crear proyecto', async () => {
+    const entrepreneur = await createEntrepreneurAgent();
+
+    const res = await request(app)
+      .post('/projects')
+      .set('Cookie', entrepreneur.cookie)
+      .send({
+        name: 'Proyecto Categoria Real',
+        description: 'd',
+        category: 'Alimentos y bebidas',
+      });
+    expect(res.statusCode).toBe(201);
+
+    const detail = await request(app)
+      .get(`/projects/${res.body.project.id}`)
+      .set('Cookie', entrepreneur.cookie);
+    expect(detail.statusCode).toBe(200);
+    expect(detail.body.project.category_name).toBe('Alimentos y bebidas');
+  });
+
+  it('crea proyecto con 201 y category_id NULL cuando el nombre de categoría no existe', async () => {
+    const entrepreneur = await createEntrepreneurAgent();
+
+    const res = await request(app)
+      .post('/projects')
+      .set('Cookie', entrepreneur.cookie)
+      .send({
+        name: 'Proyecto Categoria Inexistente',
+        description: 'd',
+        category: 'Nombre que no existe',
+      });
+    expect(res.statusCode).toBe(201);
+
+    const detail = await request(app)
+      .get(`/projects/${res.body.project.id}`)
+      .set('Cookie', entrepreneur.cookie);
+    expect(detail.statusCode).toBe(200);
+    expect(detail.body.project.category_id).toBe(null);
+    expect(detail.body.project.category_name).toBe(null);
+  });
+
+  it('resuelve custom_category a category_id sin perder el texto de custom_category', async () => {
+    const entrepreneur = await createEntrepreneurAgent();
+    const project = await createProject(entrepreneur.cookie, 'Proyecto Custom Cat');
+
+    const res = await request(app)
+      .post('/announcements')
+      .set('Cookie', entrepreneur.cookie)
+      .send({
+        project_id: project.id,
+        title: 'Anuncio Custom Cat',
+        description: 'Detalle',
+        custom_category: 'Alimentos y bebidas',
+        image_base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8/5+hHgAHggJ/PX3yvQAAAABJRU5ErkJggg==',
+        expires_at: '2099-12-31T23:59:59.000Z',
+      });
+    expect(res.statusCode).toBe(201);
+
+    const row = await db.query(
+      'SELECT category_id, custom_category FROM announcements WHERE id = $1',
+      [res.body.announcement.id],
+    );
+    expect(row.rows[0].category_id).not.toBe(null);
+    expect(row.rows[0].custom_category).toBe('Alimentos y bebidas');
+  });
+
+  it('filtra el feed por nombre de categoría y excluye anuncios de otra categoría', async () => {
+    const entrepreneur = await createEntrepreneurAgent();
+    const project = await createProject(entrepreneur.cookie, 'Proyecto Filtro Cat');
+
+    const match = await createAnnouncementWithCustomCategory(
+      entrepreneur.cookie,
+      project.id,
+      'Anuncio Filtro Cat',
+      'Alimentos y bebidas',
+    );
+    const other = await createAnnouncementWithCustomCategory(
+      entrepreneur.cookie,
+      project.id,
+      'Anuncio Otra Cat',
+      'Diseño gráfico y digital',
+    );
+
+    const feedRes = await request(app)
+      .get(`/announcements?category=${encodeURIComponent('Alimentos y bebidas')}`);
+    expect(feedRes.statusCode).toBe(200);
+
+    const ids = feedRes.body.announcements.map((a) => a.id);
+    expect(ids).toContain(match.id);
+    expect(ids).not.toContain(other.id);
+  });
+
+  it('filtra el feed por category_id real aunque custom_category no coincida', async () => {
+    const entrepreneur = await createEntrepreneurAgent();
+    const project = await createProject(entrepreneur.cookie, 'Proyecto Filtro Cat Real');
+
+    // createAnnouncement fija category_id: 1 (CAT-01 'Alimentos y bebidas')
+    // y custom_category: 'general' → solo puede coincidir por c.name.
+    const match = await createAnnouncement(entrepreneur.cookie, project.id, 'Anuncio Cat Real');
+    const other = await createAnnouncementWithCustomCategory(
+      entrepreneur.cookie,
+      project.id,
+      'Anuncio Otra Cat Real',
+      'Diseño gráfico y digital',
+    );
+
+    const row = await db.query(
+      'SELECT category_id, custom_category FROM announcements WHERE id = $1',
+      [match.id],
+    );
+    expect(row.rows[0].category_id).not.toBe(null);
+    expect(row.rows[0].custom_category).not.toBe('Alimentos y bebidas');
+
+    const feedRes = await request(app)
+      .get(`/announcements?category=${encodeURIComponent('Alimentos y bebidas')}`);
+    expect(feedRes.statusCode).toBe(200);
+
+    const ids = feedRes.body.announcements.map((a) => a.id);
+    expect(ids).toContain(match.id);
+    expect(ids).not.toContain(other.id);
   });
 });

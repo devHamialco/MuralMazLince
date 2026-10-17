@@ -25,7 +25,7 @@ export const CATEGORIES = [
   'Diseño gráfico y digital',
   'Fotografía y video',
   'Desarrollo web y tecnología',
-  'Clases particulares',
+  'Clases particulares (idiomas, música, deporte)',
   'Impresión y copiado',
   'Reparaciones y mantenimiento',
   // Organizaciones estudiantiles
@@ -53,7 +53,7 @@ export const CATEGORY_GROUPS = {
   'Diseño gráfico y digital': 'servicios',
   'Fotografía y video': 'servicios',
   'Desarrollo web y tecnología': 'servicios',
-  'Clases particulares': 'servicios',
+  'Clases particulares (idiomas, música, deporte)': 'servicios',
   'Impresión y copiado': 'servicios',
   'Reparaciones y mantenimiento': 'servicios',
   // Organizaciones estudiantiles
@@ -64,6 +64,14 @@ export const CATEGORY_GROUPS = {
   'Actividad de voluntariado': 'organizaciones',
   // Otro
   Otro: 'otro',
+};
+
+// Etiquetas cortas para mostrar en la UI (display-only).
+// El nombre completo SIEMPRE viaja a la API (?category=), nunca la etiqueta corta.
+// Referencia: DDC 2.5 / SRS — 'Clases particulares (idiomas, música, deporte)'
+// es demasiado largo para el chip y queda cortado a mitad de palabra.
+export const CATEGORY_DISPLAY_LABELS = {
+  'Clases particulares (idiomas, música, deporte)': 'Clases particulares',
 };
 
 // Colores por grupo (para CategoryBadge)

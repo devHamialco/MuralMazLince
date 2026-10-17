@@ -49,7 +49,7 @@ const getFeed = async (req, res) => {
     }
 
     if (category) {
-      query += ` AND c.code = $${paramIdx}`;
+      query += ` AND (c.name = $${paramIdx} OR a.custom_category = $${paramIdx})`;
       params.push(category);
       paramIdx += 1;
     }
