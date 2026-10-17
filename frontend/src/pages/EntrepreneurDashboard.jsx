@@ -191,7 +191,10 @@ export default function EntrepreneurDashboard() {
               activeValue={activeTab}
               onChange={(val) => {
                 setActiveTab(val);
-                if (val === 'create') setShowCreateProject(true);
+                // Los booleanos de vista se derivan del chip elegido: así nunca
+                // quedan sincronizados distinto que activeTab (evita H1/H2).
+                setShowCreateProject(val === 'create');
+                setShowCreateAnnouncement(val === 'create-announcement');
               }}
             />
           </div>
@@ -238,7 +241,10 @@ export default function EntrepreneurDashboard() {
                     <button
                       type="button"
                       className="btn-cta"
-                      onClick={() => setShowCreateProject(true)}
+                      onClick={() => {
+                        setShowCreateProject(true);
+                        setActiveTab('create');
+                      }}
                       style={{ backgroundColor: 'var(--primary)', color: 'var(--text-primary)', border: 'none', padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontWeight: 600, cursor: 'pointer' }}
                     >
                       Crear mi primer proyecto
@@ -418,7 +424,10 @@ export default function EntrepreneurDashboard() {
                     <button
                       type="button"
                       className="btn-cta-outline"
-                      onClick={() => setShowCreateProject(false)}
+                      onClick={() => {
+                        setShowCreateProject(false);
+                        setActiveTab('projects');
+                      }}
                       style={{
                         backgroundColor: 'transparent',
                         border: '1px solid var(--border)',
@@ -588,7 +597,10 @@ export default function EntrepreneurDashboard() {
                     <button
                       type="button"
                       className="btn-cta-outline"
-                      onClick={() => setShowCreateAnnouncement(false)}
+                      onClick={() => {
+                        setShowCreateAnnouncement(false);
+                        setActiveTab('projects');
+                      }}
                       style={{
                         backgroundColor: 'transparent',
                         border: '1px solid var(--border)',
