@@ -64,8 +64,9 @@ const registerEntrepreneur = async (req, res) => {
     return res.status(400).json({ error: 'El nombre a mostrar no es válido (contiene expresiones ofensivas)' });
   }
 
-  const client = await db.getPool().connect();
+  let client = null;
   try {
+    client = await db.getPool().connect();
     await client.query('BEGIN');
 
     const existing = await client.query('SELECT id FROM users WHERE matricula = $1', [matricula]);
@@ -118,7 +119,15 @@ const registerEntrepreneur = async (req, res) => {
     };
     return res.status(201).json({ message: 'Emprendedor registrado', userId, user: userResponse });
   } catch (error) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        // El ROLLBACK no debe poder tumbar el handler: se loguea y se continúa
+        // eslint-disable-next-line no-console
+        console.error('Rollback Error:', rollbackError);
+      }
+    }
     if (error.code === '23505') {
       return res.status(409).json({ error: 'La matrícula ya está registrada' });
     }
@@ -126,7 +135,9 @@ const registerEntrepreneur = async (req, res) => {
     console.error('Registration Error:', error);
     return res.status(500).json({ error: 'Error interno del servidor en transacción' });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 };
 

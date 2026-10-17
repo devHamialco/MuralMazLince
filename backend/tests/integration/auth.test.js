@@ -177,6 +177,97 @@ describe('Auth Endpoints — Integration Tests', () => {
         });
       expect(res.statusCode).toEqual(409);
     });
+
+    /**
+     * D1 — `db.getPool().connect()` estaba ANTES del `try` de
+     * `registerEntrepreneur`: un fallo de BD escapaba al event loop como
+     * `unhandledRejection` (Express ^4 no lo convierte en respuesta), por lo
+     * que la petición quedaba sin responder y el proceso Node moría.
+     * Este test habría atrapado el defecto.
+     */
+    it('Si connect() rechaza, responde 500 y NO emite unhandledRejection', async () => {
+      const rejections = [];
+      const onRejection = (reason) => rejections.push(reason);
+      process.on('unhandledRejection', onRejection);
+      const connectSpy = jest
+        .spyOn(pool, 'connect')
+        .mockImplementationOnce(() => Promise.reject(new Error('ECONNREFUSED')));
+
+      try {
+        // null = la petición nunca recibió respuesta (timeout)
+        const res = await Promise.race([
+          request(app)
+            .post('/auth/register/entrepreneur')
+            .send({
+              matricula: randomMatricula(),
+              password: 'password123',
+              whatsapp_number: '+526692001234',
+              display_name: 'Tienda Sin Conexión',
+              privacy_accepted: true,
+            }),
+          new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
+        ]);
+
+        // flush de microtasks/timers para que cualquier rejection huérfana se emita
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(rejections).toEqual([]);
+        expect(res).not.toBeNull();
+        expect(res.statusCode).toEqual(500);
+      } finally {
+        process.removeListener('unhandledRejection', onRejection);
+        connectSpy.mockRestore();
+      }
+    });
+
+    /**
+     * D1 — `await client.query('ROLLBACK')` dentro del `catch` de
+     * `registerEntrepreneur` podía rechazar sin catcher: la reacción escapaba
+     * al event loop y la petición quedaba sin respuesta.
+     */
+    it('Si BEGIN y ROLLBACK rechazan, responde 500, libera el client y NO emite unhandledRejection', async () => {
+      const rejections = [];
+      const onRejection = (reason) => rejections.push(reason);
+      process.on('unhandledRejection', onRejection);
+
+      const fakeClient = {
+        query: jest.fn((sql) => {
+          if (sql === 'BEGIN' || sql === 'ROLLBACK') {
+            return Promise.reject(new Error('transacción caída'));
+          }
+          return Promise.resolve({ rows: [] });
+        }),
+        release: jest.fn(),
+      };
+      const connectSpy = jest
+        .spyOn(pool, 'connect')
+        .mockImplementationOnce(() => Promise.resolve(fakeClient));
+
+      try {
+        const res = await Promise.race([
+          request(app)
+            .post('/auth/register/entrepreneur')
+            .send({
+              matricula: randomMatricula(),
+              password: 'password123',
+              whatsapp_number: '+526692001234',
+              display_name: 'Tienda Roto',
+              privacy_accepted: true,
+            }),
+          new Promise((resolve) => setTimeout(() => resolve(null), 2000)),
+        ]);
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(rejections).toEqual([]);
+        expect(res).not.toBeNull();
+        expect(res.statusCode).toEqual(500);
+        expect(fakeClient.release).toHaveBeenCalledTimes(1);
+      } finally {
+        process.removeListener('unhandledRejection', onRejection);
+        connectSpy.mockRestore();
+      }
+    });
   });
 
   // ─────────────────────────────────────────────
