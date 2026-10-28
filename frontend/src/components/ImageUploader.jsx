@@ -38,7 +38,7 @@ export default function ImageUploader({
   disabled = false,
 }) {
   const [preview, setPreview] = useState(initialImage || null);
-  const [state, setState] = useState('idle'); // idle, compressing, uploading, error
+  const [state, setState] = useState('idle'); // idle, compressing, error
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
@@ -179,7 +179,7 @@ export default function ImageUploader({
   }
 
   let uploadContent;
-  if (state === 'compressing' || state === 'uploading') {
+  if (state === 'compressing') {
     uploadContent = (
       <div
         style={{
@@ -193,7 +193,7 @@ export default function ImageUploader({
         }}
       >
         <span style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '8px' }}>
-          {state === 'compressing' ? 'Optimizando imagen...' : 'Subiendo...'}
+          Optimizando imagen...
         </span>
         <div style={{ width: '80%', height: '4px', backgroundColor: 'var(--border)', borderRadius: '2px' }}>
           <div style={{ width: `${progress}%`, height: '100%', backgroundColor: 'var(--primary)', borderRadius: '2px', transition: 'width 150ms' }} />
@@ -259,7 +259,7 @@ export default function ImageUploader({
     <div>
       <div
         style={{
-          width: '343px',
+          width: '100%',
           height: '200px',
           border: `2px dashed ${borderColor}`,
           borderRadius: 'var(--radius-lg)',

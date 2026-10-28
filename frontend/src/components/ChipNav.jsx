@@ -11,8 +11,25 @@ import PropTypes from 'prop-types';
  * @param {Function} props.onChange  - Callback `(value) => void` when a chip is clicked.
  */
 export default function ChipNav({ options, activeValue, onChange }) {
+  // Navegación por flechas entre chips (APG tabs): Enter/Space ya activan
+  // nativamente al ser <button>.
+  const handleKeyDown = (event, index) => {
+    const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End'];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    let next = index;
+    if (event.key === 'ArrowRight') next = (index + 1) % options.length;
+    else if (event.key === 'ArrowLeft') next = (index - 1 + options.length) % options.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = options.length - 1;
+    const tabs = event.currentTarget.parentElement.querySelectorAll('[role="tab"]');
+    if (tabs[next]) tabs[next].focus();
+  };
+
   return (
     <div
+      role="tablist"
+      aria-label="Secciones"
       style={{
         display: 'flex',
         gap: 'var(--spacing-sm)',
@@ -20,13 +37,17 @@ export default function ChipNav({ options, activeValue, onChange }) {
         padding: 'var(--spacing-sm) 0',
       }}
     >
-      {options.map(({ label, value }) => {
+      {options.map(({ label, value }, index) => {
         const isActive = activeValue === value;
         return (
           <button
             key={value}
             type="button"
+            role="tab"
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(value)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
             style={{
               padding: '6px 16px',
               borderRadius: 'var(--radius-sm)',

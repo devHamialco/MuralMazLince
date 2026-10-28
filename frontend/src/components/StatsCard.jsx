@@ -54,7 +54,7 @@ export default function StatsCard({ label, value, icon, color = 'var(--primary)'
         alignItems: 'center',
         gap: '1rem',
         transition: 'var(--transition-fast)',
-        minWidth: '200px',
+        minWidth: '160px',
         flex: 1,
       }}
     >
