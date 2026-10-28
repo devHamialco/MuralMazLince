@@ -1,29 +1,21 @@
-const request = require('supertest');
-const path = require('path');
+// El helper fija DATABASE_URL en mural_maz_lince_test y lanza un error fatal
+// si ya apuntara a otra BD. DEBE importarse ANTES de app/db.
+const { runTestMigrations } = require('../helpers/testDatabase')
+const request = require('supertest')
 
-// Inyectar variables de entorno ANTES de cargar app (evita que db/index.js falle)
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:password@localhost:5433/mural_maz_lince_test';
-process.env.JWT_SECRET = 'test_secret';
-process.env.PORT = '0';
-process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test_secret'
+process.env.PORT = '0'
+process.env.NODE_ENV = 'test'
 
-const app = require('../../src/app');
-const { execSync } = require('child_process');
+const app = require('../../src/app')
 
 describe('Auth Flow Integration Tests', () => {
   let agent
 
+  // Recrea schema + seed en mural_maz_lince_test (sin try/catch: si la
+  // migración falla, el fallo debe ser explícito y no 'relation does not exist').
   beforeAll(() => {
-    // Ejecutar migraciones para el DB de pruebas (si ya están, este comando debería ser seguro)
-    try {
-      execSync('npm run migrate:test', {
-        cwd: path.resolve(__dirname, '../../'),
-        stdio: 'inherit',
-        shell: true,
-      })
-    } catch (e) {
-      // Ignorar errores si ya está migrado
-    }
+    runTestMigrations()
     agent = request.agent(app)
   }, 120000)
 

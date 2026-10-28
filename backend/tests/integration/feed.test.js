@@ -1,6 +1,8 @@
+// El helper fija DATABASE_URL en mural_maz_lince_test y lanza un error fatal
+// si ya apuntara a otra BD. DEBE importarse ANTES de app/db.
+const { runTestMigrations } = require('../helpers/testDatabase');
 const request = require('supertest');
 
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:password@localhost:5433/mural_maz_lince_dev';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
 process.env.PORT = '0';
 process.env.NODE_ENV = 'test';
@@ -103,9 +105,12 @@ describe('Feed / Projects / Interactions / Reports — Integration', () => {
     await db.query("DELETE FROM users WHERE role <> 'admin'");
   }
 
+  // Cada suite recrea su propio schema: bajo --runInBand el orden de ejecución
+  // no está garantizado y auth_flow.test.js deja el schema dropeado.
   beforeAll(async () => {
+    runTestMigrations();
     await cleanupData();
-  });
+  }, 120000);
 
   beforeEach(async () => {
     await cleanupData();
