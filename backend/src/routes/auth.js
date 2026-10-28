@@ -15,6 +15,8 @@ router.get('/me', requireAuth, authController.getMe);
 router.post('/register/student', authLimiter, authController.registerStudent);
 router.post('/register/entrepreneur', authLimiter, authController.registerEntrepreneur);
 router.post('/login', authLimiter, authController.login);
+// Verificación proactiva de tipo de usuario (no autentica); sensible al mismo rate limit que /login
+router.post('/login/check', authLimiter, authController.checkLogin);
 router.post('/logout', authController.logout);
 router.post('/claim-matricula', authController.claimMatricula);
 

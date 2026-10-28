@@ -210,6 +210,49 @@ const login = async (req, res) => {
   }
 };
 
+/**
+ * Verifica proactivamente si la matrícula requiere contraseña (sin autenticar).
+ * El frontend lo invoca al completar la matrícula para mostrar el campo de
+ * contraseña antes del único envío de login. Nunca emite JWT ni cookie de
+ * sesión, y responde únicamente el booleano `requiresPassword` (no el rol).
+ *
+ * @param {import('express').Request} req  - Body JSON: `{ matricula: string }`.
+ * @param {import('express').Response} res - `400` si falta matrícula; `200 { requiresPassword: boolean }` en cualquier otro caso.
+ * @returns {Promise<import('express').Response>}
+ */
+const checkLogin = async (req, res) => {
+  const { matricula } = req.body;
+  if (!matricula) return res.status(400).json({ error: 'Matrícula requerida' });
+
+  // Formato inválido → mismo resultado que "no existe": no se filtra información.
+  if (!isValidMatricula(matricula)) {
+    return res.json({ requiresPassword: false });
+  }
+
+  try {
+    const result = await db.query(
+      'SELECT role, is_suspended FROM users WHERE matricula = $1',
+      [matricula],
+    );
+    const user = result.rows[0];
+
+    if (!user) {
+      return res.json({ requiresPassword: false });
+    }
+
+    // Cuenta suspendida → `false` (indistinguible de "no existe"): reportar
+    // `true` revelaría que la cuenta existe y es de tipo con contraseña. El
+    // motivo real (403 "Cuenta suspendida") lo comunica el login real en submit.
+    if (user.is_suspended) {
+      return res.json({ requiresPassword: false });
+    }
+
+    return res.json({ requiresPassword: user.role !== 'visitor_registered' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error al verificar la matrícula' });
+  }
+};
+
 const logout = (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
@@ -303,6 +346,7 @@ module.exports = {
   registerStudent,
   registerEntrepreneur,
   login,
+  checkLogin,
   logout,
   claimMatricula,
   getPrivacy,

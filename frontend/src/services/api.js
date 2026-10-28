@@ -68,7 +68,7 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        const error = new Error(data.message || data.error || 'Error en la solicitud');
+        const error = new Error(ApiClient.buildErrorMessage(response, data));
         error.status = response.status;
         error.data = data;
         throw error;
@@ -79,6 +79,45 @@ class ApiClient {
       console.error(`API Error [${endpoint}]:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Construye un mensaje legible a partir de una respuesta de error.
+   *
+   * El body no siempre es JSON: el rate limiter y los proxies devuelven texto
+   * plano o HTML, y en esos casos el mensaje genérico escondía la causa real
+   * (p. ej. un 429 se mostraba como "Error en la solicitud").
+   *
+   * @param   {Response} response - Respuesta HTTP fallida.
+   * @param   {any}      data     - Body ya parseado: objeto JSON, string o vacío.
+   * @returns {string}            - Mensaje apto para mostrar en la UI.
+   */
+  static buildErrorMessage(response, data) {
+    if (response.status === 429) {
+      const raw = response.headers.get('retry-after') ?? response.headers.get('ratelimit-reset');
+      const seconds = Number(raw);
+      if (Number.isFinite(seconds) && seconds > 0) {
+        const wait = seconds >= 60
+          ? `${Math.ceil(seconds / 60)} minuto(s)`
+          : `${Math.ceil(seconds)} segundo(s)`;
+        return `Demasiados intentos. Probá de nuevo en ${wait}.`;
+      }
+      return 'Demasiados intentos. Probá de nuevo en unos minutos.';
+    }
+
+    if (data && typeof data === 'object') {
+      return data.message
+        || data.error
+        || `Error del servidor (HTTP ${response.status})`;
+    }
+
+    const text = typeof data === 'string' ? data.trim() : '';
+    // Un HTML no es un mensaje para la UI: preferimos el código de estado.
+    if (text && !text.startsWith('<')) {
+      return text;
+    }
+
+    return `Error del servidor (HTTP ${response.status})`;
   }
 
   // ── Auth ────────────────────────────────────────────────────────────────

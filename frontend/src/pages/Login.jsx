@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FiCheck, FiX, FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
+import api from '../services/api';
 
 const isValidMatricula = (matricula) => {
   if (!matricula || matricula.length !== 8) return false;
   if (!/^\d{8}$/.test(matricula)) return false;
   return matricula[0] === '2';
 };
+
+/** Espera antes de consultar POST /auth/login/check tras el último cambio de matrícula. */
+const MATRICULA_CHECK_DEBOUNCE_MS = 300;
 
 export default function Login() {
   const { login } = useAuth();
@@ -25,6 +29,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Guardas del chequeo proactivo: seq invalida respuestas en vuelo cuando la
+  // matrícula cambia (carreras); checkedMatricula evita repetir la misma consulta.
+  const checkSeqRef = useRef(0);
+  const checkedMatriculaRef = useRef(null);
+
   const handleMatriculaChange = (value) => {
     const cleaned = value.replace(/\D/g, '').slice(0, 8);
     setMatricula(cleaned);
@@ -36,6 +45,55 @@ export default function Login() {
     setRequirePassword(false);
     setPassword('');
   };
+
+  // Verificación proactiva del tipo de usuario: al tener la matrícula completa
+  // y válida se pregunta al backend si se requiere contraseña, para mostrar el
+  // campo antes del único envío de login. Este chequeo NUNCA autentica.
+  useEffect(() => {
+    // Cualquier cambio de matrícula invalida las respuestas en vuelo (guardia de carreras).
+    checkSeqRef.current += 1;
+    const seq = checkSeqRef.current;
+    if (matriculaValid !== true) return undefined;
+
+    const timer = setTimeout(() => {
+      // Guardia anti-duplicados: por cada valor de matrícula solo se consulta una vez.
+      if (checkedMatriculaRef.current === matricula) return;
+      checkedMatriculaRef.current = matricula;
+
+      api.request('/auth/login/check', {
+        method: 'POST',
+        body: JSON.stringify({ matricula }),
+      })
+        .then(({ data }) => {
+          // Respuesta obsoleta o cuerpo inesperado → se ignora (fallback reactivo en
+          // submit). Además se libera el dedupe: esa matrícula quedó sin verificar,
+          // y sin esto el reintento (borrar y volver a escribir la misma) se saltaría
+          // el chequeo proactivo en silencio.
+          if (seq !== checkSeqRef.current || !data || typeof data.requiresPassword !== 'boolean') {
+            if (checkedMatriculaRef.current === matricula) {
+              checkedMatriculaRef.current = null;
+            }
+            return;
+          }
+          if (data.requiresPassword) {
+            setRequirePassword(true);
+          } else {
+            setRequirePassword(false);
+            setPassword('');
+          }
+        })
+        .catch(() => {
+          // Fallo silencioso (red, 429, cuerpo inválido): el flujo reactivo de
+          // handleSubmit sigue funcionando como red de seguridad. Sin errores en UI.
+          // Se libera el dedupe para poder reintentar el chequeo más adelante.
+          if (checkedMatriculaRef.current === matricula) {
+            checkedMatriculaRef.current = null;
+          }
+        });
+    }, MATRICULA_CHECK_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [matricula, matriculaValid]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,7 +121,10 @@ export default function Login() {
         setRequirePassword(true);
         setError(null);
       } else if (err.status === 401) {
-        setError('Contraseña incorrecta.');
+        // Sin password enviada el 401 significa matrícula no encontrada
+        // (authController.login no exige password para visitor_registered).
+        // Con password cargada, el 401 sí es password errónea.
+        setError(password ? 'Contraseña incorrecta.' : 'Matrícula no registrada.');
       } else if (err.status === 404) {
         setError('Aún no tienes una cuenta. Por favor regístrate.');
       } else if (err.data?.is_suspended) {
@@ -126,13 +187,12 @@ export default function Login() {
                   value={matricula}
                   onChange={(e) => handleMatriculaChange(e.target.value)}
                   maxLength={8}
-                  disabled={requirePassword}
                   className="form-control"
                   style={{
                     width: '100%',
                     paddingRight: '44px',
                     color: 'var(--text-primary)',
-                    backgroundColor: requirePassword ? 'var(--bg-surface)' : 'var(--bg-surface)',
+                    backgroundColor: 'var(--bg-surface)',
                     borderColor: matriculaBorderColor,
                     boxShadow: matriculaBoxShadow,
                   }}
