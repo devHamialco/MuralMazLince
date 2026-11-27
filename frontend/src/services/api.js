@@ -1,15 +1,20 @@
 // Resolver la URL base desde variables de entorno sin hardcodear valores.
 const legacyRoot = typeof window !== 'undefined' ? window.REACT_APP_API_URL : undefined;
-const API_BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL)
-  || legacyRoot
-  || 'http://localhost:3000';
-
-// Advertir en desarrollo si la variable no está configurada.
 const hasViteApiUrl = typeof import.meta !== 'undefined'
   && import.meta.env
   && Object.prototype.hasOwnProperty.call(import.meta.env, 'VITE_API_URL');
 const isDev = typeof import.meta !== 'undefined' && import.meta.env && !!import.meta.env.DEV;
 
+let API_BASE_URL = '';
+if (hasViteApiUrl) {
+  API_BASE_URL = import.meta.env.VITE_API_URL;
+} else if (legacyRoot) {
+  API_BASE_URL = legacyRoot;
+} else if (isDev) {
+  API_BASE_URL = 'http://localhost:3000';
+}
+
+// Advertir en desarrollo si la variable no está configurada.
 if (!hasViteApiUrl && !legacyRoot && isDev) {
   // eslint-disable-next-line no-console
   console.error(
