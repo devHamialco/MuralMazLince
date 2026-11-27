@@ -1,11 +1,11 @@
 const { Router } = require('express');
 const projectController = require('../controllers/projectController');
-const { requireAuth, requireRole, optionalAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = Router();
 
-// Ruta pública para ver detalles del proyecto y autor
-router.get('/public/:id', optionalAuth, projectController.getPublicProject);
+// Detalle de proyecto y autor (solo usuarios autenticados)
+router.get('/public/:id', requireAuth, projectController.getPublicProject);
 
 router.use(requireAuth, requireRole('entrepreneur', 'admin'));
 
