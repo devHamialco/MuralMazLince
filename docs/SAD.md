@@ -1,8 +1,8 @@
 # SOFTWARE ARCHITECTURE DOCUMENT (SAD)
 **Proyecto:** Mural Maz Lince
-**Versión:** 1.3
+**Versión:** 1.4
 **Elaborado por:** Miriam Alanis
-**Fecha de elaboración:** Abril 2026
+**Fecha de actualización:** Noviembre 2026
 **Basado en:** IEEE 42010:2011 – Systems and Software Engineering – Architecture Description / C4 Model (Simon Brown)
 
 ---
@@ -15,6 +15,7 @@
 | 1.1     | Marzo 2026 | ADR-04 actualizado: cookies HttpOnly sobre React Context; ADR-07 PWA con Service Worker; ADR-08 caché en memoria; SEQ-01 expandido con fallback de Vision API; cloudinary_id reforzado en narrativa del modelo de datos | Miriam Alanis |
 | 1.2     | Marzo 2026 | Nueva tabla entrepreneur_profiles separada de users (ADR-09); display_name obligatorio; campos bio_short y profile_photo para v2.0; COMP-02 actualizado; relaciones ER actualizadas; trazabilidad SAD-SRS | Miriam Alanis |
 | 1.3     | Abril 2026 | Actualización de referencias a SRS v1.4 y PMP v1.4; PWA declarado explícitamente en alcance (Sección 1.2) y en definiciones (Sección 1.4); ADR-07 y ADR-08 reubicados dentro de la Sección 8; SEQ-02 paso 8 corregido para reflejar cookie HttpOnly (consistente con ADR-04); ADR-09 redactado con cuerpo formal completo | Miriam Alanis |
+| 1.4     | Noviembre 2026 | Sincronización con el código real: stack real de Frontend (Vite 7, React 18, Bootstrap 5, react-easy-crop, SW v4) y Backend (`pg` SQL directo, `ENABLE_AUTO_MODERATION`); esquema SQL y ER actualizados con `instagram_handle`, `classroom_location`, `projects.logo_url/logo_id` y estado `expired`; corrección de diagramas Mermaid y `COMP-12`; actualización de ADR-04/07/08/09 y variables de entorno reales (`.env.example`). | Equipo de desarrollo |
 
 ---
 
@@ -22,24 +23,25 @@
 
 ### 1.1 Propósito del documento
 
-Este Software Architecture Document (SAD) describe la arquitectura del sistema Mural Maz Lince versión 1.3 según el C4 Model: contexto del sistema, contenedores, componentes del backend y decisiones de arquitectura registradas como ADRs. Además incluye los diagramas de secuencia de los flujos críticos del sistema y el modelo entidad-relación de la base de datos.
+Este Software Architecture Document (SAD) describe la arquitectura real del sistema Mural Maz Lince versión 1.4 según el C4 Model: contexto del sistema, contenedores, componentes del backend y decisiones de arquitectura registradas como ADRs. Además incluye los diagramas de secuencia de los flujos críticos del sistema y el modelo entidad-relación de la base de datos.
 
-El documento está dirigido a la directora del proyecto en su rol de desarrolladora, al asesor académico de titulación y sirve como referencia técnica para las fases de desarrollo, pruebas y mantenimiento. Toda decisión de diseño significativa queda trazada a un requisito del SRS v1.4.
+El documento sirve como referencia técnica alineada con el código fuente para las fases de desarrollo, pruebas y mantenimiento. Toda decisión de diseño significativa queda trazada a un requisito del SRS v1.5.
 
 ### 1.2 Alcance
 
-Este documento cubre la arquitectura de la versión 1.0 del sistema, que incluye el frontend React (diseñado y desplegado como Progressive Web App — PWA), el backend Node.js/Express, la base de datos PostgreSQL, la integración con Cloudinary, Google Cloud Vision API y el sistema de moderación híbrida. No cubre la arquitectura de servicios externos (Railway.app, Cloudinary) más allá de su interfaz de integración con el sistema.
+Este documento cubre la arquitectura del sistema: frontend React + Vite (Progressive Web App — PWA), backend Node.js/Express (CommonJS, SQL parametrizado con `pg`), base de datos PostgreSQL 15, integración con Cloudinary, Google Cloud Vision API y el sistema de moderación híbrida.
 
 ### 1.3 Referencias
 
-- [1] SRS – Mural Maz Lince v1.4
-- [2] PMP – Mural Maz Lince v1.4
-- [3] IEEE 42010:2011 – Systems and Software Engineering – Architecture Description
-- [4] C4 Model – Simon Brown. https://c4model.com
-- [5] Node.js Documentation. https://nodejs.org/en/docs
-- [6] React Documentation. https://react.dev
-- [7] Cloudinary API Reference. https://cloudinary.com/documentation
-- [8] Google Cloud Vision API. https://cloud.google.com/vision/docs
+- [1] SRS – Mural Maz Lince v1.5
+- [2] PMP – Mural Maz Lince v1.5
+- [3] DDC – Mural Maz Lince v1.4
+- [4] IEEE 42010:2011 – Systems and Software Engineering – Architecture Description
+- [5] C4 Model – Simon Brown. https://c4model.com
+- [6] Node.js Documentation. https://nodejs.org/en/docs
+- [7] React Documentation. https://react.dev
+- [8] Cloudinary API Reference. https://cloudinary.com/documentation
+- [9] Google Cloud Vision API. https://cloud.google.com/vision/docs
 
 ### 1.4 Definiciones y acrónimos
 
@@ -153,28 +155,29 @@ El diagrama de contenedores descompone el sistema en sus unidades desplegables i
 
 | Campo       | Detalle                                                                                                     |
 |-------------|-------------------------------------------------------------------------------------------------------------|
-| Tecnología  | React 18, Bootstrap 5, browser-image-compression, manifest.json + Service Worker (PWA)                    |
-| Despliegue  | Archivos estáticos servidos desde Railway.app                                                              |
-| Descripción | Interfaz de usuario mobile-first instalable como PWA. Implementa el feed con scroll infinito y paginación por cursor, los flujos de registro y autenticación, el panel de gestión del emprendedor, el panel de métricas con umbral de intención y el panel de administración. Realiza la compresión y redimensionamiento de imágenes en el navegador antes del upload (RF-31). Se comunica exclusivamente con el Backend API mediante HTTP/JSON con cookies HttpOnly para la gestión de sesión. El manifest.json y el Service Worker habilitan la instalación como PWA en dispositivos móviles, permitiendo que los estudiantes accedan desde su pantalla de inicio sin pasar por una tienda de aplicaciones (ADR-07). |
+| Tecnología  | React 18.2, Vite 7, React Router 6, Bootstrap 5.3, `react-icons`, `browser-image-compression`, `react-easy-crop`, `public/manifest.json` + `public/sw.js` (PWA v4) |
+| Despliegue  | Build estático (`dist/`) en Vite; desarrollo local en puerto `5173`                                         |
+| Descripción | Interfaz mobile-first en tema oscuro OLED (`#000000` / `#D92528`) instalable como PWA. Implementa el feed (carga hasta 500 anuncios activos con mezcla Fisher-Yates en cliente y filtro por 14 categorías normalizadas para autenticados), vistas públicas de proyecto/emprendedor (`/proyecto/:id`, `/emprendedor/:id`), flujos de registro multicontacto y login proactivo (`POST /auth/login/check`), panel del emprendedor de 4 pestañas (proyectos, anuncios, notificaciones, perfil con recorte circular) y panel de administración de 3 pestañas. Comprime (≤ 500 KB / 1200 px) y recorta imágenes en navegador antes del upload (RF-31). Se comunica vía `fetch` (`credentials: 'include'`) usando cookies HttpOnly (ADR-04). |
 
 **CONT-02 | Backend API (Node.js + Express)**
 
 | Campo       | Detalle                                                                                                     |
 |-------------|-------------------------------------------------------------------------------------------------------------|
-| Tecnología  | Node.js LTS, Express.js, JWT, bcrypt, sharp (dHash), bad-words, Multer (recepción de imágenes), node-cron (jobs programados) |
-| Despliegue  | Contenedor Docker en Railway.app                                                                           |
-| Descripción | Núcleo de la aplicación. Expone una API REST documentada en OpenAPI 3.0. Contiene toda la lógica de negocio: autenticación, validación de matrícula (checksum), moderación de contenido (orquestación de los tres filtros), gestión de proyectos y anuncios, motor de métricas con umbral de intención, sistema de notificaciones internas y jobs programados de expiración de anuncios y shadowban. Se comunica con la Base de Datos PostgreSQL, Cloudinary y Google Cloud Vision API. |
+| Tecnología  | Node.js 18+ (CommonJS), Express 4.18, `pg` (SQL parametrizado sin ORM), `jsonwebtoken`, `bcrypt`, `sharp` (dHash), `bad-words`, `@google-cloud/vision`, `cloudinary`, `multer`, `helmet`, `express-rate-limit`, `cookie-parser`, `node-cron` |
+| Despliegue  | Contenedor Docker multi-stage (`node:18-alpine`, puerto `3000`); objetivo de producción Railway.app         |
+| Descripción | Núcleo REST documentado en `docs/swagger.json` (`/api-docs`). Implementa autenticación con cookies HttpOnly, validación de matrícula (`/^2\d{7}$/`), moderación híbrida (activa mediante `ENABLE_AUTO_MODERATION=true` o `NODE_ENV=test`), gestión de proyectos/anuncios, métricas con umbral de intención, notificaciones internas y jobs horarios (`node-cron`) de expiración y shadowban. |
 
 **CONT-03 | Base de datos (PostgreSQL)**
 
 | Campo       | Detalle                                                                                                     |
 |-------------|-------------------------------------------------------------------------------------------------------------|
-| Tecnología  | PostgreSQL 15 (gestionado en Railway.app)                                                                  |
-| Despliegue  | Servicio de base de datos en Railway.app                                                                   |
-| Descripción | Almacena todos los datos persistentes del sistema: usuarios, proyectos, anuncios, hashes perceptuales, valoraciones, likes, notificaciones internas, categorías, reportes y registro de moderación. Las imágenes NO se almacenan aquí; solo se almacena la URL pública de Cloudinary. |
+| Tecnología  | PostgreSQL 15 (`postgres:15-alpine` en Docker Compose local puerto `5433:5432`; gestionado en Railway.app)  |
+| Despliegue  | Contenedor local `mural_maz_lince_db` / servicio PostgreSQL en producción                                   |
+| Descripción | Persiste las 12 tablas y 8 ENUMs del sistema (`backend/src/db/schema.sql`). Las imágenes no se guardan como binarios en BD; se almacena su URL pública y su identificador de Cloudinary (`cloudinary_url`/`cloudinary_id`, `profile_photo_url`/`profile_photo_id`, `logo_url`/`logo_id`). |
 
 ### 4.3 Diagrama C4 Level 2 – Container Diagram
 
+```mermaid
 graph TB
   %% Definición de Estilos
   classDef external fill:#999999,stroke:#666,color:#fff,stroke-width:2px;
@@ -184,32 +187,28 @@ graph TB
   classDef person fill:#08427b,stroke:#052e56,color:#fff,stroke-width:2px;
 
   %% Actores (Fuera del límite)
-  Users["fa:fa-users <b>Usuarios</b><br/>(Visitante, Registrado,<br/>Emprendedor, Administrador)"]:::person
+  Users["Usuarios (Visitante, Registrado, Emprendedor, Administrador)"]:::person
 
   %% Límite del Sistema
   subgraph MuralMazLince ["Mural Maz Lince (Límite del Sistema)"]
-    style MuralMazLince fill:none,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-
-    FE["<b>Frontend</b><br/>[React SPA / Bootstrap 5 / PWA]<br/>Interfaz mobile-first. Compresión client-side."]:::container_light
-    BE["<b>Backend API</b><br/>[Node.js / Express]<br/>Lógica de negocio, moderación,<br/>métricas, jobs programados."]:::container_mid
-    DB[("fa:fa-database <b>Base de Datos</b><br/>[PostgreSQL en Railway]<br/>Datos persistentes del sistema.")]:::container_dark
+    FE["Frontend (React 18 + Vite 7 + PWA)"]:::container_light
+    BE["Backend API (Node.js + Express 4)"]:::container_mid
+    DB[("Base de Datos (PostgreSQL 15)")]:::container_dark
   end
 
   %% Sistemas Externos
-  Cloudinary["<b>Cloudinary</b><br/>[CDN de imágenes]"]:::external
-  Vision["<b>Google Cloud Vision API</b><br/>[Análisis Safe Search]"]:::external
-  WhatsApp["<b>WhatsApp / wa.me</b><br/>[Enlace de contacto]"]:::external
+  Cloudinary["Cloudinary (CDN de imágenes)"]:::external
+  Vision["Google Cloud Vision API (Safe Search)"]:::external
+  WhatsApp["WhatsApp / wa.me (Enlace de contacto)"]:::external
 
   %% Relaciones
-  Users -- "HTTPS / Browser / PWA App" --> FE
-  FE -- "JSON / REST API (HTTPS)<br/>Cookie HttpOnly" --> BE
-  BE -- "SQL / TCP (puerto 5432)" --> DB
-  BE -- "Upload / Delete imágenes<br/>(HTTPS / REST)" --> Cloudinary
-  BE -- "Safe Search Detection<br/>(HTTPS / REST)" --> Vision
+  Users -- "HTTPS / Browser / PWA" --> FE
+  FE -- "JSON / REST API (Cookie HttpOnly)" --> BE
+  BE -- "SQL / TCP (5432)" --> DB
+  BE -- "Upload / Delete imágenes" --> Cloudinary
+  BE -- "Safe Search Detection" --> Vision
   BE -- "Genera URL wa.me dinámicamente" --> WhatsApp
-
-  %% Ajustes visuales
-  linkStyle default stroke:#333,stroke-width:1px;
+```
 
 ## SECCIÓN 5. VISTA DE COMPONENTES DEL BACKEND (C4 – LEVEL 3)
 
@@ -308,82 +307,93 @@ El diagrama de componentes descompone el contenedor Backend API en sus módulos 
 
 ---
 
-**COMP-10 | Notification Service**
+**COMP-10 | Notification Service (`services/notificationService.js`, `controllers/notificationController.js`)**
 
 | Campo            | Detalle                                                                                                     |
 |------------------|-------------------------------------------------------------------------------------------------------------|
-| Responsabilidad  | Crea y gestiona notificaciones internas del emprendedor: cambios de estado de anuncio, alertas de vencimiento próximo, acciones del administrador, shadowban temporal. |
+| Responsabilidad  | Crea y gestiona notificaciones internas del emprendedor: cambios de estado de anuncio, alertas de vencimiento próximo, acciones del administrador y shadowban temporal. |
 | Tecnología       | PostgreSQL                                                                                                 |
 | SRS              | RF-25, RF-37                                                                                              |
 
 ---
 
----
+**COMP-11 | Admin & Project Controllers (`controllers/adminController.js`, `controllers/projectController.js`)**
 
 | Campo            | Detalle                                                                                                     |
 |------------------|-------------------------------------------------------------------------------------------------------------|
-| Responsabilidad  | Calcula y sirve las métricas de impacto del panel del emprendedor: likes válidos acumulados, valoración promedio, visualizaciones y evolución temporal. Aplica el filtro del umbral de intención consultando el flag `is_accidental` en la base de datos. |
+| Responsabilidad  | `adminController.js` gestiona la cola de moderación, listado y retiro de anuncios publicados (`GET /admin/announcements`, `POST /admin/announcements/:id/remove`), aprobación/rechazo, suspensión de cuentas y resolución de `claim_tickets`. `projectController.js` gestiona CRUD de proyectos, vista pública (`GET /projects/public/:id`), logos en Cloudinary y límite de 5 proyectos activos. |
+| Tecnología       | Node.js, Express, PostgreSQL, Cloudinary                                                                    |
+| SRS              | RF-15–18, RF-29, RF-30, RF-34                                                                              |
+
+---
+
+**COMP-12 | Metrics Service (`services/metricsService.js`)**
+
+| Campo            | Detalle                                                                                                     |
+|------------------|-------------------------------------------------------------------------------------------------------------|
+| Responsabilidad  | Calcula y sirve las métricas de impacto del emprendedor (`total_likes`, `avg_rating`, `total_announcements` globales y por proyecto). Aplica el filtro del umbral de intención excluyendo interacciones con `is_accidental = TRUE` o revertidas. |
 | Tecnología       | PostgreSQL (queries de agregación)                                                                         |
 | SRS              | RF-24, RF-14, RN-08                                                                                       |
 
 ### 5.3 Diagrama C4 Level 3 – Component Diagram
 
+```mermaid
 graph LR
-  %% Definición de Estilos
   classDef gateway fill:#4b9cd3,stroke:#1168BD,color:#fff,stroke-width:2px;
   classDef controller fill:#1168BD,stroke:#0b4d8c,color:#fff,stroke-width:2px;
   classDef service fill:#0b4d8c,stroke:#052e56,color:#fff,stroke-width:2px;
   classDef external fill:#999999,stroke:#666,color:#fff,stroke-width:2px;
 
-  %% Límite del Contenedor: Backend API
   subgraph Backend ["Backend API (Node.js + Express)"]
-    style Backend fill:none,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    Router["Router / Middleware (COMP-01)"]:::gateway
 
-    %% Entrada
-    Router["<b>Router / API Gateway</b><br/>(COMP-01)"]:::gateway
-
-    %% Controladores
     subgraph Controladores ["Capa de Controladores"]
-      style Controladores fill:none,stroke:none
-      C2["<b>Auth Controller</b><br/>(COMP-02)"]:::controller
-      C3["<b>Feed Controller</b><br/>(COMP-03)"]:::controller
-      C4["<b>Announcement Controller</b><br/>(COMP-04)"]:::controller
-      C5["<b>Interaction Controller</b><br/>(COMP-05)"]:::controller
-      C6["<b>Report Controller</b><br/>(COMP-06)"]:::controller
+      C2["Auth Controller (COMP-02)"]:::controller
+      C3["Feed Controller (COMP-03)"]:::controller
+      C4["Announcement Controller (COMP-04)"]:::controller
+      C5["Interaction Controller (COMP-05)"]:::controller
+      C6["Report Controller (COMP-06)"]:::controller
+      C11["Admin & Project Controllers (COMP-11)"]:::controller
     end
 
-    %% Servicios
     subgraph Servicios ["Servicios Internos"]
-      style Servicios fill:none,stroke:none
-      C7["<b>Moderation Service</b><br/>(COMP-07)"]:::service
-      C8["<b>Storage Service</b><br/>(COMP-08)"]:::service
-      C9["<b>WhatsApp Link Service</b><br/>(COMP-09)"]:::service
-      C10["<b>Notification Service</b><br/>(COMP-10)"]:::service
-      C12["<b>Metrics Service</b><br/>(COMP-12)"]:::service
+      C7["Moderation Service (COMP-07)"]:::service
+      C8["Storage Service (COMP-08)"]:::service
+      C9["WhatsApp Link Service (COMP-09)"]:::service
+      C10["Notification Service (COMP-10)"]:::service
+      C12["Metrics Service (COMP-12)"]:::service
     end
   end
 
-  %% Sistemas Externos / Persistencia
-  DB[("fa:fa-database <b>BD PostgreSQL</b><br/>(Railway)")]:::external
-  GCV["<b>Google Cloud Vision</b><br/>(Safe Search)"]:::external
+  DB[("PostgreSQL 15")]:::external
+  GCV["Google Cloud Vision"]:::external
+  CLD["Cloudinary"]:::external
 
-  %% Relaciones de Flujo
   Router --> C2
   Router --> C3
   Router --> C4
   Router --> C5
   Router --> C6
   Router --> C10
+  Router --> C11
 
-C4 -- "Orquesta pipeline" --> C7
+  C4 -- "Orquesta pipeline" --> C7
   C4 -- "Upload / Delete" --> C8
+  C11 -- "Delete / Logo" --> C8
+  C11 -- "Métricas" --> C12
+  C11 -- "Notifica decisión" --> C10
   C7 -- "Safe Search" --> GCV
-  C3 -- "Genera URL" --> C9
-  C6 -- "Notifica shadowban" --> C10
-  --> C10
-
-  %% Estilo de líneas corregido
-  linkStyle default stroke:#333,stroke-width:1px;
+  C8 -- "Media" --> CLD
+  C3 -- "Genera URL wa.me" --> C9
+  C2 -- "Genera URL wa.me" --> C9
+  C6 -- "Encola alerta" --> C10
+  C2 --> DB
+  C3 --> DB
+  C4 --> DB
+  C5 --> DB
+  C11 --> DB
+  C12 --> DB
+```
 
 ## SECCIÓN 6. MODELO ENTIDAD-RELACIÓN (BASE DE DATOS)
 
@@ -413,21 +423,18 @@ created_at       TIMESTAMP DEFAULT NOW()
 
 -- ─────────────────────────────────────────────────────────────
 -- TABLA: entrepreneur_profiles
--- Identidad pública del emprendedor. Relación 1:1 con users (ADR-09).
+-- Identidad pública y canales multicontacto del emprendedor (1:1 con users, ADR-09).
 -- ─────────────────────────────────────────────────────────────
-id                SERIAL PRIMARY KEY
-user_id           INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE
-display_name      VARCHAR(80)  NOT NULL   -- Obligatorio en v1.0. Nombre visible en
-                                          -- el feed y detalle de anuncio.
-                                          -- Sujeto a filtro bad-words al crear/editar.
-bio_short         VARCHAR(200)            -- NULL en v1.0. Reservado para v2.0:
-                                          -- descripción breve del emprendedor.
-profile_photo_url VARCHAR(500)            -- NULL en v1.0. Reservado para v2.0:
-                                          -- URL pública de foto de perfil (Cloudinary).
-profile_photo_id  VARCHAR(200)            -- NULL en v1.0. ID de Cloudinary para
-                                          -- eliminación en v2.0.
-created_at        TIMESTAMP DEFAULT NOW()
-updated_at        TIMESTAMP DEFAULT NOW()
+id                 SERIAL PRIMARY KEY
+user_id            INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE
+display_name       VARCHAR(80)  NOT NULL   -- Nombre visible en feed y perfiles
+bio_short          VARCHAR(200)            -- Biografía breve (implementada)
+profile_photo_url  VARCHAR(500)            -- URL pública de avatar (Cloudinary)
+profile_photo_id   VARCHAR(200)            -- ID en Cloudinary para reemplazo/borrado
+instagram_handle   VARCHAR(60)             -- Canal opcional de contacto Instagram
+classroom_location VARCHAR(100)            -- Ubicación física / salón opcional
+created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 -- ─────────────────────────────────────────────────────────────
 -- TABLA: projects
@@ -437,8 +444,10 @@ user_id          INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
 name             VARCHAR(120) NOT NULL
 description      TEXT
 category_id      INTEGER REFERENCES categories(id)
-status           ENUM('active','suspended') DEFAULT 'active'
-created_at       TIMESTAMP DEFAULT NOW()
+logo_url         VARCHAR(500)              -- URL pública del logo del proyecto (Cloudinary)
+logo_id          VARCHAR(200)              -- ID público del logo en Cloudinary
+status           project_status_enum DEFAULT 'active' -- ('active','suspended')
+created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 -- Restricción: máximo 5 proyectos activos por user_id (validada en backend)
 
 -- ─────────────────────────────────────────────────────────────
@@ -452,11 +461,11 @@ category_id      INTEGER REFERENCES categories(id)
 custom_category  VARCHAR(80)             -- Solo si category_id = CAT-00 (Otro)
 cloudinary_url   VARCHAR(500) NOT NULL   -- URL pública de Cloudinary
 cloudinary_id    VARCHAR(200) NOT NULL   -- ID público para eliminación en Cloudinary
-status           ENUM('active','pending_review','rejected','shadowban')
-                 DEFAULT 'pending_review'
+status           announcement_status_enum DEFAULT 'active'
+                 -- ('active','pending_review','rejected','shadowban','expired')
 expires_at       TIMESTAMP NOT NULL
-created_at       TIMESTAMP DEFAULT NOW()
--- Restricción: máximo 3 anuncios activos por project_id (validada en backend)
+created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Restricción: máximo 3 anuncios activos/en revisión por project_id (validada en backend)
 
 -- ─────────────────────────────────────────────────────────────
 -- TABLA: image_hashes
@@ -550,82 +559,123 @@ resolved_at        TIMESTAMP
 
 ### 6.3 Diagrama Entidad Relación
 
+```mermaid
 erDiagram
-    %% Entidades y Atributos
     users {
         int id PK
-        string email
-        string whatsapp_number "🔒 (RN-09)"
+        string matricula UK
+        string whatsapp_number
         string role
+        boolean is_suspended
     }
 
     entrepreneur_profiles {
         int id PK
-        int user_id FK "ADR-09: 1:1"
-        string bio
+        int user_id FK
+        string display_name
+        string bio_short
+        string profile_photo_url
+        string instagram_handle
+        string classroom_location
     }
 
     projects {
         int id PK
-        int user_id FK "Max 5 activos"
+        int user_id FK
         int category_id FK
         string name
+        string logo_url
+        string status
     }
 
     announcements {
         int id PK
-        int project_id FK "Max 3 activos"
+        int project_id FK
         int category_id FK
-        string cloudinary_url "🔗 External"
-        string cloudinary_id "🔗 External"
+        string cloudinary_url
+        string cloudinary_id
         string status
+        timestamp expires_at
     }
 
     image_hashes {
         int id PK
         int announcement_id FK
-        string hash "Entidad Satélite"
+        string dhash
     }
 
     moderation_queue {
         int id PK
-        int announcement_id FK "Hub Central"
-        int admin_id FK "Resuelto por"
-        string decision
+        int announcement_id FK
+        int admin_id FK
+        string trigger_type
+        string admin_action
         timestamp created_at
     }
 
     categories {
         int id PK
+        string code UK
         string name
+        string group_name
     }
 
-    %% Relaciones y Cardinalidades
-    users ||--|| entrepreneur_profiles : "1:1 (ADR-09)"
+    likes {
+        int id PK
+        int user_id FK
+        int announcement_id FK
+        boolean is_accidental
+    }
+
+    ratings {
+        int id PK
+        int user_id FK
+        int announcement_id FK
+        int stars
+        boolean is_accidental
+    }
+
+    reports {
+        int id PK
+        int reporter_id FK
+        int announcement_id FK
+        string reason
+    }
+
+    notifications {
+        int id PK
+        int user_id FK
+        string type
+        boolean is_read
+    }
+
+    claim_tickets {
+        int id PK
+        string disputed_matricula
+        string claimant_whatsapp
+        string status
+        int admin_id FK
+    }
+
+    users ||--o| entrepreneur_profiles : "1:1 (ADR-09)"
     users ||--o{ projects : "gestiona"
     users ||--o{ likes : "emite"
     users ||--o{ ratings : "emite"
     users ||--o{ reports : "emite"
     users ||--o{ notifications : "recibe"
-    users ||--o{ claim_tickets : "reclamante"
+    users ||--o{ claim_tickets : "resuelve (admin)"
     users ||--o{ moderation_queue : "resuelve (admin)"
 
     projects ||--o{ announcements : "contiene"
     categories ||--o{ projects : "clasifica"
     categories ||--o{ announcements : "clasifica"
 
-    announcements ||--|| image_hashes : "satélite"
+    announcements ||--o| image_hashes : "satelite"
     announcements ||--o{ likes : "recibe"
     announcements ||--o{ ratings : "recibe"
     announcements ||--o{ reports : "recibe"
-    announcements ||--o| moderation_queue : "entrada"
-
-    %% Otros (Simplificados para claridad)
-    likes { int id }
-    ratings { int id }
-    reports { int id }
-    notifications { int id }
-    claim_tickets { int id }
+    announcements ||--o{ moderation_queue : "entrada"
+```
 
 ## SECCIÓN 7. DIAGRAMAS DE SECUENCIA – FLUJOS CRÍTICOS
 
@@ -789,17 +839,17 @@ Cada ADR documenta una decisión de diseño significativa con su contexto, las a
 
 ### Resumen de ADRs
 
-| ADR-ID | Título                                               | Estado           |
-|--------|------------------------------------------------------|------------------|
-| ADR-01 | Cloudinary como almacenamiento de imágenes           | Aceptada         |
-| ADR-02 | dHash para detección de imágenes duplicadas          | Aceptada         |
-| ADR-03 | Paginación por cursor en el feed                     | Aceptada         |
-| ADR-04 | Autenticación con cookies HttpOnly                   | Aceptada (v1.1)  |
-| ADR-05 | Shadowban como excepción acotada a RN-11             | Aceptada         |
-| ADR-06 | PostgreSQL sobre MySQL                               | Aceptada         |
-| ADR-07 | Progressive Web App con Service Worker               | Aceptada         |
-| ADR-08 | Caché en memoria para consultas frecuentes           | Aceptada         |
-| ADR-09 | Separación de identidad pública y autenticación      | Aceptada (v1.2)  |
+| ADR-ID | Título                                               | Estado                    |
+|--------|------------------------------------------------------|---------------------------|
+| ADR-01 | Cloudinary como almacenamiento de imágenes           | Implementada              |
+| ADR-02 | dHash para detección de imágenes duplicadas          | Implementada              |
+| ADR-03 | Paginación por cursor en el feed                     | Implementada (API)        |
+| ADR-04 | Autenticación con cookies HttpOnly                   | Implementada (ajustada)   |
+| ADR-05 | Shadowban como excepción acotada a RN-11             | Implementada              |
+| ADR-06 | PostgreSQL sobre MySQL                               | Implementada              |
+| ADR-07 | Progressive Web App con Service Worker               | Implementada (v4)         |
+| ADR-08 | Caché en memoria (`node-cache`)                      | No implementada / Diferida|
+| ADR-09 | Separación de identidad pública y autenticación      | Implementada (extendida)  |
 
 ---
 
@@ -846,7 +896,7 @@ Cada ADR documenta una decisión de diseño significativa con su contexto, las a
 **Consecuencias:**
 - (+) Detección eficaz de copias directas y material reutilizado entre cuentas.
 - (+) Sin costo adicional ni dependencias externas de pago.
-- (+) Umbral parametrizable sin cambio de código mediante variable de entorno `HASH_SIMILARITY_THRESHOLD` (RN-07).
+- (+) Umbral parametrizable sin cambio de código mediante variable de entorno `HASH_DISTANCE_THRESHOLD` (RN-07).
 - (−) Los falsos positivos se envían a revisión humana, no se bloquean automáticamente. El administrador toma la decisión final.
 
 ---
@@ -889,7 +939,7 @@ Cada ADR documenta una decisión de diseño significativa con su contexto, las a
 2. **React Context (memoria)** → DESCARTADA en v1.1. Segura ante XSS, pero el token se pierde en cada recarga de página, creando fricción de UX significativa para el emprendedor que gestiona sus anuncios frecuentemente.
 3. **Cookie HttpOnly + Secure + SameSite=Strict** → **SELECCIONADA.** El navegador gestiona la cookie directamente; JavaScript no puede leerla ni manipularla. La bandera `Secure` garantiza transmisión solo por HTTPS. `SameSite=Strict` previene ataques CSRF al no enviar la cookie en peticiones cross-site.
 
-**Implementación requerida:** El backend Express debe: (a) configurar el middleware `cookie-parser`, (b) al hacer login exitoso emitir el JWT en una cookie con `httpOnly: true`, `secure: true`, `sameSite: 'strict'` y `maxAge` de 8 horas, (c) al hacer logout, sobrescribir la cookie con valor vacío y `maxAge: 0`. El frontend debe incluir `credentials: 'include'` en cada llamada `fetch` para que el navegador adjunte automáticamente la cookie.
+**Implementación real:** El backend Express utiliza `cookie-parser` y emite el JWT en la cookie `token` con `httpOnly: true`, `maxAge` de 8 horas (`JWT_EXPIRATION_HOURS`), `secure: true` y `sameSite: 'none'` en producción (para despliegues cross-origin entre frontend y API) o `sameSite: 'lax'` en desarrollo local. El frontend envía `credentials: 'include'` en todas las llamadas `fetch` (`frontend/src/services/api.js`). Al cerrar sesión (`POST /auth/logout`), la cookie se limpia con `Cache-Control: no-store`.
 
 **Consecuencias:**
 - (+) JWT inaccesible para scripts JavaScript incluso en caso de XSS.
@@ -964,7 +1014,7 @@ Cada ADR documenta una decisión de diseño significativa con su contexto, las a
 2. **Aplicación nativa iOS/Android** → DESCARTADA (Out of Scope, PMP v1.4). Requiere cuentas de desarrollador, ciclos de aprobación en tiendas y desarrollo paralelo de dos plataformas.
 3. **Progressive Web App (PWA)** → **SELECCIONADA.** Con dos archivos adicionales al frontend (`manifest.json` y `service-worker.js`), el navegador ofrece al usuario la opción de "instalar" la app en su pantalla de inicio sin requerir tiendas de aplicaciones ni aprobaciones externas.
 
-**Implementación requerida:** El `manifest.json` define nombre, íconos en múltiples resoluciones, `theme_color: #961749` (institucional), y `display: standalone`. El Service Worker implementa dos estrategias diferenciadas: **Cache-First** para recursos estáticos (HTML, CSS, JS, íconos) porque rara vez cambian; y **Network-First** para llamadas a la API del feed porque el contenido es dinámico y la frescura importa más que la velocidad. Si la red no está disponible, el Service Worker sirve el último feed cacheado como fallback graceful.
+**Implementación real:** `frontend/public/manifest.json` define nombre, íconos (`192px` y `512px`) y `display: standalone`. `frontend/public/sw.js` (`CACHE_NAME = 'mml-v4'`, registrado en `src/main.jsx`) excluye explícitamente las rutas de API (`/auth`, `/projects`, `/notifications`, `/admin`, `/announcements`) para evitar respuestas cacheadas de sesión/mutaciones, aplica Network-First para navegación y recursos externos, y Cache-First para activos estáticos.
 
 **Consecuencias:**
 - (+) Los estudiantes pueden instalar el Mural en su pantalla de inicio con un solo toque, eliminando la necesidad de recordar la URL.
@@ -975,101 +1025,74 @@ Cada ADR documenta una decisión de diseño significativa con su contexto, las a
 
 ---
 
-### ADR-08 | Caché en memoria del servidor para consultas frecuentes e inmutables
+### ADR-08 | Caché en memoria del servidor (`node-cache`)
 
 | Campo   | Detalle                                              |
 |---------|------------------------------------------------------|
-| Estado  | Aceptada                                             |
-| Fecha   | Marzo 2026                                           |
-| SRS     | RNF-01 (tiempo de carga), RNF-12 (capacidad de usuarios) |
+| Estado  | **No implementada / Diferida** (actualizado en v1.4) |
+| Fecha   | Noviembre 2026                                       |
+| SRS     | RNF-01 (tiempo de carga), RNF-12 (capacidad)         |
 
-**Contexto:** Algunas consultas a PostgreSQL se ejecutan en prácticamente cada petición HTTP y devuelven datos que cambian muy raramente o nunca. El ejemplo más claro es la lista de categorías predefinidas (tabla `categories`, 20 registros fijos): cada vez que un usuario carga el formulario de publicación o el filtro del feed, el backend consulta esta tabla. En un escenario de 200 usuarios concurrentes en horario pico universitario, esto genera cientos de consultas idénticas por minuto a la base de datos de Railway sin ningún beneficio informativo.
-
-**Alternativas consideradas:**
-
-1. **Sin caché (consulta directa a PostgreSQL en cada petición)** → Funcional pero ineficiente. Consume crédito de Railway innecesariamente y añade latencia evitable.
-2. **Redis como servidor de caché externo** → DESCARTADA. Añade un servicio adicional con costo potencial, complejidad de configuración y una dependencia más que puede fallar. Excesivo para el volumen de este proyecto.
-3. **node-cache (caché en memoria del proceso Node.js)** → **SELECCIONADA.** Biblioteca npm liviana que implementa un almacén clave-valor en memoria con TTL configurable por entrada. No requiere infraestructura adicional y opera dentro del mismo proceso del backend con latencia de microsegundos.
-
-**Alcance del caché (conservador y deliberado):** Se aplica exclusivamente a datos consultados frecuentemente que cambian con muy baja frecuencia: lista de categorías (TTL: 24 horas), y parámetros de configuración del sistema como umbrales de moderación y shadowban definidos en RN-13 (TTL: 1 hora). El feed de anuncios, métricas del emprendedor y datos de usuario NO se cachean porque su frescura es crítica.
-
-**Consecuencias:**
-- (+) Reducción significativa de consultas a PostgreSQL para datos estáticos.
-- (+) Menor consumo de crédito de Railway en momentos de tráfico pico.
-- (+) Latencia de respuesta mejorada para las rutas que sirven categorías.
-- (−) El caché en memoria no se comparte entre instancias del servidor. Si Railway escala horizontalmente (poco probable en el plan gratuito), cada instancia tendría su propio caché independiente. Aceptable para esta escala.
-- (−) Si el proceso de Node.js se reinicia (por un despliegue), el caché se vacía y las primeras consultas post-reinicio van directamente a PostgreSQL. Este es el comportamiento esperado y correcto.
+**Estado real en código:** `node-cache` no está instalado en `backend/package.json` ni utilizado en `backend/src/`. Actualmente, la configuración de umbrales se lee directamente de `process.env`, el frontend mantiene el catálogo normalizado de 14 categorías en `frontend/src/constants/categories.js` y el backend consulta PostgreSQL directamente al resolver categorías. La adopción de caché en memoria permanece como optimización futura si el tráfico concurrente lo exige.
 
 ---
 
 ### ADR-09 | Separación de identidad pública y datos de autenticación en tablas distintas
 
-| Campo   | Detalle                          |
-|---------|----------------------------------|
-| Estado  | Aceptada (introducida en v1.2)   |
-| Fecha   | Marzo 2026                       |
-| SRS     | RF-02, RF-39, RF-40, RF-08       |
+| Campo   | Detalle                              |
+|---------|--------------------------------------|
+| Estado  | **Implementada y extendida (v1.4)**  |
+| Fecha   | Noviembre 2026                       |
+| SRS     | RF-02, RF-38, RF-39, RF-08           |
 
-**Contexto:** El sistema necesita almacenar dos tipos de información conceptualmente distintos sobre el emprendedor: (a) datos de autenticación y seguridad (matrícula, contraseña hasheada, número de WhatsApp, rol, estado de suspensión) que son sensibles y nunca deben exponerse en la API; y (b) datos de identidad pública (nombre visible, y en versiones futuras, biografía y foto de perfil) que son visibles en el feed y en las vistas de detalle de anuncio. En la v1.0 inicial, ambos tipos de datos coexistían en la tabla `users`. Los requisitos RF-39 (display_name obligatorio) y RF-40 (campos escalables para v2.0) fuerzan una reflexión sobre el modelo de datos más adecuado.
+**Contexto:** El sistema separa los datos sensibles de autenticación (`users`: matrícula, `password_hash`, `whatsapp_number`, rol, suspensión) de la identidad pública y canales de contacto del emprendedor (`entrepreneur_profiles`).
 
-**Alternativas consideradas:**
-
-1. **Mantener todo en la tabla `users` añadiendo columnas** → DESCARTADA. A medida que crezca el perfil público (bio, foto, redes sociales en v2.0 y posteriores), la tabla de autenticación se contaminaría con datos de presentación. Cualquier `SELECT *` sobre `users` expondría inadvertidamente datos sensibles junto con datos públicos, aumentando el riesgo de filtración accidental del número de WhatsApp u otros campos protegidos.
-
-2. **Tabla `entrepreneur_profiles` separada con relación 1:1 a `users`** → **SELECCIONADA.** La tabla `users` queda exclusivamente como tabla de autenticación. La tabla `entrepreneur_profiles` almacena únicamente la identidad pública. Esta separación garantiza que: (a) ningún `SELECT` sobre datos del feed toca la tabla de autenticación; (b) el perfil público puede extenderse en versiones futuras sin modificar el esquema de autenticación ni sus índices; (c) la responsabilidad de cada tabla es única y verificable por inspección.
-
-**Implementación en v1.0:** `entrepreneur_profiles` contiene `display_name` (obligatorio, VARCHAR 80), `bio_short` (NULL, reservado para v2.0), `profile_photo_url` y `profile_photo_id` (ambos NULL, reservados para v2.0). La creación de los dos registros (`users` + `entrepreneur_profiles`) ocurre en una transacción atómica en COMP-02; si cualquiera de las dos inserciones falla, ambas se revierten.
-
-**Consecuencias:**
-- (+) Separación clara entre autenticación e identidad pública, reduciendo el riesgo de exposición accidental de datos sensibles.
-- (+) El perfil público puede extenderse en v2.0 sin migraciones traumáticas sobre la tabla de autenticación.
-- (+) `display_name` (RF-39) y los campos escalables (RF-40) tienen un hogar semánticamente correcto desde el inicio.
-- (−) El registro de un emprendedor requiere dos inserciones coordinadas en lugar de una. Resuelto mediante transacción atómica en COMP-02, sin complejidad adicional para el cliente.
+**Implementación real:** `entrepreneur_profiles` almacena `display_name` (obligatorio, `VARCHAR(80)`), `bio_short` (`VARCHAR(200)`), `profile_photo_url` (`VARCHAR(500)`), `profile_photo_id` (`VARCHAR(200)`), `instagram_handle` (`VARCHAR(60)`) y `classroom_location` (`VARCHAR(100)`). Todos estos campos están activos en producción/desarrollo a través de `POST /auth/register/entrepreneur`, `PATCH /auth/profile`, `GET /auth/profile/:id` y `GET /projects/public/:id`. La creación inicial de `users` + `entrepreneur_profiles` ocurre en una transacción atómica en `authController.js`.
 
 ---
 
 ## SECCIÓN 9. VISTA DE DESPLIEGUE
 
-### 9.1 Infraestructura de producción
+### 9.1 Infraestructura local y objetivo de producción
 
-| Componente                   | Servicio              | Plan                        |
-|------------------------------|-----------------------|-----------------------------|
-| Backend Node.js              | Railway.app           | Hobby (gratuito)            |
-| Base de datos PostgreSQL     | Railway.app           | Plugin PostgreSQL (gratuito)|
-| Almacenamiento imágenes      | Cloudinary            | Free (25 créditos/mes)      |
-| Moderación IA imágenes       | Google Cloud Vision   | Free (1,000 unidades/mes)   |
-| Filtro de texto              | bad-words (local)     | Open source, sin costo      |
-| Frontend (archivos estáticos)| Railway.app           | Servido desde el mismo servicio |
+| Componente | Entorno local actual (`docker-compose.yml`) | Objetivo de producción |
+| --- | --- | --- |
+| Backend Node.js | Contenedor `mural_maz_lince_api` (`backend/Dockerfile` multi-stage `node:18-alpine`, puerto `3000`) | Railway.app (Docker) |
+| Base de datos PostgreSQL | Contenedor `mural_maz_lince_db` (`postgres:15-alpine`, puerto `5433:5432`, DB `mural_maz_lince_dev`) | PostgreSQL gestionado en Railway.app |
+| Frontend (Vite + React) | Servidor de desarrollo Vite (`npm run dev`, puerto `5173`) | Build estático (`dist/`) en Vercel o Railway |
+| Almacenamiento de imágenes | Cloudinary (`storageService.js`, mock en `NODE_ENV=test`) | Cloudinary (Free) |
+| Moderación IA de imágenes | Google Cloud Vision (`moderationService.js`, activo con `ENABLE_AUTO_MODERATION=true`) | Google Cloud Vision (Free 1,000 u/mes) |
 
-### 9.2 Variables de entorno requeridas (producción)
+> **Nota sobre `backend/Dockerfile`:** La etapa `production` copia actualmente `src/` y dependencias de producción, sin copiar `docs/swagger.json` ni `backend/scripts/`; en desarrollo local estos archivos están disponibles mediante el bind mount `./backend:/app`.
 
-| Variable                   | Descripción                                           |
-|----------------------------|-------------------------------------------------------|
-| `DATABASE_URL`             | URL de conexión PostgreSQL (Railway lo provee)        |
-| `JWT_SECRET`               | Clave secreta para firma de tokens JWT                |
-| `CLOUDINARY_CLOUD_NAME`    | Nombre del cloud de Cloudinary                        |
-| `CLOUDINARY_API_KEY`       | API key de Cloudinary                                 |
-| `CLOUDINARY_API_SECRET`    | API secret de Cloudinary                              |
-| `GOOGLE_CLOUD_VISION_KEY`  | Clave de API de Google Cloud Vision                   |
-| `HASH_SIMILARITY_THRESHOLD`| Umbral de distancia Hamming (default: 10)             |
-| `INTENT_THRESHOLD_MS`      | Umbral de intención en ms (default: 5000)             |
-| `REPORT_ALERT_THRESHOLD`   | Reportes para alerta urgente (default: 3)             |
-| `REPORT_SHADOWBAN_THRESHOLD`| Reportes para shadowban (default: 5)                 |
-| `REPORT_SHADOWBAN_HOURS`   | Horas de inacción para shadowban (default: 12)        |
-| `REPORT_SHADOWBAN_MAX_HOURS`| Duración máxima del shadowban (default: 48)          |
-| `NODE_ENV`                 | `production`                                          |
+### 9.2 Variables de entorno reales (`.env.example` y código)
 
-### 9.3 Pipeline de despliegue (CI/CD)
+| Variable | Valor por defecto / Ejemplo | Uso real en el backend |
+| --- | --- | --- |
+| `NODE_ENV` | `development` / `test` / `production` | Controla cookies `secure`/`sameSite`, mocks de test, cron jobs y bloqueo de `migrate.js` en producción. |
+| `PORT` | `3000` | Puerto HTTP de Express. |
+| `DATABASE_URL` | `postgresql://postgres:password@localhost:5433/mural_maz_lince_dev` | Conexión al pool `pg`. |
+| `JWT_SECRET` | *(secreto)* | Clave de firma/verificación JWT. |
+| `JWT_EXPIRATION_HOURS` | `8` | Vigencia del token y cookie `token`. |
+| `CORS_ALLOWED_ORIGIN` | `http://localhost:5173` | Origen permitido con `credentials: true`. |
+| `APP_PRODUCTION_URL` | `http://localhost:3000` | URL base de la aplicación. |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | *(credenciales)* | Carga y eliminación de imágenes en Cloudinary (`CLOUDINARY_FOLDER` y `CLOUDINARY_MOCK` opcionales). |
+| `GOOGLE_APPLICATION_CREDENTIALS` / `GOOGLE_CLOUD_VISION_KEY` | `google-credentials.json` | Autenticación de Google Cloud Vision (`VISION_MOCK` / `VISION_MOCK_RESULT` opcionales). |
+| `ENABLE_AUTO_MODERATION` | `false` *(implícito fuera de `test`)* | Debe establecerse en `true` para activar el pipeline de moderación en `POST /announcements`. |
+| `VISION_TIMEOUT_MS` / `VISION_MONTHLY_QUOTA` / `VISION_ALERT_PERCENT` | `8000` / `1000` / `80` | Timeout y control de cuota mensual en memoria de Vision API. |
+| `HASH_DISTANCE_THRESHOLD` | `10` | Umbral de distancia Hamming para dHash (RN-07). |
+| `INTENTION_THRESHOLD_MS` | `5000` | Umbral de reversión accidental en likes y valoraciones (RF-14). |
+| `REPORT_ALERT_THRESHOLD` | `3` | Reportes únicos para alerta de urgencia (RF-36). |
+| `SHADOWBAN_MIN_REPORTS` / `SHADOWBAN_WAIT_HOURS` / `SHADOWBAN_RESTORE_HOURS` | `5` / `12` / `48` | Parámetros del job horario de shadowban y restauración automática (RF-37). |
+| `MAX_ACTIVE_PROJECTS` / `MAX_ACTIVE_ANNOUNCEMENTS` | `5` / `3` | Límites de proyectos activos por emprendedor y anuncios activos/pendientes por proyecto. |
+| `ADMIN_MATRICULA` / `ADMIN_DEFAULT_PASSWORD` | *(sin valores por defecto)* | Requeridas únicamente para ejecutar `npm run admin:bootstrap`. |
 
-**Trigger:** Push a rama `main` en GitHub
+### 9.3 Estado de CI/CD
 
-| Paso   | Acción                                                                                              |
-|--------|-----------------------------------------------------------------------------------------------------|
-| Paso 1 | **Lint** (ESLint Airbnb config). Si falla → pipeline se detiene, no se despliega.                   |
-| Paso 2 | **Tests unitarios** (Jest + Supertest). Si cobertura < 70% o algún test falla → pipeline se detiene.|
-| Paso 3 | **Build de imagen Docker.** Dockerfile multi-stage: dependencias de producción únicamente.          |
-| Paso 4 | **Deploy a Railway.app.** Railway detecta el push y ejecuta el redespliegue automático. Variables de entorno inyectadas por Railway en tiempo de ejecución. |
-| Paso 5 | **Smoke test post-deploy.** `GET /health` → verifica que el servidor responde HTTP 200.             |
+El repositorio aún no contiene workflows en `.github/workflows/`. Las validaciones se ejecutan localmente mediante:
+1. Backend: `npm run lint`, `npm test` y `npm run test:integration` (requiere `docker compose up -d db`).
+2. Frontend: `npm run lint` y `npm run build`.
+3. Salud del servicio: `GET /health` verifica conexión activa a PostgreSQL (`SELECT 1`).
 
 ---
 
@@ -1125,32 +1148,33 @@ Cada ADR documenta una decisión de diseño significativa con su contexto, las a
 
 ---
 
-## APÉNDICE A – TRAZABILIDAD SAD ↔ SRS v1.4
+## APÉNDICE A – TRAZABILIDAD SAD ↔ SRS v1.5
 
 | Componente / Decisión | Requisitos SRS relacionados                              |
 |-----------------------|----------------------------------------------------------|
 | COMP-01 Router        | RNF-07 (variables de entorno), RNF-14 (lint)            |
 | COMP-02 Auth          | RF-01 a RF-07, RF-34, RF-38, RF-39, RNF-05, RNF-06     |
 | COMP-03 Feed          | RF-08, RF-09, RF-10, RNF-01, RNF-02                    |
-| COMP-04 Announcement  | RF-15 a RF-23, RF-31, RF-32, RF-33                     |
+| COMP-04 Announcement  | RF-19 a RF-22, RF-31, RF-32, RF-33                     |
 | COMP-05 Interaction   | RF-12, RF-13, RF-14, RN-08                             |
 | COMP-06 Report        | RF-35, RF-36, RF-37, RN-13                             |
 | COMP-07 Moderation    | RF-26, RF-27, RF-28, RN-07, RN-11                      |
 | COMP-08 Storage       | RF-32, RF-33, RNF-11                                   |
 | COMP-09 WhatsApp Link | RF-11, RN-09, RNF-04                                   |
 | COMP-10 Notification  | RF-25, RF-37                                           |
+| COMP-11 Admin/Project | RF-15 a RF-18, RF-23, RF-29, RF-30, RF-34              |
 | COMP-12 Metrics       | RF-24, RF-14, RN-08                                    |
 | ADR-01                | RF-32, RF-33, RNF-11                                   |
 | ADR-02                | RF-28, RN-07                                           |
 | ADR-03                | RNF-02                                                 |
-| ADR-04                | RNF-05 (actualizado en v1.1)                           |
+| ADR-04                | RNF-05 (actualizado en v1.4)                           |
 | ADR-05                | RF-37, RN-11, RN-13                                    |
 | ADR-06                | General (modelo de datos)                              |
 | ADR-07                | RNF-08 (mobile-first), RNF-01 (tiempo de carga)        |
-| ADR-08                | RNF-01 (tiempo de carga), RNF-12 (capacidad)           |
-| ADR-09                | RF-02, RF-39, RF-40, RF-08                             |
+| ADR-08                | Diferida (no implementada en v1.4)                     |
+| ADR-09                | RF-02, RF-38, RF-39, RF-08                             |
 
 ---
 
 *FIN DEL DOCUMENTO*
-*SAD – Mural Maz Lince v1.3*
+*SAD – Mural Maz Lince v1.4*
