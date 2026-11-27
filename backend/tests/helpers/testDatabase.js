@@ -1,15 +1,5 @@
 'use strict';
 
-/**
- * Shared test-database pin + safety guard for integration suites.
- *
- * MUST be required BEFORE any `src/**` module (app, db) so that
- * `process.env.DATABASE_URL` is already pinned when `src/db/index.js`
- * reads it at import time. Importing this module:
- *   1. FAILS FAST if DATABASE_URL is set to any non-test database.
- *   2. Sets DATABASE_URL to mural_maz_lince_test unconditionally.
- */
-
 const { execSync } = require('child_process');
 const path = require('path');
 

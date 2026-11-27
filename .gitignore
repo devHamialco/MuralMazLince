@@ -79,3 +79,6 @@ service-account*.json
 
 # Personal audit notes - not project documentation
 docs/reporte.md
+
+# SDD agent registry cache - local tooling artifact, not project source
+.atl/
