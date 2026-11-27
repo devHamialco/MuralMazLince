@@ -44,11 +44,14 @@ export default function AnnouncementCard({
     project_logo_url: projectLogoUrl,
     description,
     likes_count: likesCount = 0,
-    average_rating: averageRating = 0,
+    avg_rating: avgRating,
+    average_rating: legacyAverageRating = 0,
     status,
     category,
     created_at: createdAt,
   } = announcement || {};
+
+  const averageRating = Number(avgRating ?? legacyAverageRating ?? 0);
 
   // Actualización optimista de likes
   const [optimisticLiked, setOptimisticLiked] = useState(Boolean(userLiked));
@@ -434,7 +437,8 @@ AnnouncementCard.propTypes = {
     project_name: PropTypes.string,
     description: PropTypes.string,
     likes_count: PropTypes.number,
-    average_rating: PropTypes.number,
+    avg_rating: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    average_rating: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     status: PropTypes.string,
     category: PropTypes.string,
     created_at: PropTypes.string,

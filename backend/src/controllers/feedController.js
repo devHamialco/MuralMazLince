@@ -31,7 +31,8 @@ const getFeed = async (req, res) => {
              p.name AS project_name, p.id AS project_id, p.logo_url AS project_logo_url,
              ep.display_name,
              (SELECT CAST(COUNT(*) AS INTEGER) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
-             (SELECT COALESCE(AVG(stars)::numeric(2,1), 0) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating
+             (SELECT CAST(COALESCE(AVG(stars)::numeric(2,1), 0) AS DOUBLE PRECISION) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating,
+             (SELECT CAST(COALESCE(AVG(stars)::numeric(2,1), 0) AS DOUBLE PRECISION) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS average_rating
       FROM announcements a
       JOIN projects p ON p.id = a.project_id
       JOIN users u ON u.id = p.user_id
@@ -93,7 +94,9 @@ const getAnnouncementDetail = async (req, res) => {
               ep.display_name, ep.bio_short, ep.profile_photo_url, ep.instagram_handle, ep.classroom_location,
               u.whatsapp_number,
               (SELECT CAST(COUNT(*) AS INTEGER) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
-              (SELECT COALESCE(AVG(stars)::numeric(2,1), 0) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating
+              (SELECT CAST(COALESCE(AVG(stars)::numeric(2,1), 0) AS DOUBLE PRECISION) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating,
+              (SELECT CAST(COALESCE(AVG(stars)::numeric(2,1), 0) AS DOUBLE PRECISION) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS average_rating,
+              (SELECT CAST(COUNT(*) AS INTEGER) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS ratings_count
        FROM announcements a
        JOIN projects p ON p.id = a.project_id
        JOIN users u ON u.id = p.user_id
@@ -119,8 +122,37 @@ const getAnnouncementDetail = async (req, res) => {
     delete announcement.whatsapp_number;
     announcement.wa_link = waLink;
 
+    let userLiked = false;
+    let userRating = 0;
+    let userReported = false;
+
+    if (viewer && viewer.id) {
+      const [likeRes, ratingRes, reportRes] = await Promise.all([
+        db.query(
+          'SELECT 1 FROM likes WHERE user_id = $1 AND announcement_id = $2 AND reverted_at IS NULL LIMIT 1',
+          [viewer.id, announcement.id],
+        ),
+        db.query(
+          'SELECT stars FROM ratings WHERE user_id = $1 AND announcement_id = $2 AND reverted_at IS NULL LIMIT 1',
+          [viewer.id, announcement.id],
+        ),
+        db.query(
+          'SELECT 1 FROM reports WHERE reporter_id = $1 AND announcement_id = $2 LIMIT 1',
+          [viewer.id, announcement.id],
+        ),
+      ]);
+      userLiked = likeRes.rows.length > 0;
+      userRating = ratingRes.rows.length > 0 ? Number(ratingRes.rows[0].stars) : 0;
+      userReported = reportRes.rows.length > 0;
+    }
+
     res.set('Cache-Control', 'no-store');
-    return res.json({ announcement });
+    return res.json({
+      announcement,
+      user_liked: userLiked,
+      user_rating: userRating,
+      user_reported: userReported,
+    });
   } catch (err) {
     return res.status(500).json({ error: 'Error al obtener detalle del anuncio' });
   }

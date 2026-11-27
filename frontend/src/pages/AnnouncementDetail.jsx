@@ -87,9 +87,9 @@ export default function AnnouncementDetail() {
         setAnnouncement(data.announcement);
 
         if (isAuthenticated) {
-          setUserLiked(data.user_liked || false);
-          setUserRating(data.user_rating || 0);
-          setUserReported(data.user_reported || false);
+          setUserLiked(Boolean(data.user_liked));
+          setUserRating(Number(data.user_rating) || 0);
+          setUserReported(Boolean(data.user_reported));
         }
       } catch (err) {
         console.error('Error loading announcement:', err);
@@ -98,7 +98,7 @@ export default function AnnouncementDetail() {
         if (!silent) setLoading(false);
       }
     },
-    [id, isAuthenticated]
+    [id, isAuthenticated],
   );
 
   useEffect(() => {
@@ -223,9 +223,12 @@ export default function AnnouncementDetail() {
     classroom_location: classroomLocation,
     wa_link: waLink,
     likes_count: likesCount = 0,
-    average_rating: averageRating,
+    avg_rating: avgRating,
+    average_rating: legacyAverageRating,
     expires_at: expiresAt,
   } = announcement;
+
+  const averageRating = Number(avgRating ?? legacyAverageRating ?? 0);
 
   const cleanInstagram = instagramHandle ? String(instagramHandle).replace(/^@/, '') : null;
   const hasAnyContact = waLink || cleanInstagram || classroomLocation;
@@ -522,7 +525,7 @@ export default function AnnouncementDetail() {
           >
             <span className="d-inline-flex align-items-center gap-1">
               <FiStar style={{ color: 'var(--accent)' }} aria-hidden="true" />
-              {averageRating ? Number(averageRating).toFixed(1) : 'Sin calificaciones'}
+              {averageRating > 0 ? averageRating.toFixed(1) : 'Sin calificaciones'}
             </span>
             <span className="d-inline-flex align-items-center gap-1">
               <FiHeart style={{ color: 'var(--primary)' }} aria-hidden="true" />

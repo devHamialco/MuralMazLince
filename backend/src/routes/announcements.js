@@ -24,9 +24,9 @@ router.patch('/:id', requireAuth, requireRole('entrepreneur'), announcementContr
 router.delete('/:id', requireAuth, requireRole('entrepreneur'), announcementController.deleteAnnouncement);
 
 // Interacciones (sub-recursos de anuncio)
-router.post('/:id/like', requireAuth, requireRole('visitor_registered', 'entrepreneur'), interactionController.toggleLike);
-router.post('/:id/rating', requireAuth, requireRole('visitor_registered', 'entrepreneur'), interactionController.upsertRating);
-router.delete('/:id/rating', requireAuth, requireRole('visitor_registered', 'entrepreneur'), interactionController.deleteRating);
+router.post('/:id/like', requireAuth, requireRole('visitor_registered', 'entrepreneur', 'admin'), interactionController.toggleLike);
+router.post('/:id/rating', requireAuth, requireRole('visitor_registered', 'entrepreneur', 'admin'), interactionController.upsertRating);
+router.delete('/:id/rating', requireAuth, requireRole('visitor_registered', 'entrepreneur', 'admin'), interactionController.deleteRating);
 
 // Reportes
 router.post('/:id/report', requireAuth, requireRole('visitor_registered', 'entrepreneur'), reportController.createReport);
