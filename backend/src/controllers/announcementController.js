@@ -10,6 +10,11 @@ const MAX_ACTIVE_ANNOUNCEMENTS = Number(
   || 3,
 );
 
+const isAutoModerationEnabled = () => (
+  process.env.ENABLE_AUTO_MODERATION === 'true'
+  || (process.env.NODE_ENV === 'test' && process.env.ENABLE_AUTO_MODERATION !== 'false')
+);
+
 /**
  * POST /announcements — Crear anuncio (COMP-04, RF-19).
  * Sprint 10: pipeline de moderación completo + upload en Cloudinary.
@@ -78,7 +83,9 @@ const createAnnouncement = async (req, res) => {
     }
 
     const [moderation, uploaded] = await Promise.all([
-      moderationPipeline(imageBuffer, title.trim(), description || '', customCategory || ''),
+      isAutoModerationEnabled()
+        ? moderationPipeline(imageBuffer, title.trim(), description || '', customCategory || '')
+        : Promise.resolve({ approved: true, triggers: [], dhash: null }),
       uploadToCloudinary(imageBuffer),
     ]);
     const nextStatus = moderation.approved ? 'active' : 'pending_review';

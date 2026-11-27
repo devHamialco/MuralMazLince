@@ -20,7 +20,7 @@ function parseOptionalUser(req) {
 const getFeed = async (req, res) => {
   const cursor = req.query.cursor ? Number(req.query.cursor) : null;
   const category = req.query.category || null;
-  const limit = Math.min(Number(req.query.limit) || 20, 50);
+  const limit = req.query.limit ? Math.min(Number(req.query.limit) || 20, 500) : 500;
 
   try {
     let query = `
@@ -28,7 +28,7 @@ const getFeed = async (req, res) => {
              a.category_id, a.custom_category,
              c.name AS category_name, c.code AS category_code,
              COALESCE(c.name, a.custom_category) AS category,
-             p.name AS project_name, p.id AS project_id,
+             p.name AS project_name, p.id AS project_id, p.logo_url AS project_logo_url,
              ep.display_name,
              (SELECT CAST(COUNT(*) AS INTEGER) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
              (SELECT COALESCE(AVG(stars)::numeric(2,1), 0) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating
@@ -64,6 +64,7 @@ const getFeed = async (req, res) => {
       ? result.rows[result.rows.length - 1].id
       : null;
 
+    res.set('Cache-Control', 'no-store');
     return res.json({
       announcements: result.rows,
       nextCursor,
@@ -88,8 +89,8 @@ const getAnnouncementDetail = async (req, res) => {
               a.category_id, a.custom_category,
               c.name AS category_name, c.code AS category_code,
               COALESCE(c.name, a.custom_category) AS category,
-              p.name AS project_name, p.id AS project_id,
-              ep.display_name,
+              p.name AS project_name, p.id AS project_id, p.logo_url AS project_logo_url, p.user_id AS entrepreneur_id,
+              ep.display_name, ep.bio_short, ep.profile_photo_url, ep.instagram_handle, ep.classroom_location,
               u.whatsapp_number,
               (SELECT CAST(COUNT(*) AS INTEGER) FROM likes WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS likes_count,
               (SELECT COALESCE(AVG(stars)::numeric(2,1), 0) FROM ratings WHERE announcement_id = a.id AND reverted_at IS NULL AND is_accidental = false) AS avg_rating
@@ -118,6 +119,7 @@ const getAnnouncementDetail = async (req, res) => {
     delete announcement.whatsapp_number;
     announcement.wa_link = waLink;
 
+    res.set('Cache-Control', 'no-store');
     return res.json({ announcement });
   } catch (err) {
     return res.status(500).json({ error: 'Error al obtener detalle del anuncio' });

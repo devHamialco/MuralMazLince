@@ -6,8 +6,10 @@ const router = Router();
 
 router.use(requireAuth, requireRole('admin'));
 router.get('/moderation-queue', adminController.getModerationQueue);
+router.get('/announcements', adminController.getPublishedAnnouncements);
 router.patch('/announcements/:id/approve', adminController.approveAnnouncement);
 router.post('/announcements/:id/reject', adminController.rejectAnnouncement);
+router.post('/announcements/:id/remove', adminController.removeAnnouncementByAdmin);
 router.post('/users/:id/suspend', adminController.suspendUser);
 router.get('/claim-tickets', adminController.getClaimTickets);
 router.patch('/claim-tickets/:id/resolve', adminController.resolveClaimTicket);
