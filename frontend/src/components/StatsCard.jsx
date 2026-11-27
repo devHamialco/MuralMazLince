@@ -2,40 +2,62 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 /**
- * StatsCard — Component for displaying aggregated metrics with animated counters.
- * Part of the Dashboard Harmony Redesign.
+ * StatsCard — Tarjeta de métrica con animación numérica fluida y accesible.
  *
- * @param {object} props
- * @param {string} props.label  - Text label for the metric (e.g., "Total Likes")
- * @param {number} props.value  - Target value to animate towards.
- * @param {React.ReactNode} props.icon - Icon component to display.
- * @param {string} [props.color='var(--primary)'] - Accent color for the icon and glow.
+ * Mejoras aplicadas:
+ * 1. Respeto a prefers-reduced-motion: si el usuario tiene activada la reducción
+ *    de movimiento en su sistema operativo, el valor se asigna de inmediato sin setInterval.
+ * 2. Formato numérico consistente con locale es-MX.
+ * 3. Accesibilidad para lectores de pantalla con aria-label integrado.
  */
-export default function StatsCard({ label, value, icon, color = 'var(--primary)' }) {
-  const [count, setCount] = useState(0);
+export default function StatsCard({
+  label,
+  value,
+  icon,
+  color = 'var(--primary)',
+}) {
+  const [displayValue, setDisplayValue] = useState(value);
 
   useEffect(() => {
-    const start = 0;
-    const end = parseInt(value, 10) || 0;
-    if (start === end) {
-      setCount(0);
+    const numericValue = typeof value === 'number' ? value : parseFloat(value);
+
+    // Si no es un número válido (ej. "—" o vacío), mostrar el valor tal cual sin animar.
+    if (!Number.isFinite(numericValue)) {
+      setDisplayValue(value ?? '—');
       return undefined;
     }
 
-    // Calculate duration based on value to keep animation snappy
-    const duration = 1000; // 1 second total
-    const frameRate = 1000 / 60; // ~60fps
-    const increment = end / (duration / frameRate);
+    const isFloat = !Number.isInteger(numericValue);
+    const target = numericValue;
+
+    // Respetar preferencia de reducción de movimiento
+    const prefersReducedMotion = typeof window !== 'undefined'
+      && window.matchMedia
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      setDisplayValue(isFloat ? target.toFixed(1) : Math.round(target).toLocaleString('es-MX'));
+      return undefined;
+    }
+
+    const duration = 800; // ms
+    const frameRate = 1000 / 60;
+    const totalFrames = Math.round(duration / frameRate);
+    let frame = 0;
 
     const timer = setInterval(() => {
-      setCount((prev) => {
-        if (prev >= end) {
-          clearInterval(timer);
-          return end;
-        }
-        const next = prev + increment;
-        return next >= end ? end : next;
-      });
+      frame += 1;
+      const progress = frame / totalFrames;
+      // Easing out cubic
+      const eased = 1 - (1 - progress) ** 3;
+      const current = target * eased;
+
+      if (frame >= totalFrames) {
+        clearInterval(timer);
+        setDisplayValue(isFloat ? target.toFixed(1) : Math.round(target).toLocaleString('es-MX'));
+      } else {
+        setDisplayValue(isFloat ? current.toFixed(1) : Math.round(current).toLocaleString('es-MX'));
+      }
     }, frameRate);
 
     return () => clearInterval(timer);
@@ -43,56 +65,16 @@ export default function StatsCard({ label, value, icon, color = 'var(--primary)'
 
   return (
     <div
-      className="stats-card card-mml"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '1rem',
-        boxShadow: 'var(--shadow-button)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        transition: 'var(--transition-fast)',
-        minWidth: '160px',
-        flex: 1,
-      }}
+      className="stats-card-box"
+      aria-label={`${label}: ${displayValue}`}
+      role="group"
     >
-      <div
-        style={{
-          backgroundColor: 'rgba(255, 42, 45, 0.1)', // Soft red background for icon
-          color,
-          padding: 'var(--spacing-sm)',
-          borderRadius: 'var(--radius-sm)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '24px',
-        }}
-      >
+      <div className="stats-card-icon" style={{ color }} aria-hidden="true">
         {icon}
       </div>
-      <div>
-        <div style={{
-          color: 'var(--text-secondary)',
-          fontSize: '14px',
-          fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          marginBottom: '2px',
-        }}
-        >
-          {label}
-        </div>
-        <div style={{
-          color: 'var(--text-primary)',
-          fontSize: '24px',
-          fontWeight: 700,
-          fontVariantNumeric: 'tabular-nums',
-        }}
-        >
-          {Math.floor(count).toLocaleString()}
-        </div>
+      <div className="stats-card-content">
+        <span className="stats-card-label">{label}</span>
+        <span className="stats-card-value">{displayValue}</span>
       </div>
     </div>
   );

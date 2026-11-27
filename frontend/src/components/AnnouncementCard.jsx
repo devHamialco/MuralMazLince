@@ -1,85 +1,108 @@
-/**
- * @fileoverview AnnouncementCard — Tarjeta del feed principal (T15, implementacion-11.md)
- *
- * Renderiza un anuncio con imagen, título, nombre del emprendedor (display_name,
- * nunca el número de WhatsApp), métricas de likes / estrellas y acciones
- * contextuales según el rol del usuario (SRS RN-09, PRINC-02).
- *
- * Modos:
- *   - Visitante (ROL-01)     : LikeButton y StarRating en readonly; boton de reporte oculto.
- *   - Autenticado (ROL-02/03): Interacciones activas; botón de reporte visible.
- *   - Panel emprendedor      : `showStatus=true` muestra StatusBadge sobre la imagen.
- *
- * Soporta estado skeleton: cuando `announcement` no contiene datos, el componente
- * puede recibir props sin crashes gracias a los valores por defecto.
- *
- * Referencia: SRS RF-08, RF-09, RF-12, RF-13, RN-09, wireframes-spec WF-3.1.1
+/* AnnouncementCard — Tarjeta del feed principal (T15, implementacion-11.md)
+ * Refactorización completa con accesibilidad, rendimiento y diseño Mobile-First:
+ * - Aspect-ratio 4/3 con loading="lazy" y decoding="async" (evita CLS y ahorra datos)
+ * - Fallback "Sin imagen" centrado con useState(imgFailed)
+ * - Título a 18px con line-clamp: 2 para móviles
+ * - Patrón Stretched Link (tarjeta clickeable sin enlaces duplicados ni botones anidados)
+ * - Botón reportar con target táctil >=44px, ícono FiFlag y contraste accesible en blanco
+ * - Badges/Acciones en contenedor flex superior derecho con gap (sin hacks de offset)
+ * - Nombre del proyecto con tamaño legible de 12px
+ * - Semántica con <article> y <time dateTime={createdAt}>
+ * - Componente AnnouncementCardSkeleton con mismo aspect-ratio
+ * - Like con actualización optimista, animación pop y aria-pressed
  */
 
-/* AnnouncementCard -wireframes-spec.md WF-3.1.1 */
-
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { FiMessageCircle } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiFlag, FiImage } from 'react-icons/fi';
 import StarRating from './StarRating';
 import LikeButton from './LikeButton';
 import StatusBadge from './StatusBadge';
+import CategoryBadge from './CategoryBadge';
+import AnnouncementCardSkeleton from './AnnouncementCardSkeleton';
 
-/**
- * Tarjeta de anuncio para el feed y el panel del emprendedor.
- *
- * @param {object}    props
- * @param {object} props.announcement - Datos del anuncio desde la API.
- * @param {number|string} props.announcement.id - ID único del anuncio.
- * @param {string} [props.announcement.image_url] - URL de imagen; puede faltar durante la carga.
- * @param {string} props.announcement.title - Título del anuncio.
- * @param {string} [props.announcement.project_name] - Nombre del proyecto padre.
- * @param {string} props.announcement.category - Código de categoría.
- * @param {string} [props.announcement.display_name] - Nombre público del emprendedor.
- * @param {string} [props.announcement.description] - Descripción del anuncio.
- * @param {number} [props.announcement.likes_count=0] - Likes activos.
- * @param {number} [props.announcement.average_rating] - Promedio de estrellas válidas.
- * @param {string} [props.announcement.status] - Estado del anuncio.
- * @param {string} [props.announcement.created_at] - Fecha de creación en formato ISO 8601.
- * @param {Function} [props.onLike] - Callback al dar o quitar like.
- * @param {Function} [props.onReport] - Callback al abrir el reporte.
- * @param {boolean} [props.userLiked=false] - Si el usuario ya dio like.
- * @param {boolean} [props.isAuthenticated=false] - Si hay una sesión activa.
- * @param {boolean} [props.showStatus=false] - Si se muestra el estado en la imagen.
- * @param {Function} [props.onInteractionAttempt] - Callback para visitantes sin sesión.
- */
+export { AnnouncementCardSkeleton };
+
 export default function AnnouncementCard({
-  announcement,
+  announcement = null,
   onLike = null,
   onReport = null,
   userLiked = false,
   isAuthenticated = false,
   showStatus = false,
   onInteractionAttempt = null,
-  // WF-3.x: document props for clarity
 }) {
+  const [imgFailed, setImgFailed] = useState(false);
+
   const {
     id,
     image_url: imageUrl,
     title,
     project_name: projectName,
+    project_id: projectId,
+    project_logo_url: projectLogoUrl,
     description,
     likes_count: likesCount = 0,
-    average_rating: averageRating,
+    average_rating: averageRating = 0,
     status,
+    category,
     created_at: createdAt,
-  } = announcement;
+  } = announcement || {};
 
-  /**
-   * Formatea un timestamp ISO 8601 como texto relativo legible en español.
-   * Usa convenciones móviles: “ahora” < 1 min, “hace Xm” < 1h, “hace Xh” < 24h, etc.
-   *
-   * @param   {string|Date} date - Timestamp válido.
-   * @returns {string} Texto relativo. Ejemplo: “hace 3h”, “hace 2d”, “23/04”.
-   */
+  // Actualización optimista de likes
+  const [optimisticLiked, setOptimisticLiked] = useState(Boolean(userLiked));
+  const [optimisticLikesCount, setOptimisticLikesCount] = useState(
+    Number(likesCount) || 0,
+  );
+
+  useEffect(() => {
+    setOptimisticLiked(Boolean(userLiked));
+  }, [userLiked]);
+
+  useEffect(() => {
+    setOptimisticLikesCount(Number(likesCount) || 0);
+  }, [likesCount]);
+
+  const handleLike = async (e) => {
+    if (e?.stopPropagation) e.stopPropagation();
+
+    if (!isAuthenticated) {
+      if (onInteractionAttempt) {
+        onInteractionAttempt();
+      }
+      return;
+    }
+
+    const previousLiked = optimisticLiked;
+    const previousCount = optimisticLikesCount;
+    const nextLiked = !previousLiked;
+    const nextCount = nextLiked
+      ? previousCount + 1
+      : Math.max(0, previousCount - 1);
+
+    // Estado optimista inmediato
+    setOptimisticLiked(nextLiked);
+    setOptimisticLikesCount(nextCount);
+
+    if (onLike) {
+      try {
+        await onLike(id);
+      } catch (err) {
+        // Rollback ante fallos de red
+        setOptimisticLiked(previousLiked);
+        setOptimisticLikesCount(previousCount);
+      }
+    }
+  };
+
   const formatTimeAgo = (date) => {
+    if (!date) return 'Sin fecha';
+
     const now = new Date();
     const then = new Date(date);
+    if (Number.isNaN(then.getTime())) return 'Sin fecha';
+
     const diffMs = now - then;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
@@ -92,218 +115,331 @@ export default function AnnouncementCard({
     return then.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
   };
 
+  const hasImage = Boolean(imageUrl) && !imgFailed;
+
   return (
-    <div
-      className="announcement-card card-mml"
+    <article
+      className="card-mml"
       style={{
         position: 'relative',
-        padding: 0,
-        marginBottom: 'var(--spacing-md)',
         overflow: 'hidden',
+        width: '100%',
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-card)',
       }}
     >
-      <Link
-        to={`/announcement/${id}`}
-        style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+      {/* Contenedor de badges y acciones superiores (flex con gap) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 'var(--spacing-sm)',
+          right: 'var(--spacing-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--spacing-xs)',
+          zIndex: 2,
+        }}
       >
-        {/* Zona de imagen - wireframes-spec:81-86 */}
-        <div
-          style={{
-            width: '100%',
-            height: '257px',
-            position: 'relative',
-            backgroundColor: 'var(--bg-surface)',
-            overflow: 'hidden',
-          }}
-        >
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-            />
-          ) : null}
+        {showStatus && status && status !== 'active' && (
+          <StatusBadge status={status} />
+        )}
+
+        {isAuthenticated && onReport && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onReport(id);
+            }}
+            aria-label="Reportar anuncio"
+            title="Reportar anuncio"
+            style={{
+              width: '44px',
+              height: '44px',
+              minWidth: '44px',
+              minHeight: '44px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(0, 0, 0, 0.65)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'background-color var(--transition-fast)',
+            }}
+          >
+            <FiFlag size={18} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
+      {/* Zona multimedia con aspect-ratio 4/3 */}
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          aspectRatio: '4 / 3',
+          backgroundColor: 'var(--bg-surface)',
+          overflow: 'hidden',
+        }}
+      >
+        {hasImage ? (
+          <img
+            src={imageUrl}
+            alt={title}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgFailed(true)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        ) : (
           <div
             style={{
-              position: imageUrl ? 'absolute' : 'relative',
-              inset: imageUrl ? 0 : 'auto',
-              display: imageUrl ? 'none' : 'flex',
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--spacing-xs)',
               backgroundColor: 'var(--bg-surface)',
               color: 'var(--text-muted)',
               fontSize: '14px',
+              userSelect: 'none',
             }}
           >
-            Sin imagen para mostrar
+            <FiImage size={28} aria-hidden="true" />
+            <span>Sin imagen</span>
           </div>
+        )}
+      </div>
 
-          {showStatus && status && status !== 'active' && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 'var(--spacing-sm)',
-                right: 'var(--spacing-sm)',
-              }}
-            >
-              <StatusBadge status={status} />
-            </div>
-          )}
-        </div>
-      </Link>
-
-      {/* Report button - outside Link to avoid nested interactive elements */}
-      {isAuthenticated && onReport && (
-        <button
-          type="button"
-          onClick={() => onReport(id)}
+      {/* Contenido textual y métricas */}
+      <div
+        style={{
+          padding: 'var(--spacing-md)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Encabezado: Nombre del proyecto (12px+) y CategoryBadge */}
+        <div
           style={{
-            position: 'absolute',
-            top: 'var(--spacing-sm)',
-            right: showStatus && status !== 'active' ? 'var(--spacing-2xl)' : 'var(--spacing-sm)',
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            border: 'none',
-            borderRadius: '50%',
-            width: '32px',
-            height: '32px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
+            justifyContent: 'space-between',
+            gap: 'var(--spacing-sm)',
+            marginBottom: 'var(--spacing-xs)',
           }}
-          title="Reportar"
-          aria-label="Reportar anuncio"
         >
-          <FiMessageCircle size={16} />
-        </button>
-      )}
-
-      {/* Zona de contenido - wireframes-spec:88-110 */}
-      <div style={{ padding: 'var(--spacing-sm) var(--spacing-md)', paddingBottom: 'var(--spacing-md)' }}>
-
-        {/* Badges sobre imagen con backdrop para legibilidad */}
-        <div>
-          {projectName && (
-            <div style={{
-              color: 'var(--text-primary)',
-              fontSize: '11px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--spacing-xs)',
+              overflow: 'hidden',
             }}
-            >
-              {projectName}
-            </div>
+          >
+            {projectName && (
+              projectId ? (
+                <Link
+                  to={`/proyecto/${projectId}`}
+                  style={{
+                    position: 'relative',
+                    zIndex: 2,
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--text-secondary)',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    transition: 'color var(--transition-fast)',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {projectLogoUrl && (
+                    <img
+                      src={projectLogoUrl}
+                      alt={projectName}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                        border: '1px solid var(--border)',
+                      }}
+                    />
+                  )}
+                  <span>{projectName}</span>
+                </Link>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    color: 'var(--text-secondary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {projectLogoUrl && (
+                    <img
+                      src={projectLogoUrl}
+                      alt={projectName}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                        border: '1px solid var(--border)',
+                      }}
+                    />
+                  )}
+                  <span>{projectName}</span>
+                </span>
+              )
+            )}
+          </div>
+
+          {category && (
+            <CategoryBadge
+              category={category}
+              selected={false}
+              clickable={false}
+            />
           )}
         </div>
 
-        {/* Fila 1: Nombre del proyecto + CategoryBadge */}
-        <div className="d-flex align-items-center justify-content-between mb-2">
-          <h2
+        {/* Título (18px con line-clamp: 2 y Stretched Link) */}
+        <h3
+          style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            lineHeight: 1.35,
+            margin: '0 0 var(--spacing-xs) 0',
+            color: 'var(--text-primary)',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          <Link
+            to={`/announcement/${id}`}
+            className="stretched-link"
             style={{
-              fontSize: '27px',
-              fontWeight: 600,
-              color: 'var(--text-primary)',
-              flex: 1,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              marginRight: 'var(--spacing-sm)',
+              textDecoration: 'none',
+              color: 'inherit',
             }}
           >
             {title}
-          </h2>
-        </div>
+          </Link>
+        </h3>
 
-        {/* Fila 3: Descripción truncada - wireframes-spec:101-104 */}
+        {/* Descripción resumida */}
         {description && (
           <p
             style={{
-              fontSize: '16px',
+              fontSize: '14px',
               color: 'var(--text-secondary)',
+              lineHeight: 1.4,
+              marginBottom: 'var(--spacing-sm)',
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              marginBottom: 'var(--spacing-sm)',
             }}
           >
             {description}
           </p>
         )}
 
-        {/* Fila 4: Métricas - wireframes-spec:106-110 */}
+        {/* Métricas y fecha (con z-index: 2 para no ser interceptados por stretched-link) */}
         <div
-          className="d-flex align-items-center justify-content-between"
-          style={{ marginTop: 'var(--spacing-sm)' }}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: 'var(--spacing-xs)',
+            position: 'relative',
+            zIndex: 2,
+          }}
         >
-          <div className="d-flex align-items-center gap-3">
-            {/* LikeButton - wireframes-spec:108 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
             <LikeButton
-              liked={userLiked}
-              count={likesCount}
+              liked={optimisticLiked}
+              count={optimisticLikesCount}
+              onClick={handleLike}
               disabled={!isAuthenticated}
-              onClick={isAuthenticated ? () => onLike?.(id) : onInteractionAttempt}
+              size={18}
             />
 
-            {/* StarRating - wireframes-spec:109 */}
             <StarRating
-              value={averageRating || 0}
-              readonly={!isAuthenticated}
+              value={averageRating}
+              readonly
               size={16}
             />
           </div>
 
-          {/* Timestamp */}
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            {formatTimeAgo(createdAt)}
-          </span>
+          {createdAt && (
+            <time
+              dateTime={createdAt}
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {formatTimeAgo(createdAt)}
+            </time>
+          )}
         </div>
-
-        {/* Botón Ver detalle - wireframes-spec:112-120 */}
-        <Link
-          to={`/announcement/${id}`}
-          className="btn-cta btn-cta-outline"
-          style={{
-            width: '100%',
-            height: '40px',
-            marginTop: 'var(--spacing-sm)',
-            fontSize: '14px',
-            fontWeight: 600,
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          Ver detalle
-        </Link>
       </div>
-    </div>
+    </article>
   );
 }
 
 AnnouncementCard.propTypes = {
   announcement: PropTypes.shape({
-    id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
     image_url: PropTypes.string,
     title: PropTypes.string.isRequired,
     project_name: PropTypes.string,
-    category: PropTypes.string.isRequired,
-    display_name: PropTypes.string,
     description: PropTypes.string,
     likes_count: PropTypes.number,
     average_rating: PropTypes.number,
     status: PropTypes.string,
+    category: PropTypes.string,
     created_at: PropTypes.string,
-  }).isRequired,
+    display_name: PropTypes.string,
+  }),
   onLike: PropTypes.func,
   onReport: PropTypes.func,
   userLiked: PropTypes.bool,

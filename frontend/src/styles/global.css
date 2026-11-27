@@ -1,5 +1,5 @@
-/* Estilos globales - Mural Maz Lince (OLED & Neon Red Trend) */
-/* Referencia: DDC v3.0 - PWA Mobile First */
+/* Estilos globales - Mural Maz Lince */
+/* Referencia: DDC v1.4 - PWA Mobile First */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -7,7 +7,6 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  /* Prevent blue tap highlight on mobile PWAs */
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -25,20 +24,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
-  /* Support for mobile notches/safe areas in PWAs */
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* Hide web scrollbars completely to feel like a native app */
 ::-webkit-scrollbar {
   display: none;
 }
 * {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Forms - Stealthy with Glowing Red Focus */
 .form-control, .form-select {
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
@@ -59,13 +55,16 @@ body {
 
 .form-control::placeholder { color: var(--text-muted); }
 
-/* Buttons - Brutalist/Tech edge */
+.form-elevated { background-color: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); }
+
+.char-counter { font-size: 12px; color: var(--text-muted); text-align: right; margin-top: 4px; }
+
 .btn-cta {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 52px;
-  border-radius: var(--radius-md); /* Less rounded, more serious tech vibe */
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -74,14 +73,22 @@ body {
   border: none;
 }
 
+.btn-cta-sm { height: auto; min-height: 36px; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: var(--radius-sm); }
+
 .btn-cta:active:not(:disabled) {
-  transform: scale(0.97); /* Physical tap feedback */
+  transform: scale(0.97);
+}
+
+.btn-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-cta-primary {
   background-color: var(--primary);
   color: #FFFFFF;
-  box-shadow: var(--shadow-button); /* Red Neon Glow */
+  box-shadow: var(--shadow-button);
 }
 
 .btn-cta-primary:hover:not(:disabled) {
@@ -95,7 +102,26 @@ body {
   border: 1px solid var(--border);
 }
 
-/* Cards - Floating OLED panels */
+.btn-cta-outline {
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-cta-outline:hover:not(:disabled) {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.btn-cta-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .card-mml {
   background-color: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -103,21 +129,18 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-/* Ultra-Glassmorphism NavBar */
 .navbar-mml {
-  background-color: rgba(5, 5, 5, 0.65); /* Highly transparent black */
+  background-color: rgba(5, 5, 5, 0.65);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 1px solid var(--border);
-  height: 60px;
+  height: 70px;
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  /* Safe area for iPhone notches */
   padding-top: env(safe-area-inset-top);
 }
 
-/* Skeleton Loaders - Stealth sweep */
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -144,5 +167,50 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Typography tweaks for modern vibe */
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+.pop-animation {
+  display: inline-block;
+  animation: pop 250ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.stretched-link::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  content: "";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 h1, h2, h3 { letter-spacing: -0.03em; font-weight: 700; }
+
+.category-chip-panel { display: grid; gap: 16px; }
+.category-chip-group__title { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: var(--chip-color); }
+.category-chip-group__list { display: flex; flex-wrap: wrap; gap: 8px; }
+.category-chip {
+  min-height: 44px; padding: 0 14px;
+  border: 1.5px solid var(--chip-color); border-radius: var(--radius-md);
+  background: transparent; color: var(--chip-color);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.category-chip:hover { background: color-mix(in srgb, var(--chip-color) 12%, transparent); }
+.category-chip.is-selected { background: var(--chip-color); color: #fff; }
+.category-chip:focus-visible { outline: 2px solid var(--chip-color); outline-offset: 2px; }

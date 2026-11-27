@@ -53,7 +53,7 @@ export function NotificationProvider({ children }) {
   * Usar cuando el backend emite una notificación nueva que aún no está
   * en el estado.
    *
-  * @param {object} notification Notification data returned by the API.
+  * @param {object} notification Datos de la notificación devueltos por la API.
    * @returns {void}
    */
   const addNotification = useCallback((notification) => {

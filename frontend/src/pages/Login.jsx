@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FiCheck, FiX, FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
+import { FiX, FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
@@ -106,14 +106,14 @@ export default function Login() {
       showToast(`Bienvenido, ${user.display_name || user.matricula}`, 'success');
 
       const from = location.state?.from?.pathname;
-      if (from) {
-        navigate(from);
-      } else if (user.role === 'admin') {
-        navigate('/admin');
+      if (user.role === 'admin') {
+        navigate('/admin', { replace: true });
       } else if (user.role === 'entrepreneur') {
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
+      } else if (from) {
+        navigate(from, { replace: true });
       } else {
-        navigate('/');
+        navigate('/', { replace: true });
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -198,7 +198,6 @@ export default function Login() {
                   }}
                 />
                 <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
-                  {matriculaValid === true && <FiCheck size={18} style={{ color: 'var(--status-active)' }} />}
                   {matriculaValid === false && <FiX size={18} style={{ color: 'var(--status-rejected)' }} />}
                 </div>
               </div>

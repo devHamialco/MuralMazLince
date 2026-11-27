@@ -1,89 +1,79 @@
 // Feed.jsx - Página principal del mural de anuncios
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
-import AnnouncementCard from '../components/AnnouncementCard';
+import AnnouncementCard, { AnnouncementCardSkeleton } from '../components/AnnouncementCard';
 import CategoryBadge from '../components/CategoryBadge';
 import ReportModal from '../components/ReportModal';
-import { CATEGORIES } from '../constants/categories';
+import { CATEGORIES, normalizeCategory } from '../constants/categories';
+
+/**
+ * Algoritmo Fisher-Yates (Knuth) para barajado uniforme e imparcial en memoria.
+ * Garantiza O(n) y que cada anuncio tenga exactamente la misma probabilidad
+ * de aparecer en cualquier posición del mural en cada carga.
+ */
+function shuffleArray(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
+}
 
 export default function Feed() {
   const { isAuthenticated } = useAuth();
   const { showToast } = useNotification();
   const navigate = useNavigate();
 
-  const [announcements, setAnnouncements] = useState([]);
+  const [allAnnouncements, setAllAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [reportedAnnouncements, setReportedAnnouncements] = useState(new Set());
 
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportAnnouncementId, setReportAnnouncementId] = useState(null);
-  const loadMoreRef = useRef(null);
 
-  // Cargar anuncios
-  const loadAnnouncements = useCallback(
-    async (cursorParam = null, category = null, reset = false) => {
-      try {
-        if (reset) {
-          setLoading(true);
-        } else {
-          setLoadingMore(true);
-        }
-
-        const response = await api.getAnnouncements(cursorParam, category);
-        const { announcements: newAnnouncements, nextCursor } = response.data;
-
-        if (reset) {
-          setAnnouncements(newAnnouncements);
-        } else {
-          setAnnouncements((prev) => [...prev, ...newAnnouncements]);
-        }
-
-        setCursor(nextCursor);
-        setHasMore(!!nextCursor);
-      } catch (error) {
-        console.error('Error loading announcements:', error);
-        if (reset) setHasMore(false);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    loadAnnouncements(null, selectedCategory, true);
-  }, [loadAnnouncements, selectedCategory]);
-
-  // Infinite scroll - wireframes-spec:151-155
-  useEffect(() => {
-    let observer;
-    if (!loading && hasMore) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          // Cargar más cuando llegue al 80% del scroll (WF-3.1.1)
-          if (entries[0].isIntersecting && !loadingMore && hasMore) {
-            loadAnnouncements(cursor, selectedCategory);
-          }
-        },
-        { threshold: 0.8 },
-      );
-
-      if (loadMoreRef.current) {
-        observer.observe(loadMoreRef.current);
-      }
+  // Carga completa del catálogo de anuncios activos y barajado uniforme
+  const fetchAllAndShuffle = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError(false);
+      const response = await api.getAnnouncements(null, null, 500);
+      const rawAnnouncements = response.data?.announcements || [];
+      const shuffled = shuffleArray(rawAnnouncements);
+      setAllAnnouncements(shuffled);
+    } catch (error) {
+      console.error('Error loading announcements:', error);
+      setLoadError(true);
+      showToast('Error al cargar el mural de anuncios', 'error');
+    } finally {
+      setLoading(false);
     }
+  }, [showToast]);
 
-    return () => observer?.disconnect();
-  }, [loading, loadingMore, hasMore, cursor, selectedCategory, loadAnnouncements]);
+  useEffect(() => {
+    fetchAllAndShuffle();
+  }, [fetchAllAndShuffle]);
+
+  // Filtrado instantáneo en cliente por categoría seleccionada
+  const displayedAnnouncements = useMemo(() => {
+    let list = allAnnouncements.filter((a) => !reportedAnnouncements.has(a.id));
+    if (selectedCategory) {
+      const normalizedFilter = normalizeCategory(selectedCategory);
+      list = list.filter((a) => {
+        const cat = normalizeCategory(a.category || a.category_name || a.custom_category);
+        return cat === normalizedFilter;
+      });
+    }
+    return list;
+  }, [allAnnouncements, selectedCategory, reportedAnnouncements]);
 
   const handleLike = async (announcementId) => {
     if (!isAuthenticated) {
@@ -95,7 +85,7 @@ export default function Feed() {
       const response = await api.toggleLike(announcementId);
       const { liked } = response.data;
 
-      setAnnouncements((prev) => prev.map((a) => {
+      setAllAnnouncements((prev) => prev.map((a) => {
         if (a.id === announcementId) {
           const currentLikes = Number(a.likes_count) || 0;
           const newLikesCount = liked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
@@ -142,25 +132,70 @@ export default function Feed() {
     announcementsContent = (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
         {[1, 2, 3].map((item) => (
-          <div key={item}>
-            <div className="skeleton" style={{ width: '100%', height: '257px', marginBottom: 'var(--spacing-sm)', borderRadius: 'var(--radius-lg)' }} />
-            <div className="skeleton" style={{ width: '60%', height: '20px', marginBottom: '8px' }} />
-            <div className="skeleton" style={{ width: '40%', height: '14px' }} />
-          </div>
+          <AnnouncementCardSkeleton key={item} />
         ))}
       </div>
     );
-  } else if (!announcements || announcements.length === 0) {
+  } else if (loadError) {
     announcementsContent = (
-      <div style={{ textAlign: 'center', padding: 'var(--spacing-2xl) var(--spacing-xl)', marginTop: 'var(--spacing-xl)' }}>
-        <div style={{
-          backgroundColor: 'var(--bg-card)',
-          padding: 'var(--spacing-xl)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border)',
+      <div
+        style={{
+          textAlign: 'center',
+          padding: 'var(--spacing-2xl) var(--spacing-xl)',
+          marginTop: 'var(--spacing-xl)',
         }}
+      >
+        <div
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            padding: 'var(--spacing-xl)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border)',
+          }}
         >
-          <p style={{ color: 'var(--text-muted)', fontSize: '16px', marginBottom: 'var(--spacing-md)' }}>
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '16px',
+              marginBottom: 'var(--spacing-md)',
+            }}
+          >
+            No pudimos conectar con el mural
+          </p>
+          <button
+            type="button"
+            className="btn-cta btn-cta-primary btn-cta-sm"
+            onClick={fetchAllAndShuffle}
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  } else if (displayedAnnouncements.length === 0) {
+    announcementsContent = (
+      <div
+        style={{
+          textAlign: 'center',
+          padding: 'var(--spacing-2xl) var(--spacing-xl)',
+          marginTop: 'var(--spacing-xl)',
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            padding: 'var(--spacing-xl)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '16px',
+              marginBottom: 'var(--spacing-md)',
+            }}
+          >
             No hay anuncios disponibles en este momento
           </p>
           {selectedCategory && (
@@ -184,12 +219,19 @@ export default function Feed() {
     );
   } else {
     announcementsContent = (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
-        {announcements.map((announcement, index) => (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--spacing-md)',
+          marginTop: 'var(--spacing-md)',
+        }}
+      >
+        {displayedAnnouncements.map((announcement, index) => (
           <div
             key={announcement.id}
             className="fade-in"
-            style={{ animationDelay: `${index * 50}ms` }}
+            style={{ animationDelay: `${Math.min(index * 40, 400)}ms` }}
           >
             <AnnouncementCard
               announcement={announcement}
@@ -198,6 +240,7 @@ export default function Feed() {
               userLiked={announcement.user_liked}
               isAuthenticated={isAuthenticated}
               onInteractionAttempt={handleInteractionAttempt}
+              display_name={announcement.display_name || announcement.project_name || 'Emprendedor'}
             />
           </div>
         ))}
@@ -216,7 +259,7 @@ export default function Feed() {
             backgroundColor: 'var(--bg-base)',
             padding: 'var(--spacing-sm) 0',
             position: 'sticky',
-            top: '90px',
+            top: '70px',
             zIndex: 'var(--z-sticky)',
             borderBottom: '1px solid var(--border)',
           }}
@@ -226,9 +269,14 @@ export default function Feed() {
               display: 'flex',
               gap: 'var(--spacing-sm)',
               overflowX: 'auto',
-              padding: '0 var(--spacing-md)',
+              padding: '4px var(--spacing-md)',
+              scrollSnapType: 'x mandatory',
+              scrollPadding: '0 var(--spacing-md)',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+              maskImage: 'linear-gradient(to right, black calc(100% - 36px), transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 36px), transparent 100%)',
             }}
           >
             <CategoryBadge
@@ -237,7 +285,16 @@ export default function Feed() {
               clickable
               onClick={() => setSelectedCategory(null)}
             />
-            {CATEGORIES.map((cat) => (
+            {CATEGORIES.productos.map((cat) => (
+              <CategoryBadge
+                key={cat}
+                category={cat}
+                selected={selectedCategory === cat}
+                clickable
+                onClick={handleCategoryClick}
+              />
+            ))}
+            {CATEGORIES.servicios.map((cat) => (
               <CategoryBadge
                 key={cat}
                 category={cat}
@@ -250,31 +307,20 @@ export default function Feed() {
         </div>
       )}
 
-      {/* Feed - wireframes-spec:67-155 */}
+      {/* Feed principal */}
       <div style={{ padding: 'var(--spacing-md)', paddingBottom: '80px' }}>
         {announcementsContent}
 
-        {hasMore && !loading && (
-          <div ref={loadMoreRef} style={{ textAlign: 'center', padding: 'var(--spacing-xl) 0' }}>
-            {loadingMore && (
-              <div
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  border: '2px solid var(--border)',
-                  borderTopColor: 'var(--primary)',
-                  borderRadius: '50%',
-                  margin: '0 auto',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
-            )}
-          </div>
-        )}
-
-        {!hasMore && announcements && announcements.length > 0 && (
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', marginTop: 'var(--spacing-lg)' }}>
-            Eso es todo amigos
+        {!loading && !loadError && displayedAnnouncements.length > 0 && (
+          <p
+            style={{
+              textAlign: 'center',
+              color: 'var(--text-secondary)',
+              fontSize: '13px',
+              marginTop: 'var(--spacing-xl)',
+            }}
+          >
+            Has llegado al final de los anuncios
           </p>
         )}
       </div>
@@ -289,7 +335,6 @@ export default function Feed() {
         announcementId={reportAnnouncementId}
         alreadyReported={reportedAnnouncements.has(reportAnnouncementId)}
       />
-
     </div>
   );
 }
