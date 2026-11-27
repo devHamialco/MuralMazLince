@@ -1,31 +1,15 @@
-/**
- * @fileoverview StarRating — Componente de valoración de 1 a 3 estrellas.
- * (T15, implementacion-11.md)
- *
- * Escala: 1, 2 o 3 estrellas (SAD §6.2, RF-13). No se usa la escala clásica de 5.
- *
- * Modos:
- *   - Interactivo (ROL-02/ROL-03): el usuario puede seleccionar su valoración.
- *   - Readonly   (ROL-01 visitante): solo visualización del promedio; no dispara mutación.
- *
- * Accesibilidad:
- *   - En modo readonly: `role="img"` con aria-label descriptivo.
- *   - En modo interactivo: `role="radiogroup"` con botones ARIA-pressed por estrella.
- *
- * Referencia: SRS RF-13, RN-08, wireframes-spec WF-3.3.1
- */
-
+import React from 'react';
 import PropTypes from 'prop-types';
 import { FaStar } from 'react-icons/fa';
 
 /**
- * Valoración visual de 3 estrellas, interactiva o readonly.
+ * StarRating — Componente de valoración accesible de 1 a 3 estrellas.
  *
- * @param {object}   props
- * @param {number} [props.value=0] Valoración actual (1-3) o promedio para modo lectura.
- * @param {Function} [props.onChange] Callback para el modo interactivo.
- * @param {boolean} [props.readonly=false] Si no permite selección y usa role="img".
- * @param {number} [props.size=16] Tamaño del ícono en px.
+ * Mejoras aplicadas:
+ * 1. Soporte completo de navegación por teclado en WAI-ARIA (flechas/Home/End).
+ * 2. Semántica correcta de radiogroup con role="radio" y aria-checked={value === i}.
+ * 3. Targets táctiles mínimos de 44x44px en modo interactivo.
+ * 4. Modo de lectura con role="img" y descripción precisa.
  */
 export default function StarRating({
   value = 0,
@@ -33,13 +17,6 @@ export default function StarRating({
   readonly = false,
   size = 16,
 }) {
-  /**
-   * Invoca `onChange` con la valoración seleccionada.
-   * No-op si el componente está en modo readonly.
-   *
-   * @param {Event}  e      - Evento de clic
-   * @param {number} rating - Valor entre 1 y 3.
-   */
   const handleClick = (e, rating) => {
     e.preventDefault();
     e.stopPropagation();
@@ -48,12 +25,27 @@ export default function StarRating({
     }
   };
 
-  /**
-   * Genera el arreglo de elementos JSX de estrellas según el modo.
-   * En readonly devuelve `<FaStar>` estáticos; en interactivo devuelve `<button>`.
-   *
-   * @returns {JSX.Element[]} Array de 3 elementos representando la escala.
-   */
+  const handleKeyDown = (e) => {
+    if (readonly || !onChange) return;
+
+    const current = Math.round(value) || 0;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const next = Math.min(3, current + 1);
+      onChange(next);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const prev = Math.max(1, current - 1);
+      onChange(prev);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      onChange(1);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      onChange(3);
+    }
+  };
+
   const getStars = () => {
     const stars = [];
     const displayValue = Math.round(value);
@@ -65,6 +57,7 @@ export default function StarRating({
         stars.push(
           <FaStar
             key={i}
+            aria-hidden="true"
             style={{
               fontSize: `${size}px`,
               color: isFilled ? 'var(--accent)' : 'var(--text-muted)',
@@ -73,26 +66,35 @@ export default function StarRating({
           />,
         );
       } else {
+        const isCurrent = Math.round(value) === i;
         stars.push(
           <button
             key={i}
             type="button"
+            role="radio"
+            aria-checked={isCurrent}
+            tabIndex={isCurrent || (value === 0 && i === 1) ? 0 : -1}
             onClick={(e) => handleClick(e, i)}
             style={{
               background: 'none',
               border: 'none',
-              padding: '2px',
+              minWidth: '44px',
+              minHeight: '44px',
+              padding: 0,
               cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 'var(--radius-sm)',
               transition: 'transform var(--transition-fast)',
             }}
-            aria-label={`${i} estrella${i > 1 ? 's' : ''}`}
-            aria-pressed={value >= i}
+            aria-label={`${i} de 3 estrella${i > 1 ? 's' : ''}`}
           >
             <FaStar
+              aria-hidden="true"
               style={{
-                fontSize: `${size}px`,
-                color: i <= value ? 'var(--accent)' : 'var(--text-muted)',
+                fontSize: `${Math.max(20, size)}px`,
+                color: isFilled ? 'var(--accent)' : 'var(--text-muted)',
                 transition: 'color var(--transition-fast)',
               }}
             />
@@ -104,12 +106,28 @@ export default function StarRating({
     return stars;
   };
 
+  if (readonly) {
+    const formatted = Number(value || 0).toFixed(1);
+    return (
+      <div
+        className="d-inline-flex align-items-center"
+        style={{ gap: '4px' }}
+        role="img"
+        aria-label={`Valoración: ${formatted} de 3 estrellas`}
+      >
+        {getStars()}
+      </div>
+    );
+  }
+
   return (
     <div
       className="d-inline-flex align-items-center"
-      style={{ gap: '4px' }}
-      role={readonly ? 'img' : 'radiogroup'}
-      aria-label={readonly ? `Valoración: ${value} de 3 estrellas` : 'Selecciona una valoración'}
+      style={{ gap: '2px' }}
+      role="radiogroup"
+      aria-label="Calificación de 1 a 3 estrellas"
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
     >
       {getStars()}
     </div>

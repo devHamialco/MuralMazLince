@@ -15,7 +15,21 @@ let visionClient;
 
 function getVisionClient() {
   if (!visionClient) {
-    visionClient = new vision.ImageAnnotatorClient();
+    const cloudVisionKey = process.env.GOOGLE_CLOUD_VISION_KEY;
+    const appCreds = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    const rawCreds = cloudVisionKey || appCreds;
+
+    if (rawCreds && rawCreds.trim().startsWith('{')) {
+      visionClient = new vision.ImageAnnotatorClient({
+        credentials: JSON.parse(rawCreds),
+      });
+    } else if (cloudVisionKey && cloudVisionKey.trim()) {
+      visionClient = new vision.ImageAnnotatorClient({
+        apiKey: cloudVisionKey.trim(),
+      });
+    } else {
+      visionClient = new vision.ImageAnnotatorClient();
+    }
   }
   return visionClient;
 }
@@ -92,6 +106,8 @@ async function analyzeImage(imageBuffer) {
     if (isLikelyUnsafe(safeSearch.violence)) return { flagged: true, reason: 'vision_api_violence' };
     return { flagged: true, reason: 'vision_api_racy' };
   } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[Vision] Error en safeSearchDetection:', error.message || error);
     if (error.message === 'vision_timeout') {
       return { flagged: true, reason: 'vision_api_timeout' };
     }
@@ -159,6 +175,11 @@ async function moderationPipeline(imageBuffer, title, description, customCategor
       type: 'phash',
       detail: hashResult.matchId ? `match_image_hash_id:${hashResult.matchId}` : hashResult.reason,
     });
+  }
+
+  if (triggers.length > 0 && process.env.NODE_ENV !== 'test') {
+    // eslint-disable-next-line no-console
+    console.warn('[Moderation] Anuncio enviado a revisión:', JSON.stringify(triggers));
   }
 
   return {

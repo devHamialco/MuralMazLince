@@ -1,8 +1,8 @@
 # SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
 **Proyecto:** Mural Maz Lince
-**Versión:** 1.4
+**Versión:** 1.5
 **Elaborado por:** Miriam Alanis
-**Fecha de elaboración:** Abril 2026
+**Fecha de actualización:** Noviembre 2026
 **Basado en:** IEEE 29148:2018 / IEEE 830 (terminología de referencia)
 
 ---
@@ -16,6 +16,7 @@
 | 1.2     | Abril 2026  | RNF-02 consolidado con paginación por cursor (20 anuncios/bloque); RF-35: sistema de reportes de anuncios; RF-36: alerta de urgencia al admin; RF-37: shadowban automático temporal; RN-13: parámetros del sistema de reportes; UC-07: reportar anuncio; trazabilidad actualizada | Miriam Alanis |
 | 1.3     | Abril 2026  | RF-38: display_name obligatorio en entrepreneur_profiles; RF-39: campos escalables bio_short y profile_photo para v2.0; RF-02 actualizado: registro emprendedor crea dos registros; RF-08 aclarado: nombre en feed desde entrepreneur_profiles.display_name; RNF-17 actualizado; nueva tabla en glosario; UC-02 actualizado; trazabilidad | Miriam Alanis |
 | 1.4     | Abril 2026  | Correcciones de consistencia documental: referencia actualizada de PMP v1.2 a v1.4 (Sección 1.4); Sección 2.4 corregida para apuntar al Apéndice A del SRS como ubicación canónica de la lista de categorías (eliminada referencia al Apéndice B del PMP); nota aclaratoria añadida al historial sobre el mecanismo de shadowban (RF-37) como excepción acotada por inacción administrativa, no como sanción autónoma de IA | Miriam Alanis |
+| 1.5     | Noviembre 2026 | Sincronización con el código real: multicontacto en RF-02/RF-11 (WhatsApp opcional si hay Instagram, más salón físico); RF-39 implementado (`bio_short`, avatar circular, `instagram_handle`, `classroom_location` y perfiles públicos `/proyecto/:id`, `/emprendedor/:id`); RF-08 (carga hasta 500 + Fisher-Yates); RF-30 (retiro de anuncios publicados); RF-32 (`cloudinary_url` + `cloudinary_id`); resolución de placeholders en `RN-03=5`, `RN-04=3`, `RF-25`; corrección de referencias a `PMP v1.5 (Sección 5.1)`, `SAD v1.4`, `RNF-09` (paleta OLED `#000000`/`#D92528`), `UC-07` y fila duplicada de `RF-34` en Apéndice B. | Equipo de desarrollo |
 
 ---
 
@@ -100,8 +101,8 @@ Rol asignado manualmente a exactamente dos cuentas. Tiene acceso al panel de mod
 
 - Se asume que los estudiantes conocen su número de matrícula.
 - Se asume conectividad móvil estándar (3G/4G) como escenario base de rendimiento.
-- El sistema depende de la disponibilidad de Railway.app, Cloudinary y Google Cloud Vision API. Las contingencias ante fallos de estos servicios están documentadas en el PMP v1.4 (Sección 10).
-- La lista de categorías predefinidas se encuentra en el **Apéndice A de este documento**. Es provisional; su versión final se confirmará antes del inicio de la fase de desarrollo.
+- El sistema depende de la disponibilidad de Railway.app, Cloudinary y Google Cloud Vision API. Las contingencias ante fallos de estos servicios están documentadas en el PMP v1.5 (Sección 5.1).
+- La lista canónica de categorías en base de datos (`seed.sql`) y su normalización a 14 categorías de una palabra en el frontend (`constants/categories.js`) se detallan en el **Apéndice A de este documento**.
 
 ---
 
@@ -120,12 +121,12 @@ El sistema debe permitir el registro de un nuevo usuario mediante el ingreso de 
 
 ---
 
-**RF-02 | Registro de emprendedor**
+**RF-02 | Registro de emprendedor (multicontacto)**
 `Prioridad: Alta | Rol: ROL-03`
 
-El sistema debe permitir el registro de un emprendedor mediante el ingreso de matrícula (validada por checksum según RF-01), contraseña, número de WhatsApp y nombre visible (display_name). La contraseña debe tener una longitud mínima de 8 caracteres. El display_name es obligatorio, tiene una longitud máxima de 80 caracteres y es el identificador público del emprendedor visible en el feed y en las vistas de detalle. El número de WhatsApp se almacena en la base de datos y nunca se expone como texto plano en ninguna capa del sistema; su uso se limita a la generación dinámica del enlace wa.me en el servidor.
+El sistema permite el registro de un emprendedor mediante matrícula (validada por checksum según RF-01), contraseña (mínimo 8 caracteres), nombre visible (`display_name`, 2–80 caracteres sujeto a `bad-words`), biografía opcional, aceptación explícita del aviso de privacidad (`privacy_accepted: true`) y **al menos un canal de contacto** entre WhatsApp (`+52` + 10 dígitos) o usuario de Instagram (`instagram_handle`). Si se proporciona WhatsApp, nunca se expone como texto plano a terceros; se utiliza para generar dinámicamente el enlace `wa.me` en el servidor.
 
-Al completar el registro exitosamente, el sistema debe crear simultáneamente dos registros: uno en la tabla users (datos de autenticación) y uno en la tabla entrepreneur_profiles (identidad pública), garantizando que ambos existan o ninguno (operación atómica en una transacción de base de datos).
+Al completar el registro, el sistema crea atómicamente en una transacción los registros en `users` y `entrepreneur_profiles` (ADR-09).
 
 ---
 
@@ -192,7 +193,7 @@ Cuando un anuncio acumule 3 o más reportes de usuarios diferentes, el sistema d
 
 Si un anuncio acumula 5 o más reportes de usuarios diferentes **Y** han transcurrido 12 o más horas desde que se generó la alerta de urgencia (RF-36) sin que el administrador haya tomado ninguna acción sobre el anuncio, el sistema debe ocultarlo automáticamente del feed (estado: "shadowban temporal").
 
-> **Nota de diseño:** Este mecanismo no constituye una sanción autónoma de la IA. Es una medida de protección a la comunidad activada exclusivamente por la inacción prolongada del administrador humano ante un umbral alto de reportes. La decisión de moderación definitiva sigue correspondiendo al administrador (ver RN-11 y ADR-05 del SAD v1.2).
+> **Nota de diseño:** Este mecanismo no constituye una sanción autónoma de la IA. Es una medida de protección a la comunidad activada exclusivamente por la inacción prolongada del administrador humano ante un umbral alto de reportes. La decisión de moderación definitiva sigue correspondiendo al administrador (ver RN-11 y ADR-05 del SAD v1.4).
 
 El anuncio permanece en la base de datos y es visible para el administrador en su panel. El emprendedor dueño del anuncio recibe una notificación interna informando que su anuncio está temporalmente oculto pendiente de revisión. El shadowban tiene una duración máxima de 48 horas: si el administrador no toma acción en ese período, el anuncio se restaura automáticamente al estado "activo". Esta excepción al principio general de RN-11 queda acotada exclusivamente a este escenario de inacción prolongada con umbral alto de reportes. Los umbrales de 5 reportes, 12 horas de espera y 48 horas de duración máxima deben estar parametrizados en la configuración del sistema (RN-13).
 
@@ -203,28 +204,28 @@ El anuncio permanece en la base de datos y es visible para el administrador en s
 **RF-08 | Feed principal de anuncios**
 `Prioridad: Alta | Rol: ROL-01, ROL-02, ROL-03, ROL-04`
 
-El sistema debe presentar todos los anuncios activos y aprobados en un feed de scroll infinito vertical, ordenados por fecha de publicación descendente (más recientes primero). Esta vista debe ser accesible sin autenticación. Cada tarjeta de anuncio debe mostrar: imagen del anuncio, nombre del proyecto, nombre visible del emprendedor (entrepreneur_profiles.display_name) o de la organización, categoría, fecha de publicación, contador de likes y valoración promedio.
+El backend expone los anuncios activos mediante paginación por cursor (`GET /announcements`, `ORDER BY id DESC`, hasta `limit=500`). En la implementación actual del frontend (`Feed.jsx`), el cliente carga hasta 500 anuncios activos y aplica un orden aleatorio Fisher-Yates para dar visibilidad equitativa. La vista es accesible sin autenticación y cada tarjeta muestra imagen (4:3), título, proyecto, `display_name` del emprendedor, categoría normalizada, likes y valoración promedio.
 
 ---
 
 **RF-09 | Filtrado por categoría**
 `Prioridad: Alta | Rol: ROL-02, ROL-03, ROL-04`
 
-El sistema debe permitir filtrar el feed por una o más categorías predefinidas (ver **Apéndice A de este documento**). El filtro debe aplicarse sin recargar la página completa. Solo usuarios autenticados (ROL-02 o superior) pueden usar el filtrado.
+El sistema permite filtrar el feed por categoría sin recargar la página (en `Feed.jsx` mediante `CategoryChipPanel` sobre las 14 categorías normalizadas de una palabra; el backend también admite `?category=` por nombre o ID). Solo usuarios autenticados (`ROL-02` o superior) visualizan la barra de filtros.
 
 ---
 
-**RF-10 | Vista de detalle de anuncio**
+**RF-10 | Vista de detalle de anuncio y perfiles públicos**
 `Prioridad: Media | Rol: ROL-01, ROL-02, ROL-03, ROL-04`
 
-El sistema debe permitir acceder a una vista de detalle de cada anuncio que muestre toda la información pública del anuncio y un botón de contacto que genere dinámicamente el enlace wa.me del emprendedor sin revelar el número. Para visitantes sin sesión (ROL-01), el botón de contacto debe mostrar un mensaje indicando que se requiere registro para ver los datos de contacto.
+El sistema provee la vista de detalle de cada anuncio (`/announcement/:id`) y vistas públicas del proyecto (`/proyecto/:id`) y del emprendedor (`/emprendedor/:id`) en `EntrepreneurDetails.jsx`. El enlace `wa_link` solo se entrega a usuarios autenticados; los canales públicos adicionales (Instagram y ubicación de salón) se muestran cuando fueron configurados por el emprendedor.
 
 ---
 
-**RF-11 | Enlace de contacto WhatsApp**
+**RF-11 | Canales de contacto y enlace WhatsApp**
 `Prioridad: Alta | Rol: ROL-02, ROL-03`
 
-El sistema debe generar el enlace de contacto de forma dinámica en el servidor como `https://wa.me/[número]`, donde [número] se recupera de la base de datos en el momento de la solicitud. El número nunca debe aparecer en el cuerpo de ninguna respuesta JSON de la API ni en el HTML renderizado del cliente.
+El servidor genera dinámicamente `wa_link` (`https://wa.me/<dígitos>`) únicamente cuando el solicitante está autenticado, omitiendo `whatsapp_number` de cualquier respuesta pública o ajena (`GET /announcements/:id`, `GET /projects/public/:id`, `GET /auth/profile/:id`). Adicionalmente, el emprendedor puede configurar `instagram_handle` y `classroom_location` como canales complementarios.
 
 ---
 
@@ -328,7 +329,7 @@ El sistema debe proveer al emprendedor un panel de métricas que muestre, por pr
 **RF-25 | Notificaciones internas**
 `Prioridad: Alta | Rol: ROL-03`
 
-El sistema debe mantener un panel de notificaciones interno dentro del área de gestión del emprendedor. Las notificaciones deben informar sobre: (a) cambio de estado de un anuncio (aprobado, rechazado, pendiente de revisión); (b) proximidad de vencimiento de la vigencia de un anuncio activo (alerta configurable a N días antes del vencimiento, valor exacto a definir en SAD); (c) cualquier acción administrativa sobre el contenido del emprendedor. No se utilizan notificaciones por correo electrónico ni push.
+El sistema mantiene un panel de notificaciones interno dentro del área de gestión del emprendedor (`/dashboard`, pestaña Notificaciones). Las notificaciones informan sobre: (a) cambio de estado de un anuncio (`approved`, `rejected`, `pending`); (b) vencimiento/expiración de anuncios (`expiring_soon`, emitido por el job horario `expireAnnouncements.js`); (c) shadowban temporal (`shadowban`) y acciones administrativas sobre el contenido. No se utilizan notificaciones por correo electrónico ni push.
 
 ---
 
@@ -362,10 +363,10 @@ El sistema debe proveer al administrador un panel que liste todos los anuncios e
 
 ---
 
-**RF-30 | Decisión de moderación**
+**RF-30 | Decisión de moderación y supervisión de publicados**
 `Prioridad: Alta | Rol: ROL-04`
 
-Desde el panel de moderación, el administrador debe poder: (a) aprobar el anuncio y publicarlo en el feed; (b) rechazar el anuncio con un motivo registrado en el sistema, que genera una notificación interna al emprendedor; (c) rechazar el anuncio y suspender la cuenta del emprendedor, requiriendo acción adicional para la reactivación. Ninguna de estas acciones puede ejecutarla la IA de forma autónoma; todas requieren acción manual del administrador.
+Desde el panel de administración (`/admin`), el administrador puede: (a) aprobar o restaurar anuncios en revisión/shadowban (`PATCH /admin/announcements/:id/approve`); (b) rechazar un anuncio pendiente registrando el motivo y opcionalmente suspender al usuario (`POST /admin/announcements/:id/reject`); (c) buscar y retirar anuncios ya publicados con motivo obligatorio y suspensión opcional (`GET /admin/announcements`, `POST /admin/announcements/:id/remove`); y (d) resolver tickets de reclamo de matrícula (`GET /admin/claim-tickets`, `PATCH /admin/claim-tickets/:id/resolve`). Toda acción definitiva requiere intervención manual del administrador.
 
 ---
 
@@ -374,16 +375,14 @@ Desde el panel de moderación, el administrador debe poder: (a) aprobar el anunc
 **RF-31 | Compresión y validación de imagen antes del upload**
 `Prioridad: Alta | Rol: Sistema (frontend + backend)`
 
-Antes de enviar una imagen al servidor, el frontend debe procesarla mediante la biblioteca browser-image-compression para garantizar que: el tamaño del archivo no supere los 500 KB, y la dimensión máxima no exceda 1,200 px en su lado más largo. Si la imagen original ya cumple estos parámetros, se envía sin modificar. Este procesamiento ocurre completamente en el navegador del usuario antes de que la imagen salga hacia la red.
-
-Como segunda línea de defensa, el backend debe verificar que toda imagen recibida cumpla los mismos límites (500 KB / 1,200 px) antes de subirla a Cloudinary. Si una imagen llega al servidor sin cumplir estos parámetros (por ejemplo, si el procesamiento client-side fue eludido), el servidor debe rechazarla con un error HTTP 413 y registrar el evento en el log de la aplicación. Esta doble validación protege la cuota gratuita de Cloudinary y garantiza consistencia independientemente del cliente utilizado.
+Antes de enviar una imagen al servidor, el frontend la procesa mediante `browser-image-compression` (≤ 500 KB, lado máximo 1,200 px) y permite recorte interactivo con `react-easy-crop` (4:3 para anuncios, 1:1 circular para avatar/logo). En el backend, `multer` valida el límite de recepción en memoria antes de subir a Cloudinary.
 
 ---
 
 **RF-32 | Almacenamiento en Cloudinary**
 `Prioridad: Alta | Rol: Sistema (backend)`
 
-Toda imagen de anuncio debe almacenarse en Cloudinary inmediatamente después de pasar la validación de compresión (RF-31). El backend debe recibir la imagen, subirla a Cloudinary y almacenar únicamente la URL pública de Cloudinary en la base de datos. Ninguna imagen debe almacenarse en el filesystem local del servidor de Railway. La URL de Cloudinary es la única referencia a la imagen en el sistema.
+Toda imagen de anuncio, logo de proyecto o foto de perfil se sube a Cloudinary mediante `storageService.js`. La base de datos almacena tanto la URL pública (`cloudinary_url`, `logo_url`, `profile_photo_url`) como el identificador público de Cloudinary (`cloudinary_id`, `logo_id`, `profile_photo_id`) necesario para su eliminación o reemplazo (`RF-33`). Ninguna imagen se persiste en el filesystem local del contenedor.
 
 ---
 
@@ -403,26 +402,26 @@ El sistema debe requerir que todo emprendedor registrado tenga un nombre visible
 
 ---
 
-**RF-39 | Campos escalables del perfil del emprendedor para v2.0**
-`Prioridad: Baja | Rol: ROL-03`
+**RF-39 | Perfil público extendido e identidad multicontacto del emprendedor**
+`Prioridad: Media | Rol: ROL-03`
 
-El sistema debe reservar en la tabla entrepreneur_profiles dos campos adicionales que no se presentan en la interfaz de usuario de v1.0 pero cuya estructura de datos debe existir desde el inicio para facilitar la extensión del sistema en versiones futuras sin necesidad de migraciones traumáticas: bio_short (VARCHAR 200, nullable), que almacenará en v2.0 una descripción breve del emprendedor o su trayectoria; y profile_photo_url + profile_photo_id (VARCHAR 500 y VARCHAR 200, nullable), que almacenarán en v2.0 una fotografía de perfil gestionada en Cloudinary. En v1.0 estos campos siempre tienen valor NULL y no se exponen en ningún endpoint de la API. Su inclusión en el modelo de datos refleja la visión de escalabilidad del sistema hacia un perfil de emprendedor completo con el flujo de navegación: Anuncio → Emprendimiento → Emprendedor.
+*(Implementado)* La tabla `entrepreneur_profiles` almacena y expone en las vistas públicas (`/proyecto/:id`, `/emprendedor/:id`, `GET /auth/profile/:id`, `PATCH /auth/profile`): `bio_short` (`VARCHAR(200)`), `profile_photo_url` + `profile_photo_id` (avatar circular gestionado en Cloudinary), `instagram_handle` (`VARCHAR(60)`) y `classroom_location` (`VARCHAR(100)`). El emprendedor puede gestionar estos campos desde la pestaña "Mi Perfil" en `/dashboard`.
 
 ---
 
 ## SECCIÓN 4. REGLAS DE NEGOCIO
 
 **RN-01 | Formato de matrícula**
-La matrícula estudiantil debe cumplir estrictamente: (a) exactamente 8 dígitos numéricos, (b) el primer dígito es 2. Cualquier otra combinación es inválida. Esta validación es únicamente de formato; el sistema no verifica si la matrícula corresponde a un estudiante real inscrito.
+La matrícula estudiantil debe cumplir estrictamente: (a) exactamente 8 dígitos numéricos, (b) el primer dígito es 2 (`/^2\d{7}$/`). Cualquier otra combinación es inválida. Esta validación es únicamente de formato; el sistema no verifica si la matrícula corresponde a un estudiante real inscrito.
 
 **RN-02 | Unicidad de matrícula por rol**
-Una matrícula puede estar registrada en el sistema una única vez, independiente del rol. Si una matrícula ya existe como usuario registrado y el mismo estudiante desea actualizar su perfil a emprendedor, el sistema debe proveer un flujo de actualización de cuenta, no de registro duplicado.
+Una matrícula puede estar registrada en el sistema una única vez, independiente del rol. Si una matrícula ya existe como usuario registrado y el mismo estudiante desea actualizar su perfil a emprendedor, el sistema provee flujo de actualización (`/register?type=entrepreneur`).
 
 **RN-03 | Límite de proyectos por emprendedor**
-Un emprendedor puede tener un máximo de [N] proyectos activos simultáneamente, donde N se determinará durante la fase de diseño (SAD) considerando las restricciones de la capa gratuita de Railway. Los proyectos en estado "suspendido" no cuentan para este límite.
+Un emprendedor puede tener un máximo de **5** proyectos activos simultáneamente (`MAX_ACTIVE_PROJECTS=5`, validado en `projectController.js`). Los proyectos en estado `suspended` no cuentan para este límite.
 
 **RN-04 | Límite de anuncios por proyecto**
-Un proyecto puede tener un máximo de [M] anuncios activos simultáneamente, donde M se determinará durante la fase de diseño (SAD). Los anuncios en estado "pendiente de revisión" sí cuentan para este límite.
+Un proyecto puede tener un máximo de **3** anuncios activos simultáneamente (`MAX_ACTIVE_ANNOUNCEMENTS=3`, validado en `announcementController.js`). Los anuncios en estado `pending_review` sí cuentan para este límite.
 
 **RN-05 | Ciclo de vida de anuncios**
 Un anuncio puede estar en uno de los siguientes estados: "activo" (visible en el feed), "pendiente de revisión" (bloqueado por moderación, no visible en el feed), "rechazado" (decisión del administrador, no visible) o "expirado" (vigencia vencida, eliminado). No existe el estado "borrador".
@@ -443,7 +442,7 @@ El número de WhatsApp del emprendedor es un dato de contacto privado. Debe alma
 El número máximo de cuentas con rol de administrador es dos. Los administradores son dados de alta manualmente por la directora del sistema; no existe un flujo de autoregistro para este rol.
 
 **RN-11 | Moderación como filtro, no como sanción**
-La inteligencia artificial actúa exclusivamente como filtro de primer nivel. Ningún algoritmo automatizado puede rechazar un anuncio, suspender una cuenta ni ejecutar ninguna acción disciplinaria de forma autónoma. Toda decisión de sanción requiere acción manual del administrador. La única excepción admitida es el shadowban temporal por inacción prolongada del administrador, documentada y acotada en RF-37 y ADR-05 del SAD v1.2.
+La inteligencia artificial actúa exclusivamente como filtro de primer nivel. Ningún algoritmo automatizado puede rechazar un anuncio, suspender una cuenta ni ejecutar ninguna acción disciplinaria de forma autónoma. Toda decisión de sanción requiere acción manual del administrador. La única excepción admitida es el shadowban temporal por inacción prolongada del administrador, documentada y acotada en RF-37 y ADR-05 del SAD v1.4.
 
 **RN-12 | Categoría personalizada**
 Si un usuario selecciona la categoría "Otro", debe ingresar una descripción de categoría en un campo de texto libre. Este texto está sujeto al mismo filtro de lenguaje inapropiado (bad-words) que aplica a los demás campos de texto del anuncio (RF-27).
@@ -495,7 +494,7 @@ Las claves de acceso a servicios externos (Cloudinary, Google Cloud Vision API, 
 La interfaz debe diseñarse prioritariamente para pantallas móviles de 375px de ancho mínimo. Debe ser completamente funcional y estéticamente coherente también en tablet (768px) y escritorio (1280px).
 
 **RNF-09 | Modo oscuro como predeterminado**
-El modo oscuro debe ser el tema visual predeterminado de la aplicación. El sistema de diseño debe usar los colores institucionales adaptados al modo oscuro, con el color principal de la universidad (#961749 o equivalente compatible con fondo oscuro) como color primario.
+El modo oscuro OLED (`#000000` fondo base, `#0F0F11` tarjetas, `#18181B` superficies) es el tema visual predeterminado de la aplicación, usando `#D92528` como color primario de acción (contraste WCAG 2.1 AA ≈ 4.9:1 con texto blanco) según `frontend/src/styles/tokens.css` y DDC v1.4.
 
 **RNF-10 | Accesibilidad básica**
 Los elementos interactivos deben tener etiquetas ARIA donde corresponda. El contraste de texto sobre fondo debe cumplir el nivel AA del estándar WCAG 2.1 (ratio mínimo de 4.5:1 para texto normal).
@@ -689,7 +688,7 @@ El aviso debe contener como mínimo los siguientes elementos: (a) identidad y da
 |-----------------|------------------------------------------------------------------------------------------------------------------|
 | Actor principal | Usuario registrado (ROL-02) o Emprendedor (ROL-03)                                                               |
 | Precondición    | El actor está autenticado. El anuncio objetivo está en estado "activo" y el actor no lo ha reportado previamente. |
-| Postcondición   | El reporte queda registrado. Si se alcanzan los umbrales definidos en RN-13, se activan RF-37 y/o RF-38.         |
+| Postcondición   | El reporte queda registrado. Si se alcanzan los umbrales definidos en RN-13, se activan RF-36 y/o RF-37.         |
 | Requisitos      | RF-35, RF-36, RF-37, RN-13                                                                                       |
 
 **Flujo principal:**
@@ -708,9 +707,9 @@ El aviso debe contener como mínimo los siguientes elementos: (a) identidad y da
 
 ---
 
-## APÉNDICE A – LISTA DE CATEGORÍAS PREDEFINIDAS (v1.0 provisional)
+## APÉNDICE A – LISTA DE CATEGORÍAS PREDEFINIDAS (BD y Frontend)
 
-Esta es la fuente canónica de la lista de categorías del sistema. Su contenido puede modificarse antes del inicio de la fase de desarrollo sin proceso formal de cambios, ya que su impacto se limita a datos de configuración de la base de datos. El PMP v1.4 hace referencia a este apéndice como ubicación oficial de la lista.
+La tabla `categories` (`backend/src/db/seed.sql`) siembra las 20 categorías canónicas (`CAT-01` a `CAT-19` más `CAT-00` "Otro") organizadas en 4 grupos. Para mejorar la ergonomía en pantallas móviles, el frontend (`frontend/src/constants/categories.js`) normaliza y presenta **14 categorías de una palabra** agrupadas en **Productos** (7: `Alimentos`, `Postres`, `Artesanías`, `Ropa`, `Papeleria`, `Cosmeticos`, `Plantas`) y **Servicios** (7: `Asesorias`, `Diseño`, `Fotografía`, `Tecnologia`, `Clases`, `Impresión`, `Mantenimiento`), más `Otro` (ID 20); el backend resuelve automáticamente nombres completos, nombres cortos e IDs.
 
 ### GRUPO 1 – PRODUCTOS FÍSICOS
 
@@ -788,7 +787,6 @@ Esta es la fuente canónica de la lista de categorías del sistema. Su contenido
 | RF-31     | UC-03                    | —                                          |
 | RF-32     | UC-03                    | —                                          |
 | RF-33     | UC-03, UC-04             | —                                          |
-| RF-34     | —                        | —                                          |
 | RF-34     | UC-06                    | RN-02, RN-10                               |
 | RF-35     | UC-07                    | RN-13                                      |
 | RF-36     | UC-07                    | RN-13                                      |
@@ -798,4 +796,4 @@ Esta es la fuente canónica de la lista de categorías del sistema. Su contenido
 ---
 
 *FIN DEL DOCUMENTO*
-*SRS – Mural Maz Lince v1.4*
+*SRS – Mural Maz Lince v1.5*

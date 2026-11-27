@@ -13,8 +13,14 @@
  * El SW no interfiere con cookies HttpOnly porque no intercepta POST/PUT/PATCH/DELETE.
  */
 
-const CACHE_NAME = 'mml-v2';
-const API_CACHE_NAME = 'mml-api-v2';
+const CACHE_NAME = 'mml-v4';
+const API_CACHE_NAME = 'mml-api-v4';
+
+const NON_CACHEABLE_API_PREFIXES = ['/auth', '/projects', '/notifications', '/admin', '/announcements'];
+
+function shouldBypassCache(url) {
+  return NON_CACHEABLE_API_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
+}
 
 /** Recursos estáticos precacheados en install */
 const STATIC_ASSETS = [
@@ -61,13 +67,24 @@ self.addEventListener('fetch', (event) => {
   // Solo http/https
   if (!url.protocol.startsWith('http')) return;
 
-  // API o recurso externo → Network-First
+  // Endpoints dinámicos o privados → nunca cachear en SW (evita feed, contadores o sesiones desactualizadas)
+  if (shouldBypassCache(url)) {
+    return;
+  }
+
+  // Navegación HTML → Network-First para servir siempre la última versión desplegada
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(networkFirst(request, CACHE_NAME));
+    return;
+  }
+
+  // API pública o recurso externo → Network-First
   if (url.pathname.startsWith('/api') || url.hostname !== self.location.hostname) {
     event.respondWith(networkFirst(request, API_CACHE_NAME));
     return;
   }
 
-  // Estáticos propios → Cache-First
+  // Estáticos propios (assets con hash, íconos, manifest) → Cache-First
   event.respondWith(cacheFirst(request, CACHE_NAME));
 });
 
@@ -86,7 +103,7 @@ async function cacheFirst(request, cacheName) {
 
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
+    if (networkResponse.ok && !networkResponse.headers.get('cache-control')?.includes('no-store')) {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
@@ -112,7 +129,7 @@ async function cacheFirst(request, cacheName) {
 async function networkFirst(request, cacheName) {
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
+    if (networkResponse.ok && !networkResponse.headers.get('cache-control')?.includes('no-store')) {
       const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }

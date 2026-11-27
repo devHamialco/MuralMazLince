@@ -9,12 +9,33 @@ import AnnouncementCard from '../components/AnnouncementCard';
 export default function AdminPanel() {
   const { showToast } = useNotification();
 
-  const [activeTab, setActiveTab] = useState('moderation');
+  const [activeTab, setActiveTab] = useState('announcements');
+  const [publishedAnnouncements, setPublishedAnnouncements] = useState([]);
+  const [publishedLoading, setPublishedLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removeReason, setRemoveReason] = useState('');
+  const [suspendOnRemove, setSuspendOnRemove] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+
   const [moderationQueue, setModerationQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [claimTickets, setClaimTickets] = useState([]);
+
+  const loadPublishedAnnouncements = useCallback(async (query = '') => {
+    try {
+      setPublishedLoading(true);
+      const response = await api.getAdminAnnouncements(query);
+      setPublishedAnnouncements(response.data.announcements || []);
+    } catch (error) {
+      console.error('Error loading published announcements:', error);
+      showToast('Error al cargar anuncios publicados', 'error');
+    } finally {
+      setPublishedLoading(false);
+    }
+  }, [showToast]);
 
   const loadModerationQueue = useCallback(async () => {
     try {
@@ -39,9 +60,31 @@ export default function AdminPanel() {
   }, []);
 
   useEffect(() => {
+    loadPublishedAnnouncements();
     loadModerationQueue();
     loadClaimTickets();
-  }, [loadModerationQueue, loadClaimTickets]);
+  }, [loadPublishedAnnouncements, loadModerationQueue, loadClaimTickets]);
+
+  const handleRemoveAnnouncement = async (announcementId) => {
+    if (!removeReason.trim()) {
+      showToast('Ingresa la causa de eliminación', 'warning');
+      return;
+    }
+
+    try {
+      setRemovingId(announcementId);
+      await api.removeAdminAnnouncement(announcementId, removeReason.trim(), suspendOnRemove);
+      showToast('Anuncio eliminado y emprendedor notificado', 'success');
+      setRemoveTarget(null);
+      setRemoveReason('');
+      setSuspendOnRemove(false);
+      loadPublishedAnnouncements(searchQuery);
+    } catch (error) {
+      showToast(error.message || 'Error al eliminar anuncio', 'error');
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   const handleApprove = async (announcementId) => {
     try {
@@ -93,10 +136,11 @@ export default function AdminPanel() {
 
       <div className="container-fluid py-4">
         <div className="row">
-          {/* Tabs */}
+          {/* Pestañas */}
           <div className="col-12 mb-4">
             <ChipNav
               options={[
+                { label: 'Anuncios Publicados', value: 'announcements' },
                 { label: 'Moderación', value: 'moderation' },
                 { label: 'Reclamos de Matrícula', value: 'claims' },
               ]}
@@ -107,6 +151,177 @@ export default function AdminPanel() {
 
           {/* Contenido */}
           <div className="col-12">
+            {/* Anuncios Publicados */}
+            {activeTab === 'announcements' && (
+              <div>
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                  <h4 className="mb-0" style={{ color: 'var(--text-primary)' }}>
+                    Anuncios Publicados
+                  </h4>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      loadPublishedAnnouncements(searchQuery);
+                    }}
+                    className="d-flex gap-2"
+                    style={{ maxWidth: '420px', width: '100%' }}
+                  >
+                    <input
+                      type="search"
+                      className="form-control"
+                      placeholder="Buscar por título, proyecto o emprendedor..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      aria-label="Buscar anuncios publicados"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-primary)',
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="btn-cta btn-cta-primary btn-cta-sm"
+                      style={{ minHeight: '40px', padding: '0 16px' }}
+                    >
+                      Buscar
+                    </button>
+                  </form>
+                </div>
+
+                {publishedLoading && (
+                  <div className="text-center py-5">
+                    <div className="spinner-border" role="status" style={{ color: 'var(--primary)' }} />
+                  </div>
+                )}
+
+                {!publishedLoading && publishedAnnouncements.length === 0 && (
+                  <div className="text-center py-5">
+                    <p style={{ color: 'var(--text-secondary)' }}>No hay anuncios publicados</p>
+                  </div>
+                )}
+
+                {!publishedLoading && publishedAnnouncements.length > 0 && (
+                  <div className="row">
+                    {publishedAnnouncements.map((announcement) => {
+                      const isRemovingThis = removeTarget?.id === announcement.id;
+                      const isBusy = removingId === announcement.id;
+
+                      return (
+                        <div key={announcement.id} className="col-12 col-md-6 col-lg-4 mb-4">
+                          <div
+                            className="card card-mml h-100"
+                            style={{
+                              backgroundColor: 'var(--bg-surface)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 'var(--radius-lg)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div className="card-body d-flex flex-column justify-content-between">
+                              <AnnouncementCard announcement={announcement} showStatus />
+
+                              <div className="mt-3">
+                                {!isRemovingThis ? (
+                                  <button
+                                    type="button"
+                                    className="btn-cta btn-cta-outline btn-cta-sm w-100"
+                                    onClick={() => {
+                                      setRemoveTarget(announcement);
+                                      setRemoveReason('');
+                                      setSuspendOnRemove(false);
+                                    }}
+                                    style={{
+                                      minHeight: '40px',
+                                      borderColor: 'var(--status-rejected)',
+                                      color: 'var(--status-rejected)',
+                                    }}
+                                  >
+                                    Eliminar anuncio
+                                  </button>
+                                ) : (
+                                  <div>
+                                    <label
+                                      htmlFor={`remove-reason-${announcement.id}`}
+                                      style={{
+                                        display: 'block',
+                                        fontSize: '12px',
+                                        color: 'var(--text-secondary)',
+                                        marginBottom: '6px',
+                                      }}
+                                    >
+                                      Causa de eliminación (se enviará al emprendedor)
+                                    </label>
+                                    <textarea
+                                      id={`remove-reason-${announcement.id}`}
+                                      className="form-control mb-2"
+                                      placeholder="Ej: Contenido inapropiado o producto no permitido"
+                                      value={removeReason}
+                                      onChange={(e) => setRemoveReason(e.target.value)}
+                                      rows={2}
+                                      style={{
+                                        backgroundColor: 'var(--bg-elevated)',
+                                        border: '1px solid var(--border)',
+                                        color: 'var(--text-primary)',
+                                      }}
+                                    />
+                                    <div className="form-check mb-2">
+                                      <input
+                                        id={`suspend-user-${announcement.id}`}
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        checked={suspendOnRemove}
+                                        onChange={(e) => setSuspendOnRemove(e.target.checked)}
+                                      />
+                                      <label
+                                        htmlFor={`suspend-user-${announcement.id}`}
+                                        className="form-check-label"
+                                        style={{ fontSize: '12px', color: 'var(--text-secondary)' }}
+                                      >
+                                        Suspender cuenta del emprendedor
+                                      </label>
+                                    </div>
+                                    <div className="d-flex gap-2">
+                                      <button
+                                        type="button"
+                                        className="btn-cta btn-cta-sm"
+                                        disabled={isBusy}
+                                        onClick={() => handleRemoveAnnouncement(announcement.id)}
+                                        style={{
+                                          flex: 1,
+                                          backgroundColor: 'var(--status-rejected)',
+                                          color: '#FFFFFF',
+                                          minHeight: '38px',
+                                        }}
+                                      >
+                                        {isBusy ? 'Eliminando…' : 'Confirmar eliminación'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="btn-cta-outline btn-cta-sm"
+                                        disabled={isBusy}
+                                        onClick={() => {
+                                          setRemoveTarget(null);
+                                          setRemoveReason('');
+                                          setSuspendOnRemove(false);
+                                        }}
+                                        style={{ minHeight: '38px', padding: '0 12px' }}
+                                      >
+                                        Cancelar
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             {/* Moderación */}
             {activeTab === 'moderation' && (
               <div>
@@ -138,13 +353,11 @@ export default function AdminPanel() {
                           }}
                         >
                           <div className="card-body">
-                            {/* Announcement Card Content */}
                             <AnnouncementCard
                               announcement={announcement}
                               showStatus
                             />
 
-                            {/* Custom Actions for Admin */}
                             <div className="mt-3 d-flex gap-2">
                               {announcement.status === 'pending_review' && (
                               <>
@@ -205,7 +418,6 @@ export default function AdminPanel() {
                               )}
                             </div>
 
-                            {/* Comparison Action */}
                             {announcement.hash_match && (
                             <div className="mt-2">
                               <button
@@ -228,7 +440,6 @@ export default function AdminPanel() {
                             </div>
                             )}
 
-                            {/* Rejection Form */}
                             {selectedAnnouncement?.id === announcement.id
                               && selectedAnnouncement.showReject && (
                               <div className="mt-3">

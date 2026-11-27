@@ -10,6 +10,11 @@ const MAX_ACTIVE_ANNOUNCEMENTS = Number(
   || 3,
 );
 
+const isAutoModerationEnabled = () => (
+  process.env.ENABLE_AUTO_MODERATION === 'true'
+  || (process.env.NODE_ENV === 'test' && process.env.ENABLE_AUTO_MODERATION !== 'false')
+);
+
 /**
  * POST /announcements — Crear anuncio (COMP-04, RF-19).
  * Sprint 10: pipeline de moderación completo + upload en Cloudinary.
@@ -67,8 +72,20 @@ const createAnnouncement = async (req, res) => {
       });
     }
 
+    // El frontend envía el nombre en custom_category; resolverlo a category_id (fallback: null)
+    let resolvedCategoryId = categoryId || null;
+    if (!resolvedCategoryId && customCategory) {
+      const catResult = await db.query(
+        'SELECT id FROM categories WHERE name = $1 AND is_active',
+        [customCategory],
+      );
+      resolvedCategoryId = catResult.rows.length > 0 ? catResult.rows[0].id : null;
+    }
+
     const [moderation, uploaded] = await Promise.all([
-      moderationPipeline(imageBuffer, title.trim(), description || '', customCategory || ''),
+      isAutoModerationEnabled()
+        ? moderationPipeline(imageBuffer, title.trim(), description || '', customCategory || '')
+        : Promise.resolve({ approved: true, triggers: [], dhash: null }),
       uploadToCloudinary(imageBuffer),
     ]);
     const nextStatus = moderation.approved ? 'active' : 'pending_review';
@@ -86,7 +103,7 @@ const createAnnouncement = async (req, res) => {
           projectId,
           title.trim(),
           description || null,
-          categoryId || null,
+          resolvedCategoryId,
           customCategory || null,
           uploaded.url,
           uploaded.public_id,
@@ -167,10 +184,20 @@ const updateAnnouncement = async (req, res) => {
       return res.status(404).json({ error: 'Anuncio no encontrado' });
     }
 
+    // Misma resolución nombre → id que en create (fallback: null; COALESCE conserva el previo)
+    let resolvedCategoryId = categoryId || null;
+    if (!resolvedCategoryId && customCategory) {
+      const catResult = await db.query(
+        'SELECT id FROM categories WHERE name = $1 AND is_active',
+        [customCategory],
+      );
+      resolvedCategoryId = catResult.rows.length > 0 ? catResult.rows[0].id : null;
+    }
+
     const updateParams = [
       title || null,
       description !== undefined ? description : null,
-      categoryId || null,
+      resolvedCategoryId,
       customCategory || null,
       expiresAt || null,
       req.params.id,

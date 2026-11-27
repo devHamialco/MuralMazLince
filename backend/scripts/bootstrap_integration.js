@@ -1,10 +1,3 @@
-/*
-  Bootstrap script for running integration tests against a test Postgres DB.
-  Steps:
-  1) Ensure the test DB exists (mural_maz_lince_test) on the local PostgreSQL server.
-  2) Run migrations against the test DB.
-  3) Run integration tests and write results to results/integration_sprint12.txt.
-*/
 const { Client } = require('pg');
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -16,16 +9,15 @@ async function ensureTestDb() {
     port: 5433,
     user: 'postgres',
     password: 'password',
-    database: 'postgres', // default maintenance DB
+    database: 'postgres',
   };
   const client = new Client(config);
   try {
     await client.connect();
-    // Create test DB if it doesn't exist
     try {
       await client.query('CREATE DATABASE mural_maz_lince_test');
     } catch (e) {
-      // If exists, ignore
+      // Ya existe la base de datos de pruebas
     }
   } catch (err) {
     console.error('Failed to connect to Postgres for test DB bootstrap:', err.message);
@@ -33,12 +25,13 @@ async function ensureTestDb() {
   } finally {
     try {
       await client.end();
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      // Ignorar error al cerrar conexión
+    }
   }
 }
 
 const runMigrations = () => {
-  // Run migrations against mural_maz_lince_test
   console.log('Running migrations for test DB...');
   const res = spawnSync('npm', ['run', 'migrate:test'], {
     cwd: path.resolve(__dirname, '..'),

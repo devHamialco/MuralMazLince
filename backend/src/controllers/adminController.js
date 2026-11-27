@@ -147,10 +147,98 @@ async function resolveClaimTicket(req, res) {
   }
 }
 
+async function getPublishedAnnouncements(req, res) {
+  const search = String(req.query.search || '').trim();
+  try {
+    const params = [];
+    let whereClause = "WHERE a.status = 'active'";
+    if (search) {
+      params.push(`%${search}%`);
+      whereClause += ` AND (
+        a.title ILIKE $1
+        OR COALESCE(a.description, '') ILIKE $1
+        OR p.name ILIKE $1
+        OR COALESCE(ep.display_name, '') ILIKE $1
+      )`;
+    }
+
+    const result = await db.query(
+      `SELECT
+         a.id,
+         a.title,
+         a.description,
+         a.cloudinary_url AS image_url,
+         a.cloudinary_url,
+         a.status,
+         a.expires_at,
+         a.created_at,
+         COALESCE(c.name, a.custom_category) AS category,
+         p.name AS project_name,
+         u.id AS entrepreneur_id,
+         ep.display_name
+       FROM announcements a
+       JOIN projects p ON p.id = a.project_id
+       JOIN users u ON u.id = p.user_id
+       LEFT JOIN entrepreneur_profiles ep ON ep.user_id = u.id
+       LEFT JOIN categories c ON c.id = a.category_id
+       ${whereClause}
+       ORDER BY a.created_at DESC
+       LIMIT 100`,
+      params,
+    );
+    res.set('Cache-Control', 'no-store');
+    return res.json({ announcements: result.rows });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al listar anuncios publicados' });
+  }
+}
+
+async function removeAnnouncementByAdmin(req, res) {
+  const { reason, suspend_user: shouldSuspendUser } = req.body; // eslint-disable-line camelcase
+  const trimmedReason = String(reason || '').trim();
+  if (!trimmedReason) {
+    return res.status(400).json({ error: 'La causa de eliminación es obligatoria' });
+  }
+
+  try {
+    const { id } = req.params;
+    const current = await db.query(
+      `SELECT a.id, a.title, a.cloudinary_id, p.user_id
+       FROM announcements a
+       JOIN projects p ON p.id = a.project_id
+       WHERE a.id = $1`,
+      [id],
+    );
+    if (current.rows.length === 0) {
+      return res.status(404).json({ error: 'Anuncio no encontrado' });
+    }
+
+    const { title, cloudinary_id: cloudinaryId, user_id: userId } = current.rows[0];
+    await deleteFromCloudinary(cloudinaryId);
+    await db.query('DELETE FROM announcements WHERE id = $1', [id]);
+
+    if (shouldSuspendUser) {
+      await db.query('UPDATE users SET is_suspended = true WHERE id = $1', [userId]);
+    }
+
+    await createNotification(
+      userId,
+      'rejected',
+      `Tu anuncio "${title}" fue eliminado por un administrador: ${trimmedReason}`,
+    );
+
+    return res.json({ message: 'Anuncio eliminado y emprendedor notificado' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al eliminar anuncio' });
+  }
+}
+
 module.exports = {
   getModerationQueue,
+  getPublishedAnnouncements,
   approveAnnouncement,
   rejectAnnouncement,
+  removeAnnouncementByAdmin,
   suspendUser,
   getClaimTickets,
   resolveClaimTicket,

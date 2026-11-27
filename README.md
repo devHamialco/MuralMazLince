@@ -4,13 +4,13 @@ Mural Maz Lince digitaliza el tablero de anuncios de la comunidad estudiantil de
 
 ## Componentes
 
-| Ruta              | Responsabilidad                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------ |
-| `backend/`        | API REST con Express, PostgreSQL, autenticación por cookies JWT y servicios de moderación. |
-| `frontend/`       | Aplicación React servida en desarrollo con Vite.                                           |
-| `docs/`           | Especificaciones del proyecto y contrato OpenAPI.                                          |
-| `backend/tests/`  | Pruebas unitarias y de integración del backend.                                            |
-| `tests/fixtures/` | Recursos compartidos para pruebas.                                                         |
+| Ruta | Responsabilidad |
+| --- | --- |
+| `backend/` | API REST con Express 4, PostgreSQL (`pg`), autenticación por cookies JWT HttpOnly, moderación híbrida (Google Cloud Vision + `bad-words` + dHash con `sharp`), Cloudinary y tareas programadas (`node-cron`). |
+| `frontend/` | SPA/PWA en React 18 + Vite 7 + Bootstrap 5 + `react-easy-crop` + `browser-image-compression`, tema oscuro OLED (`#000000` / `#D92528`), perfiles públicos de emprendedor/proyecto y panel multicontacto. |
+| `docs/` | Especificaciones del proyecto (`SRS`, `SAD`, `DDC`, `PMP`, `STP`) y contrato OpenAPI (`swagger.json`). |
+| `backend/tests/` | Pruebas unitarias (`unit/`), pruebas de integración (`integration/`), guard de base de datos (`helpers/testDatabase.js`) y auditoría de seguridad (`security/`). |
+| `tests/fixtures/` | Recursos compartidos para pruebas. |
 
 ## Requisitos
 
@@ -40,7 +40,7 @@ Mural Maz Lince digitaliza el tablero de anuncios de la comunidad estudiantil de
    docker compose exec -e NODE_ENV=development api npm run migrate
    ```
 
-   **Este comando elimina y vuelve a crear el esquema completo. Úsalo solo con una base local descartable; nunca lo ejecutes en producción.**
+   **Este comando elimina y vuelve a crear el esquema completo (`schema.sql` + `seed.sql`). Úsalo solo con una base local descartable; nunca lo ejecutes en producción.** Para agregar columnas/tablas nuevas sobre una base existente sin reiniciarla, aplica manualmente [`backend/src/db/migrate_incremental.sql`](backend/src/db/migrate_incremental.sql).
 
 5. En otra terminal, inicia el frontend:
 
@@ -52,6 +52,8 @@ Mural Maz Lince digitaliza el tablero de anuncios de la comunidad estudiantil de
    ```
 
    Abre `http://localhost:5173`. La API queda disponible en `http://localhost:3000` y su especificación OpenAPI en `http://localhost:3000/api-docs`.
+
+> **Nota sobre moderación automática:** En entornos distintos de `test`, el pipeline de moderación automática al publicar anuncios (`POST /announcements`) solo se ejecuta si `ENABLE_AUTO_MODERATION=true` está definido en `.env`. Por defecto permanece desactivado en desarrollo local para no consumir cuota de Google Cloud Vision.
 
 ## Pruebas y validaciones
 
@@ -100,7 +102,9 @@ La contraseña debe tener al menos ocho caracteres. El bootstrap no cambia la co
 
 ## Documentación
 
-- API: [`docs/swagger.json`](docs/swagger.json)
-- Requisitos: [`docs/SRS.md`](docs/SRS.md)
-- Arquitectura: [`docs/SAD.md`](docs/SAD.md)
-- Plan de pruebas: [`docs/STP.md`](docs/STP.md)
+- Contrato OpenAPI: [`docs/swagger.json`](docs/swagger.json)
+- Requisitos (SRS): [`docs/SRS.md`](docs/SRS.md)
+- Arquitectura (SAD): [`docs/SAD.md`](docs/SAD.md)
+- Diseño detallado (DDC): [`docs/DDC.md`](docs/DDC.md)
+- Plan de gestión (PMP): [`docs/PMP.md`](docs/PMP.md)
+- Plan de pruebas (STP): [`docs/STP.md`](docs/STP.md)

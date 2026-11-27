@@ -37,6 +37,8 @@ CREATE TABLE entrepreneur_profiles (
     bio_short VARCHAR(200),
     profile_photo_url VARCHAR(500),
     profile_photo_id VARCHAR(200),
+    instagram_handle VARCHAR(60),
+    classroom_location VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -61,6 +63,8 @@ CREATE TABLE projects (
     name VARCHAR(120) NOT NULL,
     description TEXT,
     category_id INTEGER REFERENCES categories(id),
+    logo_url VARCHAR(500),
+    logo_id VARCHAR(200),
     status project_status_enum DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

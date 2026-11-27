@@ -1,26 +1,26 @@
-/* Tokens de diseño - Mural Maz Lince (OLED & Neon Red Trend) */
-/* Referencia: DDC v3.0 - PWA Mobile First */
+/* Tokens de diseño - Mural Maz Lince */
+/* Referencia: DDC v1.4 - PWA Mobile First */
 
 :root {
-  /* Colores - Fondo (OLED Black for premium mobile feel & battery saving) */
+  /* Colores - Fondo */
   --bg-base: #000000;
   --bg-card: #0F0F11;
-  --bg-surface: #18181B; /* Carbon gray for elevated surfaces */
-  --bg-elevated: #242427; /* Lighter gray for interactive elements */
+  --bg-surface: #18181B;
+  --bg-elevated: #242427;
 
-  /* Colores - Acción y acentos (El Rojo es el Rey) */
-  --primary: #FF2A2D; /* Electric, vibrant brand red */
-  --secondary: #2e5bff; /* Replaced blue with a stealthy dark gray */
-  --tertiary: #FFC82C; /* Brand yellow, kept for stars/badges */
-  --accent: #F0C040; /* Yellow for stars, highlights - DDC v1.2 */
-  --warning: #F59E0B; /* Warning state - same as status-pending */
+  /* Colores - Acción y acentos */
+  --primary: #D92528;
+  --secondary: #2e5bff;
+  --tertiary: #FFC82C;
+  --accent: #F0C040;
+  --warning: #F59E0B;
 
   /* Colores - Texto */
   --text-primary: #FFFFFF;
-  --text-secondary: #A1A1AA;
-  --text-muted: #52525B;
+  --text-secondary: #D4D4D8; /* Zinc 300 — alto contraste para textos secundarios */
+  --text-muted: #9CA3AF;     /* Zinc 400 — gris claro legible sobre fondos negros (WCAG AA > 6:1) */
 
-  /* Colores - Borde (Ultra thin, translucent borders for a sleek look) */
+  /* Colores - Borde */
   --border: rgba(255, 255, 255, 0.08);
 
   /* Colores - Estados semánticos */
@@ -37,18 +37,18 @@
   --spacing-2xl: 48px;
   --spacing-3xl: 64px;
 
-  /* Bordes (Slightly sharper for a "tech/hacker" modern edge) */
+  /* Bordes */
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
 
-  /* Sombras (Neon glows instead of flat drop shadows) */
+  /* Sombras */
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.5);
-  --shadow-button: 0 0 16px rgba(255, 42, 45, 0.35); /* Neon red glow */
+  --shadow-button: 0 0 16px rgba(255, 42, 45, 0.35);
   --shadow-modal: 0 24px 48px rgba(0, 0, 0, 0.8);
 
-  /* Transiciones (Snappy, fast micro-interactions) */
+  /* Transiciones */
   --transition-fast: 100ms cubic-bezier(0.16, 1, 0.3, 1);
   --transition-normal: 200ms cubic-bezier(0.16, 1, 0.3, 1);
   --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -62,7 +62,7 @@
   --z-toast: 500;
   --z-notification-dot: 600;
 
-  /* Uppercase token aliases */
+  /* Alias en mayúsculas */
   --BG_BASE: var(--bg-base);
   --BG_CARD: var(--bg-card);
   --BG_SURFACE: var(--bg-surface);

@@ -1,12 +1,15 @@
+// El helper fija DATABASE_URL en mural_maz_lince_test y lanza un error fatal
+// si ya apuntara a otra BD. DEBE importarse ANTES de app/db.
+const { runTestMigrations } = require('../helpers/testDatabase');
 const request = require('supertest');
 
-// Inyectar variables de entorno ANTES de cargar app (evita que db/index.js falle)
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:password@localhost:5433/mural_maz_lince_dev';
 process.env.JWT_SECRET = 'test_secret';
 process.env.PORT = '0';
 process.env.NODE_ENV = 'test';
 
 const app = require('../../src/app.js');
+const authRouter = require('../../src/routes/auth');
+const { authLimiter } = require('../../src/middleware/rateLimiter');
 
 describe('Auth Endpoints — Integration Tests', () => {
   const pool = require('../../src/db').getPool();
@@ -38,6 +41,12 @@ describe('Auth Endpoints — Integration Tests', () => {
       });
     return m;
   };
+
+  // Cada suite recrea su propio schema: bajo --runInBand el orden de ejecución
+  // no está garantizado y auth_flow.test.js deja el schema dropeado.
+  beforeAll(() => {
+    runTestMigrations();
+  }, 120000);
 
   afterAll(async () => {
     await pool.end();
@@ -338,6 +347,85 @@ describe('Auth Endpoints — Integration Tests', () => {
       expect(res.statusCode).toEqual(200);
       // El JSON de respuesta no debe exponer el número
       expect(JSON.stringify(res.body)).not.toContain('+526692001234');
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // POST /auth/login/check
+  // ─────────────────────────────────────────────
+  describe('POST /auth/login/check', () => {
+    it('Emprendedor — devuelve 200 { requiresPassword: true }', async () => {
+      const mat = await createEntrepreneur();
+      const res = await request(app).post('/auth/login/check').send({ matricula: mat });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.requiresPassword).toBe(true);
+    });
+
+    it('Estudiante (visitor_registered) — devuelve 200 { requiresPassword: false }', async () => {
+      const mat = await createStudent();
+      const res = await request(app).post('/auth/login/check').send({ matricula: mat });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.requiresPassword).toBe(false);
+    });
+
+    it('Matrícula inexistente — devuelve 200 { requiresPassword: false }', async () => {
+      const res = await request(app)
+        .post('/auth/login/check')
+        .send({ matricula: randomMatricula() });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.requiresPassword).toBe(false);
+    });
+
+    it('Matrícula con formato inválido — devuelve 200 { requiresPassword: false }', async () => {
+      const res = await request(app).post('/auth/login/check').send({ matricula: '30240001' });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.requiresPassword).toBe(false);
+    });
+
+    it('Sin matrícula — devuelve 400 con error', async () => {
+      const res = await request(app).post('/auth/login/check').send({});
+
+      expect(res.statusCode).toEqual(400);
+      expect(res.body.error).toEqual('Matrícula requerida');
+    });
+
+    it('NO autentica: la respuesta no setea la cookie token', async () => {
+      const mat = await createEntrepreneur();
+      const res = await request(app).post('/auth/login/check').send({ matricula: mat });
+
+      expect(res.statusCode).toEqual(200);
+      const cookies = res.headers['set-cookie'] || [];
+      expect(cookies.some((c) => c.startsWith('token='))).toBe(false);
+    });
+
+    it('NO filtra el rol: el body solo contiene requiresPassword', async () => {
+      const mat = await createEntrepreneur();
+      const res = await request(app).post('/auth/login/check').send({ matricula: mat });
+
+      expect(res.statusCode).toEqual(200);
+      expect(Object.keys(res.body)).toEqual(['requiresPassword']);
+      expect(res.body).not.toHaveProperty('role');
+    });
+
+    it('Cuenta suspendida — requiresPassword false (indistinguible de inexistente)', async () => {
+      const mat = await createEntrepreneur();
+      await pool.query('UPDATE users SET is_suspended = true WHERE matricula = $1', [mat]);
+
+      const res = await request(app).post('/auth/login/check').send({ matricula: mat });
+
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.requiresPassword).toBe(false);
+    });
+
+    it('La ruta /login/check está protegida con authLimiter', () => {
+      const layer = authRouter.stack.find((l) => l.route && l.route.path === '/login/check');
+
+      expect(layer).toBeDefined();
+      expect(layer.route.stack.map((s) => s.handle)).toContain(authLimiter);
     });
   });
 

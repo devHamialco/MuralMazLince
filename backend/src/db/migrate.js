@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 
-// Guard: prevent destructive migration from running on production
 if (process.env.NODE_ENV === 'production') {
   // eslint-disable-next-line no-console
   console.error(

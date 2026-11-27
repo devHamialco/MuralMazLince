@@ -71,9 +71,9 @@ const toggleLike = async (req, res) => {
 const upsertRating = async (req, res) => {
   const announcementId = req.params.id;
   const userId = req.user.id;
-  const { stars } = req.body;
+  const stars = Number(req.body.stars ?? req.body.rating);
 
-  if (!stars || stars < 1 || stars > 3) {
+  if (!Number.isInteger(stars) || stars < 1 || stars > 3) {
     return res.status(400).json({ error: 'La valoración debe ser entre 1 y 3 estrellas' });
   }
 

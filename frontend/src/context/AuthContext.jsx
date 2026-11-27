@@ -111,8 +111,15 @@ export function AuthProvider({ children }) {
    * @returns {Promise<void>}
    */
   const logout = useCallback(async () => {
-    await api.logout();
-    setUser(null);
+    try {
+      await api.logout();
+    } finally {
+      setUser(null);
+    }
+  }, []);
+
+  const updateUser = useCallback((updatedUserData) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedUserData } : updatedUserData));
   }, []);
 
   const hasRole = useCallback((role) => user?.role === role, [user]);
@@ -129,6 +136,7 @@ export function AuthProvider({ children }) {
     registerEntrepreneur,
     logout,
     checkAuth,
+    updateUser,
   }), [
     user,
     loading,
@@ -139,6 +147,7 @@ export function AuthProvider({ children }) {
     registerEntrepreneur,
     logout,
     checkAuth,
+    updateUser,
   ]);
 
   return (

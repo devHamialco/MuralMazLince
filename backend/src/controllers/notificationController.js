@@ -9,6 +9,7 @@ const listNotifications = async (req, res) => {
        ORDER BY created_at DESC`,
       [req.user.id],
     );
+    res.set('Cache-Control', 'no-store');
     return res.json({ notifications: result.rows });
   } catch (err) {
     return res.status(500).json({ error: 'Error al obtener notificaciones' });

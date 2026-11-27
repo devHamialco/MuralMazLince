@@ -8,7 +8,6 @@ export default function PrivateRoute({ children, allowedRoles = null }) {
   const location = useLocation();
   const [showDenied, setShowDenied] = useState(false);
 
-  // When role doesn't match, show brief denial message before redirecting
   useEffect(() => {
     if (!loading && user && allowedRoles && !allowedRoles.includes(user.role)) {
       setShowDenied(true);

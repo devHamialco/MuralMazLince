@@ -3,7 +3,7 @@
   "info": {
     "title": "Mural Maz Lince API",
     "description": "API REST del sistema Mural Maz Lince. Digitaliza el tablero de anuncios estudiantil de la Universidad Autónoma de Occidente, Unidad Regional Mazatlán.\n\n**Estado:** Definitivo Sprint 10 — incluye pipeline de moderación (Vision + bad-words + dHash), panel admin y endpoints operativos de shadowban/cola.\n\n**Autenticación:** Cookies HttpOnly con JWT (ADR-04). Incluir `credentials: 'include'` en cada solicitud del cliente.\n\n**Referencia SRS:** v1.4 | **Referencia SAD:** v1.3 | **Referencia DDC:** v1.2",
-    "version": "1.0.0-sprint10",
+    "version": "1.1.0",
     "contact": {
       "name": "Miriam Alanis — Directora del Proyecto",
       "url": "https://github.com/devHamialco/MuralMazLince"
@@ -54,10 +54,11 @@
     }
   ],
   "paths": {
-
     "/health": {
       "get": {
-        "tags": ["system"],
+        "tags": [
+          "system"
+        ],
         "summary": "Verificación de salud del servidor",
         "description": "Verifica que el servidor Express y la conexión a PostgreSQL están operativos. Usado en el smoke test post-deploy del pipeline CI/CD.",
         "operationId": "getHealth",
@@ -67,19 +68,213 @@
             "description": "Servidor operativo",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/HealthResponse" },
-                "example": { "status": "ok", "dbConnected": true }
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "ok",
+                  "dbConnected": true
+                }
               }
             }
           },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "503": {
+            "description": "503 Service Unavailable — La conexión a PostgreSQL falló (SELECT 1). El detalle se registra en el log.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "example": {
+                  "status": "error",
+                  "dbConnected": false,
+                  "error": "timeout exceeded when trying to connect"
+                }
+              }
+            }
+          }
         }
       }
     },
-
+    "/api-docs": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Documento OpenAPI de la API",
+        "description": "Sirve el documento OpenAPI 3.0 (este mismo archivo) que describe todos los endpoints implementados. Pensado para herramientas como Swagger UI o Redoc.",
+        "operationId": "getApiDocs",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Documento OpenAPI 3.0 en formato JSON.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Documento OpenAPI 3.0 completo (este mismo spec)."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/privacy": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Aviso de Privacidad (LFPDPPP)",
+        "description": "Página estática en HTML con el Aviso de Privacidad del sistema conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares. Pública, sin rate limit. **RNF-17.**",
+        "operationId": "getPrivacy",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Aviso de Privacidad en HTML.",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Datos del usuario autenticado",
+        "description": "Devuelve los datos del usuario autenticado junto con su perfil de emprendedor (`display_name`, `bio_short`, `profile_photo_url`, `instagram_handle`, `classroom_location`) y su propio `whatsapp_number`. Nunca incluye `password_hash`. Responde con `Cache-Control: no-store`. **RF-04, RF-38, RF-39.**",
+        "operationId": "getMe",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos del usuario autenticado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                },
+                "example": {
+                  "user": {
+                    "id": 3,
+                    "matricula": "20240001",
+                    "role": "entrepreneur",
+                    "display_name": "Mariana G. Tech Lince",
+                    "bio_short": "Desarrollo web y soporte técnico estudiantil",
+                    "profile_photo_url": "https://res.cloudinary.com/demo/image/upload/avatar.jpg",
+                    "instagram_handle": "@techlince",
+                    "classroom_location": "Edificio B, Salón 204"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/auth/profile/{id}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Perfil público de un emprendedor",
+        "description": "Devuelve el perfil público del emprendedor (`display_name`, `bio_short`, `profile_photo_url`, `instagram_handle`, `classroom_location`), sus proyectos activos y anuncios activos. El enlace `wa_link` solo se incluye si el solicitante está autenticado; `whatsapp_number` nunca se expone en texto plano. **RF-11, RF-38, RF-39.**",
+        "operationId": "getPublicEntrepreneurProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID del usuario emprendedor."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Perfil público del emprendedor con proyectos y anuncios activos."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/auth/profile": {
+      "patch": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Actualizar perfil e identidad multicontacto del emprendedor",
+        "description": "Actualiza (o crea mediante upsert) `entrepreneur_profiles` (`display_name`, `bio_short`, `instagram_handle`, `classroom_location`, foto de perfil en base64 subida a Cloudinary) y opcionalmente `users.whatsapp_number`. Requiere al menos un canal de contacto activo. **RF-38, RF-39.**",
+        "operationId": "updateProfile",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "display_name": { "type": "string", "minLength": 2, "maxLength": 80 },
+                  "bio_short": { "type": "string", "maxLength": 200 },
+                  "whatsapp_number": { "type": "string" },
+                  "instagram_handle": { "type": "string", "maxLength": 60 },
+                  "classroom_location": { "type": "string", "maxLength": 100 },
+                  "profile_photo_base64": { "type": "string", "description": "Imagen recortada en base64 para subir a Cloudinary." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil actualizado correctamente."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/auth/register/student": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Registro de usuario registrado (ROL-02)",
         "description": "Crea una cuenta de estudiante registrado usando únicamente la matrícula. Valida el formato mediante checksum (8 dígitos, primer dígito = 2). No verifica existencia real en ninguna base de datos externa. **RF-01, RF-07, RN-01, RN-02.**",
         "operationId": "registerStudent",
@@ -88,32 +283,47 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterStudentRequest" },
-              "example": { "matricula": "20240001" }
+              "schema": {
+                "$ref": "#/components/schemas/RegisterStudentRequest"
+              },
+              "example": {
+                "matricula": "20240001"
+              }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Usuario registrado correctamente. La cookie de sesión se emite automáticamente.",
-            "headers": { "Set-Cookie": { "$ref": "#/components/headers/AuthCookie" } },
+            "description": "Usuario registrado correctamente. La cookie de sesión NO se emite en este endpoint (el login es un paso aparte).",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthResponse" },
-                "example": { "role": "visitor_registered", "matricula": "20240001" }
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterStudentResponse"
+                },
+                "example": {
+                  "message": "Estudiante registrado",
+                  "userId": 12
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/auth/register/entrepreneur": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Registro de emprendedor (ROL-03)",
         "description": "Crea una cuenta de emprendedor. En una transacción atómica (ADR-09) inserta simultáneamente un registro en `users` y uno en `entrepreneur_profiles`. Si cualquiera falla, ambos se revierten. El `display_name` es obligatorio y se filtra con bad-words. El `whatsapp_number` nunca se expone en ninguna respuesta. **RF-02, RF-38, RF-39, RNF-17, RN-01, RN-02, RN-09.**",
         "operationId": "registerEntrepreneur",
@@ -122,7 +332,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterEntrepreneurRequest" },
+              "schema": {
+                "$ref": "#/components/schemas/RegisterEntrepreneurRequest"
+              },
               "example": {
                 "matricula": "20240001",
                 "password": "miPassword123",
@@ -135,25 +347,47 @@
         },
         "responses": {
           "201": {
-            "description": "Emprendedor registrado. Transacción atómica completada en users + entrepreneur_profiles.",
-            "headers": { "Set-Cookie": { "$ref": "#/components/headers/AuthCookie" } },
+            "description": "Emprendedor registrado. Transacción atómica completada en users + entrepreneur_profiles. La cookie de sesión se emite automáticamente.",
+            "headers": {
+              "Set-Cookie": {
+                "$ref": "#/components/headers/AuthCookie"
+              }
+            },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthResponse" },
-                "example": { "role": "entrepreneur", "matricula": "20240001", "display_name": "Mariana G. Tech Lince" }
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterEntrepreneurResponse"
+                },
+                "example": {
+                  "message": "Emprendedor registrado",
+                  "userId": 12,
+                  "user": {
+                    "id": 12,
+                    "matricula": "20240001",
+                    "role": "entrepreneur",
+                    "display_name": "Mariana G. Tech Lince"
+                  }
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/auth/login": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Inicio de sesión (todos los roles)",
         "description": "Autentica a un usuario existente. Si se omite `password`, el sistema intenta login como ROL-02 (solo matrícula). Si se incluye, intenta ROL-03 o ROL-04. Emite JWT en cookie HttpOnly (ADR-04). **RF-03, RF-04, RF-05.**",
         "operationId": "login",
@@ -162,15 +396,22 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" },
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
               "examples": {
                 "estudiante": {
                   "summary": "Login ROL-02 (sin contraseña)",
-                  "value": { "matricula": "20240001" }
+                  "value": {
+                    "matricula": "20240001"
+                  }
                 },
                 "emprendedor": {
                   "summary": "Login ROL-03",
-                  "value": { "matricula": "20240001", "password": "miPassword123" }
+                  "value": {
+                    "matricula": "20240001",
+                    "password": "miPassword123"
+                  }
                 }
               }
             }
@@ -179,48 +420,145 @@
         "responses": {
           "200": {
             "description": "Login exitoso.",
-            "headers": { "Set-Cookie": { "$ref": "#/components/headers/AuthCookie" } },
+            "headers": {
+              "Set-Cookie": {
+                "$ref": "#/components/headers/AuthCookie"
+              }
+            },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                },
+                "example": {
+                  "message": "Login exitoso",
+                  "role": "entrepreneur",
+                  "user": {
+                    "id": 3,
+                    "matricula": "20240001",
+                    "role": "entrepreneur",
+                    "display_name": "Mariana G. Tech Lince"
+                  }
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
+    "/auth/login/check": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Verificación proactiva de tipo de cuenta",
+        "description": "Indica si la matrícula requiere contraseña antes de enviar el login (sin autenticar y sin emitir JWT ni cookie). No filtra información: matrícula inexistente, formato inválido o cuenta suspendida responden `requiresPassword: false`, indistinguibles entre sí. Sujeto al mismo rate limit que POST /auth/login. **RF-05.**",
+        "operationId": "checkLogin",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginCheckRequest"
+              },
+              "example": {
+                "matricula": "20240001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado de la verificación. Nunca indica si la cuenta existe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginCheckResponse"
+                },
+                "examples": {
+                  "conPassword": {
+                    "value": {
+                      "requiresPassword": true
+                    }
+                  },
+                  "sinPassword": {
+                    "value": {
+                      "requiresPassword": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/auth/logout": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Cierre de sesión",
         "description": "Invalida la cookie de sesión activa sobrescribiéndola con valor vacío y maxAge: 0. **RF-06.**",
         "operationId": "logout",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Sesión cerrada correctamente.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Sesión cerrada correctamente." }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Sesión finalizada exitosamente"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/auth/claim-matricula": {
       "post": {
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "summary": "Reclamo de matrícula en uso no autorizado",
         "description": "Crea un ticket de reclamo en la cola del administrador. El sistema no otorga acceso automático a ninguna cuenta hasta la resolución manual del administrador. **RF-34, RN-02, RN-10.**",
         "operationId": "claimMatricula",
@@ -229,8 +567,13 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ClaimMatriculaRequest" },
-              "example": { "matricula": "20240001", "claimant_whatsapp": "+5216691234567" }
+              "schema": {
+                "$ref": "#/components/schemas/ClaimMatriculaRequest"
+              },
+              "example": {
+                "disputed_matricula": "20240001",
+                "claimant_whatsapp": "+5216691234567"
+              }
             }
           }
         },
@@ -239,20 +582,30 @@
             "description": "Ticket de reclamo creado. El administrador contactará al reclamante vía WhatsApp.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Tu reclamo fue registrado. Un administrador se comunicará contigo vía WhatsApp." }
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimMatriculaResponse"
+                },
+                "example": {
+                  "message": "Reclamo ingresado para su revisión",
+                  "ticketId": 3
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/announcements": {
       "get": {
-        "tags": ["feed"],
+        "tags": [
+          "feed"
+        ],
         "summary": "Feed de anuncios activos (paginación por cursor)",
         "description": "Devuelve los 20 anuncios activos más recientes a partir del cursor indicado. Accesible sin autenticación (ROL-01). El campo `whatsapp_number` nunca aparece en la respuesta. **RF-08, RF-09, RNF-01, RNF-02, RN-09.**",
         "operationId": "getAnnouncements",
@@ -263,21 +616,31 @@
             "in": "query",
             "description": "ID del último anuncio recibido. Omitir para la primera página.",
             "required": false,
-            "schema": { "type": "integer", "example": 45 }
+            "schema": {
+              "type": "integer",
+              "example": 45
+            }
           },
           {
             "name": "limit",
             "in": "query",
-            "description": "Número de anuncios por bloque. Valor fijo del sistema: 20.",
+            "description": "Número de anuncios por bloque. Default 20, máximo 50 (el servidor aplica `Math.min(limit, 50)`).",
             "required": false,
-            "schema": { "type": "integer", "default": 20, "maximum": 20 }
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 50
+            }
           },
           {
             "name": "category",
             "in": "query",
-            "description": "Código de categoría para filtrar (ej: CAT-01). Solo disponible para ROL-02 o superior.",
+            "description": "Filtro por nombre de categoría (ej: \"Alimentos y bebidas\") o por categoría personalizada (`custom_category`). Coincidencia exacta. Solo disponible para ROL-02 o superior.",
             "required": false,
-            "schema": { "type": "string", "example": "CAT-01" }
+            "schema": {
+              "type": "string",
+              "example": "Alimentos y bebidas"
+            }
           }
         ],
         "responses": {
@@ -285,91 +648,199 @@
             "description": "Lista de anuncios paginada.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementFeedResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementFeedResponse"
+                },
+                "example": {
+                  "announcements": [
+                    {
+                      "id": 45,
+                      "title": "Diseño de logos profesionales",
+                      "description": "Logos únicos para tu marca.",
+                      "image_url": "https://res.cloudinary.com/mural/image/upload/v1/mural_lince/abc123.jpg",
+                      "status": "active",
+                      "expires_at": "2026-05-15T23:59:59.000Z",
+                      "created_at": "2026-04-10T14:30:00.000Z",
+                      "category_id": 9,
+                      "custom_category": null,
+                      "category_name": "Diseño y creatividad",
+                      "category_code": "CAT-09",
+                      "category": "Diseño y creatividad",
+                      "project_name": "Tech Lince — Diseño Gráfico",
+                      "project_id": 7,
+                      "display_name": "Mariana G. Tech Lince",
+                      "likes_count": 14,
+                      "avg_rating": 2.7
+                    }
+                  ],
+                  "nextCursor": 45,
+                  "hasMore": true
+                }
               }
             }
           },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "post": {
-        "tags": ["announcements"],
+        "tags": [
+          "announcements"
+        ],
         "summary": "Crear nuevo anuncio",
         "description": "Crea un anuncio dentro de un proyecto del emprendedor autenticado. Ejecuta el pipeline de moderación completo en paralelo (Vision API + bad-words + dHash). Devuelve HTTP 201 si el anuncio queda activo o HTTP 202 si queda en revisión. **RF-19, RF-22, RF-26, RF-27, RF-28, RF-31, RF-32, RN-04, RN-05, RN-11, RN-12.**",
         "operationId": "createAnnouncement",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "multipart/form-data": {
-              "schema": { "$ref": "#/components/schemas/CreateAnnouncementRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnnouncementRequest"
+              }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Anuncio publicado y activo en el feed.",
+            "description": "Anuncio publicado y activo en el feed. `moderation.approved = true`.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAnnouncementResponse"
+                },
+                "example": {
+                  "message": "Anuncio creado",
+                  "announcement": {
+                    "id": 46,
+                    "title": "Diseño de logos profesionales",
+                    "status": "active",
+                    "expires_at": "2026-05-15T23:59:59.000Z",
+                    "created_at": "2026-04-10T14:30:00.000Z"
+                  },
+                  "moderation": {
+                    "approved": true,
+                    "triggers": []
+                  }
+                }
               }
             }
           },
           "202": {
-            "description": "Anuncio creado pero en revisión pendiente. La moderación automática generó una alerta.",
+            "description": "Anuncio creado pero en revisión pendiente (`pending_review`). `moderation.approved = false` y `moderation.triggers` detalla los motivos.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAnnouncementResponse"
+                },
+                "example": {
+                  "message": "Anuncio en revisión",
+                  "announcement": {
+                    "id": 47,
+                    "title": "Diseño de logos profesionales",
+                    "status": "pending_review",
+                    "expires_at": "2026-05-15T23:59:59.000Z",
+                    "created_at": "2026-04-10T14:30:00.000Z"
+                  },
+                  "moderation": {
+                    "approved": false,
+                    "triggers": [
+                      {
+                        "type": "bad_words",
+                        "detail": "terms:mala palabra"
+                      }
+                    ]
+                  }
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/announcements/{id}": {
       "get": {
-        "tags": ["feed"],
+        "tags": [
+          "feed"
+        ],
         "summary": "Detalle de un anuncio",
         "description": "Devuelve la información completa de un anuncio. Si el usuario está autenticado, incluye el campo `contact_link` con la URL wa.me generada dinámicamente. Para ROL-01, `contact_link` es `null`. El número de WhatsApp nunca se expone. **RF-10, RF-11, RNF-04, RN-09.**",
         "operationId": "getAnnouncementById",
         "security": [],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Detalle del anuncio.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementDetail"
+                }
               }
             }
           },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "patch": {
-        "tags": ["announcements"],
+        "tags": [
+          "announcements"
+        ],
         "summary": "Editar anuncio",
         "description": "Edita título, descripción, categoría o vigencia de un anuncio activo del emprendedor autenticado. Si se incluye una nueva imagen, el pipeline de moderación se re-ejecuta completo. **RF-20, RN-05.**",
         "operationId": "updateAnnouncement",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "multipart/form-data": {
-              "schema": { "$ref": "#/components/schemas/UpdateAnnouncementRequest" }
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAnnouncementRequest"
+              }
             }
           }
         },
@@ -378,52 +849,152 @@
             "description": "Anuncio actualizado.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementDetail"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "delete": {
-        "tags": ["announcements"],
+        "tags": [
+          "announcements"
+        ],
         "summary": "Eliminar anuncio",
         "description": "Elimina el anuncio y su imagen de Cloudinary usando `cloudinary_id` (no la URL). Requiere confirmación explícita del cliente. **RF-21, RF-33, RN-05.**",
         "operationId": "deleteAnnouncement",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Anuncio e imagen eliminados correctamente.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Anuncio eliminado correctamente." }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Anuncio eliminado correctamente."
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
+    "/projects/public/{id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Vista pública de un proyecto",
+        "description": "Devuelve el detalle público de un proyecto activo junto con el perfil público de su emprendedor y sus anuncios activos. El enlace `wa_link` solo se incluye si el solicitante está autenticado. **RF-10, RF-11.**",
+        "operationId": "getPublicProjectById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID del proyecto."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detalle público del proyecto, emprendedor y anuncios activos."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/projects/metrics": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Métricas agregadas del emprendedor",
+        "description": "Devuelve las métricas agregadas (`total_likes`, `avg_rating`, `total_announcements`) de todos los proyectos del emprendedor autenticado, excluyendo interacciones accidentales (`is_accidental = TRUE`) y revertidas. **RF-14, RF-24.**",
+        "operationId": "getEntrepreneurMetrics",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Métricas agregadas del emprendedor."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/projects": {
       "get": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "Listar proyectos del emprendedor",
         "description": "Devuelve todos los proyectos (activos y suspendidos) del emprendedor autenticado con sus anuncios activos y métricas resumidas. **RF-15, RF-23.**",
         "operationId": "getProjects",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de proyectos del emprendedor.",
@@ -431,27 +1002,43 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/Project" }
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "post": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "Crear nuevo proyecto",
         "description": "Crea un proyecto para el emprendedor autenticado. Valida que no se supere el límite de proyectos activos simultáneos (MAX_ACTIVE_PROJECTS_PER_USER, default: 5). **RF-15, RN-03.**",
         "operationId": "createProject",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateProjectRequest" },
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              },
               "example": {
                 "name": "Tech Lince — Desarrollo Web",
                 "description": "Servicios de desarrollo web y apps para la comunidad universitaria.",
@@ -465,58 +1052,97 @@
             "description": "Proyecto creado correctamente.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Project" }
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/projects/{id}": {
       "get": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "Detalle de un proyecto",
         "description": "Devuelve el detalle completo de un proyecto con su lista de anuncios (activos e historial) y métricas de impacto filtradas por umbral de intención. **RF-16, RF-23, RF-24, RN-04.**",
         "operationId": "getProjectById",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/ProjectId" }
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Detalle del proyecto.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ProjectDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "patch": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "Editar proyecto",
         "description": "Edita el nombre, descripción o categoría de un proyecto del emprendedor autenticado. **RF-16.**",
         "operationId": "updateProject",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/ProjectId" }
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateProjectRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectRequest"
+              }
             }
           }
         },
@@ -525,60 +1151,103 @@
             "description": "Proyecto actualizado.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Project" }
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "delete": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "Eliminar proyecto",
         "description": "Elimina definitivamente un proyecto y todos sus anuncios activos con sus imágenes en Cloudinary. Operación irreversible. **RF-18, RN-06.**",
         "operationId": "deleteProject",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/ProjectId" }
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Proyecto y anuncios asociados eliminados correctamente.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Proyecto eliminado correctamente." }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Proyecto eliminado correctamente."
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/projects/{id}/status": {
       "patch": {
-        "tags": ["projects"],
+        "tags": [
+          "projects"
+        ],
         "summary": "Cambiar estado del proyecto (activo ↔ suspendido)",
         "description": "Alterna el estado del proyecto entre `active` y `suspended`. Un proyecto suspendido no muestra sus anuncios en el feed pero conserva su historial. **RF-17, RN-06.**",
         "operationId": "updateProjectStatus",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/ProjectId" }
+          {
+            "$ref": "#/components/parameters/ProjectId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateProjectStatusRequest" },
-              "example": { "status": "suspended" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectStatusRequest"
+              },
+              "example": {
+                "status": "suspended"
+              }
             }
           }
         },
@@ -587,65 +1256,113 @@
             "description": "Estado del proyecto actualizado.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Project" }
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/announcements/{id}/like": {
       "post": {
-        "tags": ["interactions"],
+        "tags": [
+          "interactions"
+        ],
         "summary": "Toggle like en un anuncio",
         "description": "Otorga o retira un like al anuncio indicado (toggle). Registra el timestamp de creación y, si se revierte, el de reversión. Si la diferencia es menor a 5,000 ms, la interacción se marca como `is_accidental = true` y se excluye de las métricas del emprendedor. **RF-12, RF-14, RN-08.**",
         "operationId": "toggleLike",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Like actualizado.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LikeResponse" },
+                "schema": {
+                  "$ref": "#/components/schemas/LikeResponse"
+                },
                 "examples": {
-                  "liked": { "value": { "liked": true, "total_likes": 14 } },
-                  "unliked": { "value": { "liked": false, "total_likes": 13 } }
+                  "liked": {
+                    "value": {
+                      "liked": true,
+                      "total_likes": 14
+                    }
+                  },
+                  "unliked": {
+                    "value": {
+                      "liked": false,
+                      "total_likes": 13
+                    }
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/announcements/{id}/rating": {
       "post": {
-        "tags": ["interactions"],
+        "tags": [
+          "interactions"
+        ],
         "summary": "Crear o actualizar valoración (1–3 estrellas)",
         "description": "Asigna o actualiza la valoración del usuario autenticado en el anuncio indicado. Aplica el mismo umbral de intención de 5,000 ms que los likes. **RF-13, RF-14, RN-08.**",
         "operationId": "upsertRating",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RatingRequest" },
-              "example": { "stars": 3 }
+              "schema": {
+                "$ref": "#/components/schemas/RatingRequest"
+              },
+              "example": {
+                "stars": 3
+              }
             }
           }
         },
@@ -654,58 +1371,99 @@
             "description": "Valoración registrada o actualizada.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RatingResponse" },
-                "example": { "stars": 3, "average_rating": 2.7, "total_ratings": 11 }
+                "schema": {
+                  "$ref": "#/components/schemas/RatingResponse"
+                },
+                "example": {
+                  "stars": 3,
+                  "average_rating": 2.7,
+                  "total_ratings": 11
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       },
       "delete": {
-        "tags": ["interactions"],
+        "tags": [
+          "interactions"
+        ],
         "summary": "Retirar valoración activa",
         "description": "Elimina la valoración activa del usuario autenticado en el anuncio indicado. **RF-13.**",
         "operationId": "deleteRating",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Valoración retirada correctamente.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RatingResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RatingResponse"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/announcements/{id}/report": {
       "post": {
-        "tags": ["interactions"],
+        "tags": [
+          "interactions"
+        ],
         "summary": "Reportar un anuncio",
         "description": "Registra un reporte de contenido inapropiado. Un usuario solo puede reportar el mismo anuncio una vez. El sistema evalúa automáticamente los umbrales de RF-37 (alerta de urgencia al admin) y RF-38 (shadowban automático). Los reportes son confidenciales: el emprendedor no sabe quién reportó ni cuántos reportes tiene. **RF-35, RF-36, RF-37, RN-13.**",
         "operationId": "reportAnnouncement",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ReportRequest" },
-              "example": { "reason": "spam" }
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              },
+              "example": {
+                "reason": "spam"
+              }
             }
           }
         },
@@ -714,26 +1472,43 @@
             "description": "Reporte registrado correctamente.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Reporte registrado. Gracias por contribuir a la comunidad." }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Reporte registrado. Gracias por contribuir a la comunidad."
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "409": { "$ref": "#/components/responses/Conflict" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/notifications": {
       "get": {
-        "tags": ["notifications"],
+        "tags": [
+          "notifications"
+        ],
         "summary": "Listar notificaciones del emprendedor",
         "description": "Devuelve todas las notificaciones internas del emprendedor autenticado, ordenadas por fecha descendente. **RF-25.**",
         "operationId": "getNotifications",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de notificaciones.",
@@ -741,75 +1516,118 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/Notification" }
+                  "items": {
+                    "$ref": "#/components/schemas/Notification"
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/notifications/{id}/read": {
       "patch": {
-        "tags": ["notifications"],
+        "tags": [
+          "notifications"
+        ],
         "summary": "Marcar notificación como leída",
         "description": "Actualiza `is_read = true` en una notificación específica del emprendedor autenticado. **RF-25.**",
         "operationId": "markNotificationRead",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/NotificationId" }
+          {
+            "$ref": "#/components/parameters/NotificationId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Notificación marcada como leída.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Notification" }
+                "schema": {
+                  "$ref": "#/components/schemas/Notification"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/notifications/read-all": {
       "patch": {
-        "tags": ["notifications"],
+        "tags": [
+          "notifications"
+        ],
         "summary": "Marcar todas las notificaciones como leídas",
         "description": "Actualiza `is_read = true` en todas las notificaciones no leídas del emprendedor autenticado. **RF-25.**",
         "operationId": "markAllNotificationsRead",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Todas las notificaciones marcadas como leídas.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Todas las notificaciones marcadas como leídas." }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Todas las notificaciones marcadas como leídas."
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/admin/moderation-queue": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Cola de moderación",
         "description": "Lista todos los anuncios en estado `pending_review` y `shadowban`, ordenados: urgentes primero (`urgency_alert_at IS NOT NULL`), luego por fecha de creación. Incluye el motivo del marcado, datos del emprendedor y, para casos de hashing, la imagen existente para comparación visual. **RF-29, RF-36, RF-37.**",
         "operationId": "getModerationQueue",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Cola de moderación ordenada por urgencia.",
@@ -817,61 +1635,97 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/ModerationQueueItem" }
+                  "items": {
+                    "$ref": "#/components/schemas/ModerationQueueItem"
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/admin/announcements/{id}/approve": {
       "patch": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Aprobar anuncio pendiente",
         "description": "Cambia el estado del anuncio a `active`, lo publica en el feed y genera notificación interna al emprendedor. Registra `admin_id` y `resolved_at` en `moderation_queue`. **RF-30, RN-11.**",
         "operationId": "approveAnnouncement",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Anuncio aprobado y publicado en el feed.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/AnnouncementDetail"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/admin/announcements/{id}/reject": {
       "post": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Rechazar anuncio pendiente",
         "description": "Cambia el estado del anuncio a `rejected`, elimina su imagen de Cloudinary usando `cloudinary_id` y genera notificación interna al emprendedor con el motivo. **RF-30, RF-33, RN-11.**",
         "operationId": "rejectAnnouncement",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/AnnouncementId" }
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RejectAnnouncementRequest" },
-              "example": { "reason": "La imagen contiene contenido inapropiado detectado por la moderación automática." }
+              "schema": {
+                "$ref": "#/components/schemas/RejectAnnouncementRequest"
+              },
+              "example": {
+                "reason": "La imagen contiene contenido inapropiado detectado por la moderación automática."
+              }
             }
           }
         },
@@ -880,36 +1734,156 @@
             "description": "Anuncio rechazado e imagen eliminada de Cloudinary.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Anuncio rechazado. El emprendedor fue notificado." }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Anuncio rechazado. El emprendedor fue notificado."
+                }
               }
             }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
-    "/admin/users/{id}/suspend": {
-      "post": {
-        "tags": ["admin"],
-        "summary": "Suspender cuenta de usuario",
-        "description": "Establece `is_suspended = true` en la cuenta del usuario indicado. El usuario suspendido recibe HTTP 403 al intentar iniciar sesión. **RF-30, RN-11.**",
-        "operationId": "suspendUser",
-        "security": [{ "cookieAuth": [] }],
+    "/admin/announcements": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Listar anuncios publicados para supervisión administrativa",
+        "description": "Devuelve hasta 100 anuncios activos ordenados por fecha reciente, con soporte de búsqueda (`search`) sobre título, descripción, proyecto y nombre público del emprendedor. **RF-30.**",
+        "operationId": "getPublishedAnnouncementsAdmin",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/UserId" }
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filtro de búsqueda (ILIKE) por título, descripción, proyecto o emprendedor."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de anuncios activos."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/announcements/{id}/remove": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Retirar anuncio publicado",
+        "description": "Elimina definitivamente un anuncio activo de la base de datos y su imagen de Cloudinary, registra el motivo obligatorio, opcionalmente suspende al usuario (`suspend_user: true`) y notifica al emprendedor. **RF-30, RF-33.**",
+        "operationId": "removeAnnouncementByAdmin",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AnnouncementId"
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SuspendUserRequest" },
-              "example": { "reason": "Publicación reiterada de contenido inapropiado." }
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string", "description": "Motivo obligatorio del retiro." },
+                  "suspend_user": { "type": "boolean", "default": false, "description": "Si es true, suspende la cuenta del emprendedor." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Anuncio eliminado y emprendedor notificado."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/users/{id}/suspend": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Suspender cuenta de usuario",
+        "description": "Establece `is_suspended = true` en la cuenta del usuario indicado. El usuario suspendido recibe HTTP 403 al intentar iniciar sesión. **RF-30, RN-11.**",
+        "operationId": "suspendUser",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/UserId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendUserRequest"
+              },
+              "example": {
+                "reason": "Publicación reiterada de contenido inapropiado."
+              }
             }
           }
         },
@@ -918,26 +1892,43 @@
             "description": "Cuenta suspendida correctamente.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/MessageResponse" },
-                "example": { "message": "Cuenta suspendida correctamente." }
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                },
+                "example": {
+                  "message": "Cuenta suspendida correctamente."
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/admin/claim-tickets": {
       "get": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Listar tickets de reclamo de matrícula pendientes",
         "description": "Devuelve todos los tickets de reclamo con status `pending`, ordenados por fecha de creación ascendente. ",
         "operationId": "getClaimTickets",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de tickets pendientes.",
@@ -945,46 +1936,70 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/ClaimTicket" }
+                  "items": {
+                    "$ref": "#/components/schemas/ClaimTicket"
+                  }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
-
     "/admin/claim-tickets/{id}/resolve": {
       "patch": {
-        "tags": ["admin"],
+        "tags": [
+          "admin"
+        ],
         "summary": "Resolver ticket de reclamo",
         "description": "Marca el ticket como `resolved` y registra el `admin_id` y `resolved_at`. La acción concreta (reasignar o mantener la cuenta) queda fuera del sistema y se gestiona manualmente por el administrador vía WhatsApp. ",
         "operationId": "resolveClaimTicket",
-        "security": [{ "cookieAuth": [] }],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "parameters": [
-          { "$ref": "#/components/parameters/ClaimTicketId" }
+          {
+            "$ref": "#/components/parameters/ClaimTicketId"
+          }
         ],
         "responses": {
           "200": {
             "description": "Ticket resuelto.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ClaimTicket" }
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimTicket"
+                }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     }
   },
-
   "components": {
     "securitySchemes": {
       "cookieAuth": {
@@ -994,89 +2009,129 @@
         "description": "JWT en cookie HttpOnly. Emitido por POST /auth/login. No accesible desde JavaScript del cliente (ADR-04). Incluir `credentials: 'include'` en cada solicitud fetch del frontend."
       }
     },
-
     "headers": {
       "AuthCookie": {
         "description": "Cookie HttpOnly con el JWT de sesión. Gestionada automáticamente por el navegador.",
-        "schema": { "type": "string" }
+        "schema": {
+          "type": "string"
+        }
       }
     },
-
     "parameters": {
       "AnnouncementId": {
         "name": "id",
         "in": "path",
         "required": true,
         "description": "ID del anuncio.",
-        "schema": { "type": "integer", "example": 42 }
+        "schema": {
+          "type": "integer",
+          "example": 42
+        }
       },
       "ProjectId": {
         "name": "id",
         "in": "path",
         "required": true,
         "description": "ID del proyecto.",
-        "schema": { "type": "integer", "example": 7 }
+        "schema": {
+          "type": "integer",
+          "example": 7
+        }
       },
       "NotificationId": {
         "name": "id",
         "in": "path",
         "required": true,
         "description": "ID de la notificación.",
-        "schema": { "type": "integer", "example": 15 }
+        "schema": {
+          "type": "integer",
+          "example": 15
+        }
       },
       "UserId": {
         "name": "id",
         "in": "path",
         "required": true,
         "description": "ID del usuario.",
-        "schema": { "type": "integer", "example": 3 }
+        "schema": {
+          "type": "integer",
+          "example": 3
+        }
       },
       "ClaimTicketId": {
         "name": "id",
         "in": "path",
         "required": true,
         "description": "ID del ticket de reclamo.",
-        "schema": { "type": "integer", "example": 2 }
+        "schema": {
+          "type": "integer",
+          "example": 2
+        }
       }
     },
-
     "schemas": {
-
       "HealthResponse": {
         "type": "object",
-        "required": ["status", "dbConnected"],
+        "required": [
+          "status",
+          "dbConnected"
+        ],
         "properties": {
-          "status": { "type": "string", "enum": ["ok", "error"] },
-          "dbConnected": { "type": "boolean" }
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "error"
+            ]
+          },
+          "dbConnected": {
+            "type": "boolean"
+          }
         }
       },
-
       "MessageResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
-          "message": { "type": "string" }
+          "message": {
+            "type": "string"
+          }
         }
       },
-
       "ErrorResponse": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
-          "error": { "type": "string", "description": "Descripción del error. Nunca expone datos sensibles." }
+          "error": {
+            "type": "string",
+            "description": "Descripción del error. Nunca expone datos sensibles."
+          }
         }
       },
-
       "AuthResponse": {
         "type": "object",
         "description": "Respuesta de autenticación. No incluye whatsapp_number ni password_hash en ningún caso.",
-        "required": ["role", "matricula"],
+        "required": [
+          "role",
+          "matricula"
+        ],
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["visitor_registered", "entrepreneur", "admin"]
+            "enum": [
+              "visitor_registered",
+              "entrepreneur",
+              "admin"
+            ]
           },
-          "matricula": { "type": "string", "example": "20240001" },
+          "matricula": {
+            "type": "string",
+            "example": "20240001"
+          },
           "display_name": {
             "type": "string",
             "nullable": true,
@@ -1085,10 +2140,11 @@
           }
         }
       },
-
       "RegisterStudentRequest": {
         "type": "object",
-        "required": ["matricula"],
+        "required": [
+          "matricula"
+        ],
         "properties": {
           "matricula": {
             "type": "string",
@@ -1098,10 +2154,33 @@
           }
         }
       },
-
+      "RegisterStudentResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "userId"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Estudiante registrado"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "ID del usuario recién creado.",
+            "example": 12
+          }
+        }
+      },
       "RegisterEntrepreneurRequest": {
         "type": "object",
-        "required": ["matricula", "password", "whatsapp_number", "display_name", "privacy_accepted"],
+        "required": [
+          "matricula",
+          "password",
+          "whatsapp_number",
+          "display_name",
+          "privacy_accepted"
+        ],
         "properties": {
           "matricula": {
             "type": "string",
@@ -1129,15 +2208,67 @@
           },
           "privacy_accepted": {
             "type": "boolean",
-            "enum": [true],
+            "enum": [
+              true
+            ],
             "description": "Aceptación del Aviso de Privacidad (LFPDPPP). Debe ser true para completar el registro. RNF-17."
           }
         }
       },
-
+      "RegisterEntrepreneurResponse": {
+        "type": "object",
+        "description": "Emprendedor registrado. La cookie de sesión se emite en la misma respuesta.",
+        "required": [
+          "message",
+          "userId",
+          "user"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Emprendedor registrado"
+          },
+          "userId": {
+            "type": "integer",
+            "example": 12
+          },
+          "user": {
+            "type": "object",
+            "required": [
+              "id",
+              "matricula",
+              "role",
+              "display_name"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 12
+              },
+              "matricula": {
+                "type": "string",
+                "example": "20240001"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "entrepreneur"
+                ],
+                "example": "entrepreneur"
+              },
+              "display_name": {
+                "type": "string",
+                "example": "Mariana G. Tech Lince"
+              }
+            }
+          }
+        }
+      },
       "LoginRequest": {
         "type": "object",
-        "required": ["matricula"],
+        "required": [
+          "matricula"
+        ],
         "properties": {
           "matricula": {
             "type": "string",
@@ -1152,10 +2283,96 @@
           }
         }
       },
-
+      "LoginResponse": {
+        "type": "object",
+        "description": "Login exitoso. Emite JWT en cookie HttpOnly. No incluye whatsapp_number ni password_hash.",
+        "required": [
+          "message",
+          "role",
+          "user"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Login exitoso"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "visitor_registered",
+              "entrepreneur",
+              "admin"
+            ],
+            "example": "entrepreneur"
+          },
+          "user": {
+            "type": "object",
+            "required": [
+              "id",
+              "matricula",
+              "role",
+              "display_name"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 3
+              },
+              "matricula": {
+                "type": "string",
+                "example": "20240001"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "visitor_registered",
+                  "entrepreneur",
+                  "admin"
+                ],
+                "example": "entrepreneur"
+              },
+              "display_name": {
+                "type": "string",
+                "nullable": true,
+                "description": "null para ROL-02 (LEFT JOIN sin perfil en entrepreneur_profiles).",
+                "example": "Mariana G. Tech Lince"
+              }
+            }
+          }
+        }
+      },
+      "LoginCheckRequest": {
+        "type": "object",
+        "required": [
+          "matricula"
+        ],
+        "properties": {
+          "matricula": {
+            "type": "string",
+            "pattern": "^2[0-9]{7}$",
+            "example": "20240001"
+          }
+        }
+      },
+      "LoginCheckResponse": {
+        "type": "object",
+        "description": "Resultado de la verificación. `false` también para matrícula inexistente, formato inválido o cuenta suspendida: no filtra información.",
+        "required": [
+          "requiresPassword"
+        ],
+        "properties": {
+          "requiresPassword": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
       "ClaimMatriculaRequest": {
         "type": "object",
-        "required": ["matricula", "claimant_whatsapp"],
+        "required": [
+          "matricula",
+          "claimant_whatsapp"
+        ],
         "properties": {
           "matricula": {
             "type": "string",
@@ -1170,45 +2387,153 @@
           }
         }
       },
-
+      "ClaimMatriculaResponse": {
+        "type": "object",
+        "required": [
+          "message",
+          "ticketId"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Reclamo ingresado para su revisión"
+          },
+          "ticketId": {
+            "type": "integer",
+            "description": "ID del ticket de reclamo creado.",
+            "example": 3
+          }
+        }
+      },
+      "MeResponse": {
+        "type": "object",
+        "description": "Datos del usuario autenticado. whatsapp_number y password_hash nunca se incluyen.",
+        "required": [
+          "user"
+        ],
+        "properties": {
+          "user": {
+            "type": "object",
+            "required": [
+              "id",
+              "matricula",
+              "role",
+              "display_name"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 3
+              },
+              "matricula": {
+                "type": "string",
+                "example": "20240001"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "visitor_registered",
+                  "entrepreneur",
+                  "admin"
+                ],
+                "example": "entrepreneur"
+              },
+              "display_name": {
+                "type": "string",
+                "nullable": true,
+                "description": "null para ROL-02 (LEFT JOIN sin perfil en entrepreneur_profiles).",
+                "example": "Mariana G. Tech Lince"
+              }
+            }
+          }
+        }
+      },
       "Category": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "example": 1 },
-          "code": { "type": "string", "example": "CAT-01" },
-          "name": { "type": "string", "example": "Alimentos y bebidas" },
-          "group_name": { "type": "string", "example": "Productos físicos" },
-          "is_active": { "type": "boolean", "example": true }
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "code": {
+            "type": "string",
+            "example": "CAT-01"
+          },
+          "name": {
+            "type": "string",
+            "example": "Alimentos y bebidas"
+          },
+          "group_name": {
+            "type": "string",
+            "example": "Productos físicos"
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          }
         }
       },
-
       "AnnouncementSummary": {
         "type": "object",
         "description": "Vista resumida del anuncio para el feed. RF-08.",
         "properties": {
-          "id": { "type": "integer", "example": 42 },
-          "title": { "type": "string", "example": "Diseño de logos profesionales" },
-          "cloudinary_url": { "type": "string", "format": "uri", "example": "https://res.cloudinary.com/mural/image/upload/v1/mural_lince/abc123.jpg" },
-          "category": { "$ref": "#/components/schemas/Category" },
-          "project_name": { "type": "string", "example": "Tech Lince — Diseño Gráfico" },
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "title": {
+            "type": "string",
+            "example": "Diseño de logos profesionales"
+          },
+          "cloudinary_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://res.cloudinary.com/mural/image/upload/v1/mural_lince/abc123.jpg"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "project_name": {
+            "type": "string",
+            "example": "Tech Lince — Diseño Gráfico"
+          },
           "entrepreneur_display_name": {
             "type": "string",
             "description": "Proveniente de entrepreneur_profiles.display_name. RF-08, RF-39.",
             "example": "Mariana G. Tech Lince"
           },
-          "total_likes": { "type": "integer", "example": 14 },
-          "average_rating": { "type": "number", "format": "float", "example": 2.7 },
-          "total_ratings": { "type": "integer", "example": 11 },
-          "expires_at": { "type": "string", "format": "date-time", "example": "2026-05-15T23:59:59Z" },
-          "created_at": { "type": "string", "format": "date-time", "example": "2026-04-10T14:30:00Z" }
+          "total_likes": {
+            "type": "integer",
+            "example": 14
+          },
+          "average_rating": {
+            "type": "number",
+            "format": "float",
+            "example": 2.7
+          },
+          "total_ratings": {
+            "type": "integer",
+            "example": 11
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-05-15T23:59:59Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-10T14:30:00Z"
+          }
         }
       },
-
       "AnnouncementDetail": {
         "type": "object",
         "description": "Vista completa del anuncio. Incluye contact_link solo para usuarios autenticados. RF-10, RF-11.",
         "allOf": [
-          { "$ref": "#/components/schemas/AnnouncementSummary" },
+          {
+            "$ref": "#/components/schemas/AnnouncementSummary"
+          },
           {
             "type": "object",
             "properties": {
@@ -1219,7 +2544,12 @@
               },
               "status": {
                 "type": "string",
-                "enum": ["active", "pending_review", "rejected", "shadowban"],
+                "enum": [
+                  "active",
+                  "pending_review",
+                  "rejected",
+                  "shadowban"
+                ],
                 "example": "active"
               },
               "contact_link": {
@@ -1229,7 +2559,10 @@
                 "description": "URL wa.me generada dinámicamente en el servidor. null para ROL-01. El número nunca se expone. RF-11, RN-09.",
                 "example": "https://wa.me/5216691234567"
               },
-              "project_id": { "type": "integer", "example": 7 },
+              "project_id": {
+                "type": "integer",
+                "example": 7
+              },
               "custom_category": {
                 "type": "string",
                 "nullable": true,
@@ -1240,14 +2573,15 @@
           }
         ]
       },
-
       "AnnouncementFeedResponse": {
         "type": "object",
         "description": "Respuesta paginada del feed por cursor. RNF-02.",
         "properties": {
           "data": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/AnnouncementSummary" }
+            "items": {
+              "$ref": "#/components/schemas/AnnouncementSummary"
+            }
           },
           "next_cursor": {
             "type": "integer",
@@ -1255,24 +2589,47 @@
             "description": "ID del último anuncio devuelto. Enviar como parámetro `cursor` en la siguiente solicitud. null si no hay más anuncios.",
             "example": 22
           },
-          "has_more": { "type": "boolean", "example": true }
+          "has_more": {
+            "type": "boolean",
+            "example": true
+          }
         }
       },
-
       "CreateAnnouncementRequest": {
         "type": "object",
         "description": "Multipart/form-data. La imagen se comprime en el cliente antes del envío (RF-31).",
-        "required": ["project_id", "title", "image", "category_id", "expires_at"],
+        "required": [
+          "project_id",
+          "title",
+          "image",
+          "category_id",
+          "expires_at"
+        ],
         "properties": {
-          "project_id": { "type": "integer", "example": 7 },
-          "title": { "type": "string", "maxLength": 120, "example": "Diseño de logos profesionales" },
-          "description": { "type": "string", "maxLength": 500, "example": "Logos únicos para tu marca." },
+          "project_id": {
+            "type": "integer",
+            "example": 7
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "example": "Diseño de logos profesionales"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "example": "Logos únicos para tu marca."
+          },
           "image": {
             "type": "string",
             "format": "binary",
             "description": "Imagen comprimida. Máx. 500 KB / 1,200 px (RF-31, RNF-03)."
           },
-          "category_id": { "type": "integer", "description": "ID de la categoría predefinida.", "example": 9 },
+          "category_id": {
+            "type": "integer",
+            "description": "ID de la categoría predefinida.",
+            "example": 9
+          },
           "custom_category": {
             "type": "string",
             "maxLength": 80,
@@ -1288,46 +2645,185 @@
           }
         }
       },
-
-      "UpdateAnnouncementRequest": {
+      "CreateAnnouncementResponse": {
         "type": "object",
-        "description": "Todos los campos son opcionales. Si se incluye `image`, el pipeline de moderación se re-ejecuta. RF-20.",
+        "description": "Respuesta de POST /announcements. 201 si moderation.approved = true (status active); 202 si approved = false (status pending_review).",
+        "required": [
+          "message",
+          "announcement",
+          "moderation"
+        ],
         "properties": {
-          "title": { "type": "string", "maxLength": 120 },
-          "description": { "type": "string", "maxLength": 500 },
-          "image": { "type": "string", "format": "binary" },
-          "category_id": { "type": "integer" },
-          "custom_category": { "type": "string", "maxLength": 80, "nullable": true },
-          "expires_at": { "type": "string", "format": "date" }
+          "message": {
+            "type": "string",
+            "enum": [
+              "Anuncio creado",
+              "Anuncio en revisión"
+            ],
+            "example": "Anuncio creado"
+          },
+          "announcement": {
+            "type": "object",
+            "description": "Fila devuelta por INSERT ... RETURNING.",
+            "required": [
+              "id",
+              "title",
+              "status",
+              "expires_at",
+              "created_at"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 46
+              },
+              "title": {
+                "type": "string",
+                "example": "Diseño de logos profesionales"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "active",
+                  "pending_review"
+                ],
+                "example": "active"
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-05-15T23:59:59.000Z"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "example": "2026-04-10T14:30:00.000Z"
+              }
+            }
+          },
+          "moderation": {
+            "type": "object",
+            "required": [
+              "approved",
+              "triggers"
+            ],
+            "properties": {
+              "approved": {
+                "type": "boolean",
+                "description": "true si no hubo triggers (anuncio activo).",
+                "example": true
+              },
+              "triggers": {
+                "type": "array",
+                "description": "Vacío si approved = true.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "detail"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "vision_api",
+                        "bad_words",
+                        "phash"
+                      ],
+                      "example": "bad_words"
+                    },
+                    "detail": {
+                      "type": "string",
+                      "example": "terms:mala palabra"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       },
-
+      "UpdateAnnouncementRequest": {
+        "type": "object",
+        "description": "Todos los campos son opcionales y se aplican con COALESCE (un campo ausente conserva el valor previo). Sin soporte de imagen en PATCH: el cambio de imagen se gestiona por recreación del anuncio. RF-20 (texto).",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "category_id": {
+            "type": "integer"
+          },
+          "custom_category": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
       "Project": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer", "example": 7 },
-          "name": { "type": "string", "example": "Tech Lince — Desarrollo Web" },
-          "description": { "type": "string", "example": "Servicios de desarrollo web para la comunidad universitaria." },
-          "category": { "$ref": "#/components/schemas/Category" },
-          "status": { "type": "string", "enum": ["active", "suspended"], "example": "active" },
-          "active_announcements_count": { "type": "integer", "example": 2 },
-          "created_at": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "integer",
+            "example": 7
+          },
+          "name": {
+            "type": "string",
+            "example": "Tech Lince — Desarrollo Web"
+          },
+          "description": {
+            "type": "string",
+            "example": "Servicios de desarrollo web para la comunidad universitaria."
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended"
+            ],
+            "example": "active"
+          },
+          "active_announcements_count": {
+            "type": "integer",
+            "example": 2
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
-
       "ProjectDetail": {
         "type": "object",
         "description": "Detalle completo de proyecto con anuncios y métricas. RF-16, RF-23, RF-24.",
         "allOf": [
-          { "$ref": "#/components/schemas/Project" },
+          {
+            "$ref": "#/components/schemas/Project"
+          },
           {
             "type": "object",
             "properties": {
               "announcements": {
                 "type": "array",
-                "items": { "$ref": "#/components/schemas/AnnouncementDetail" }
+                "items": {
+                  "$ref": "#/components/schemas/AnnouncementDetail"
+                }
               },
-              "metrics": { "$ref": "#/components/schemas/ProjectMetrics" },
+              "metrics": {
+                "$ref": "#/components/schemas/ProjectMetrics"
+              },
               "active_announcements_limit": {
                 "type": "integer",
                 "description": "Límite máximo de anuncios activos por proyecto (MAX_ACTIVE_ANNOUNCEMENTS_PER_PROJECT). RN-04.",
@@ -1337,7 +2833,6 @@
           }
         ]
       },
-
       "ProjectMetrics": {
         "type": "object",
         "description": "Métricas de impacto filtradas por umbral de intención. RF-24, RF-14, RN-08.",
@@ -1353,52 +2848,83 @@
             "description": "Promedio de valoraciones con is_accidental = false.",
             "example": 2.6
           },
-          "total_views": { "type": "integer", "example": 430 }
+          "total_views": {
+            "type": "integer",
+            "example": 430
+          }
         }
       },
-
       "CreateProjectRequest": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
-          "name": { "type": "string", "maxLength": 120, "example": "Tech Lince — Desarrollo Web" },
-          "description": { "type": "string" },
-          "category_id": { "type": "integer", "nullable": true, "example": 11 }
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "example": "Tech Lince — Desarrollo Web"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "integer",
+            "nullable": true,
+            "example": 11
+          }
         }
       },
-
       "UpdateProjectRequest": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "maxLength": 120 },
-          "description": { "type": "string" },
-          "category_id": { "type": "integer", "nullable": true }
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string"
+          },
+          "category_id": {
+            "type": "integer",
+            "nullable": true
+          }
         }
       },
-
       "UpdateProjectStatusRequest": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["active", "suspended"],
+            "enum": [
+              "active",
+              "suspended"
+            ],
             "description": "Nuevo estado del proyecto. RN-06."
           }
         }
       },
-
       "LikeResponse": {
         "type": "object",
         "properties": {
-          "liked": { "type": "boolean", "description": "Estado actual del like del usuario autenticado." },
-          "total_likes": { "type": "integer", "description": "Conteo total de likes activos del anuncio." }
+          "liked": {
+            "type": "boolean",
+            "description": "Estado actual del like del usuario autenticado."
+          },
+          "total_likes": {
+            "type": "integer",
+            "description": "Conteo total de likes activos del anuncio."
+          }
         }
       },
-
       "RatingRequest": {
         "type": "object",
-        "required": ["stars"],
+        "required": [
+          "stars"
+        ],
         "properties": {
           "stars": {
             "type": "integer",
@@ -1409,63 +2935,107 @@
           }
         }
       },
-
       "RatingResponse": {
         "type": "object",
         "properties": {
-          "stars": { "type": "integer", "nullable": true, "description": "Valoración actual del usuario. null si fue retirada." },
-          "average_rating": { "type": "number", "format": "float", "example": 2.7 },
-          "total_ratings": { "type": "integer", "example": 11 }
+          "stars": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Valoración actual del usuario. null si fue retirada."
+          },
+          "average_rating": {
+            "type": "number",
+            "format": "float",
+            "example": 2.7
+          },
+          "total_ratings": {
+            "type": "integer",
+            "example": 11
+          }
         }
       },
-
       "ReportRequest": {
         "type": "object",
-        "required": ["reason"],
+        "required": [
+          "reason"
+        ],
         "properties": {
           "reason": {
             "type": "string",
-            "enum": ["offensive", "spam", "false_info", "other"],
+            "enum": [
+              "offensive",
+              "spam",
+              "false_info",
+              "other"
+            ],
             "description": "Motivo del reporte. Mapeado al ENUM de la tabla reports. RF-35.",
             "example": "spam"
           }
         }
       },
-
       "Notification": {
         "type": "object",
         "description": "Notificación interna del emprendedor. RF-25.",
         "properties": {
-          "id": { "type": "integer", "example": 15 },
+          "id": {
+            "type": "integer",
+            "example": 15
+          },
           "type": {
             "type": "string",
-            "enum": ["approved", "rejected", "pending", "expiring_soon", "shadowban"],
+            "enum": [
+              "approved",
+              "rejected",
+              "pending",
+              "expiring_soon",
+              "shadowban"
+            ],
             "example": "approved"
           },
           "message": {
             "type": "string",
             "example": "✓ Anuncio aprobado. 'Diseño de logos profesionales' ya está visible en el mural."
           },
-          "is_read": { "type": "boolean", "example": false },
-          "created_at": { "type": "string", "format": "date-time", "example": "2026-04-13T10:00:00Z" }
+          "is_read": {
+            "type": "boolean",
+            "example": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-13T10:00:00Z"
+          }
         }
       },
-
       "ModerationQueueItem": {
         "type": "object",
         "description": "Elemento de la cola de moderación para el administrador. RF-29.",
         "properties": {
-          "moderation_id": { "type": "integer", "example": 5 },
-          "announcement": { "$ref": "#/components/schemas/AnnouncementDetail" },
+          "moderation_id": {
+            "type": "integer",
+            "example": 5
+          },
+          "announcement": {
+            "$ref": "#/components/schemas/AnnouncementDetail"
+          },
           "trigger_type": {
             "type": "string",
-            "enum": ["vision_api", "bad_words", "phash", "report_threshold"],
+            "enum": [
+              "vision_api",
+              "bad_words",
+              "phash",
+              "report_threshold"
+            ],
             "example": "phash"
           },
           "trigger_detail": {
             "type": "object",
             "description": "JSON con el detalle del trigger. Estructura varía según trigger_type.",
-            "example": { "hamming_distance": 7, "threshold": 10, "match_announcement_id": 38 }
+            "example": {
+              "hamming_distance": 7,
+              "threshold": 10,
+              "match_announcement_id": 38
+            }
           },
           "is_urgent": {
             "type": "boolean",
@@ -1486,31 +3056,63 @@
           "entrepreneur": {
             "type": "object",
             "properties": {
-              "user_id": { "type": "integer" },
-              "matricula": { "type": "string" },
-              "display_name": { "type": "string" }
+              "user_id": {
+                "type": "integer"
+              },
+              "matricula": {
+                "type": "string"
+              },
+              "display_name": {
+                "type": "string"
+              }
             }
           },
-          "created_at": { "type": "string", "format": "date-time" }
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
-
       "ClaimTicket": {
         "type": "object",
         "description": "Ticket de reclamo de matrícula. RF-34.",
         "properties": {
-          "id": { "type": "integer", "example": 2 },
-          "disputed_matricula": { "type": "string", "example": "20240001" },
-          "status": { "type": "string", "enum": ["pending", "resolved"], "example": "pending" },
-          "admin_id": { "type": "integer", "nullable": true },
-          "created_at": { "type": "string", "format": "date-time" },
-          "resolved_at": { "type": "string", "format": "date-time", "nullable": true }
+          "id": {
+            "type": "integer",
+            "example": 2
+          },
+          "disputed_matricula": {
+            "type": "string",
+            "example": "20240001"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "resolved"
+            ],
+            "example": "pending"
+          },
+          "admin_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
         }
       },
-
       "RejectAnnouncementRequest": {
         "type": "object",
-        "required": ["reason"],
+        "required": [
+          "reason"
+        ],
         "properties": {
           "reason": {
             "type": "string",
@@ -1519,10 +3121,11 @@
           }
         }
       },
-
       "SuspendUserRequest": {
         "type": "object",
-        "required": ["reason"],
+        "required": [
+          "reason"
+        ],
         "properties": {
           "reason": {
             "type": "string",
@@ -1532,14 +3135,17 @@
         }
       }
     },
-
     "responses": {
       "BadRequest": {
         "description": "400 Bad Request — Checksum inválido, campos faltantes o formato de WhatsApp incorrecto.",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "El formato de la matrícula es inválido. Debe tener 8 dígitos y comenzar con 2." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "El formato de la matrícula es inválido. Debe tener 8 dígitos y comenzar con 2."
+            }
           }
         }
       },
@@ -1547,8 +3153,12 @@
         "description": "401 Unauthorized — Cookie de sesión ausente o expirada.",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Sesión no encontrada. Por favor inicia sesión." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Sesión no encontrada. Por favor inicia sesión."
+            }
           }
         }
       },
@@ -1556,8 +3166,12 @@
         "description": "403 Forbidden — Cuenta suspendida, o rol insuficiente para la acción solicitada.",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Tu cuenta está suspendida. Contacta al administrador." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Tu cuenta está suspendida. Contacta al administrador."
+            }
           }
         }
       },
@@ -1565,8 +3179,12 @@
         "description": "404 Not Found — El recurso solicitado no existe.",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Anuncio no encontrado." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Anuncio no encontrado."
+            }
           }
         }
       },
@@ -1574,8 +3192,12 @@
         "description": "409 Conflict — Matrícula ya registrada, reporte duplicado o límite de proyectos/anuncios alcanzado.",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Esta matrícula ya está registrada en el sistema." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Esta matrícula ya está registrada en el sistema."
+            }
           }
         }
       },
@@ -1583,8 +3205,12 @@
         "description": "413 Payload Too Large — La imagen supera 500 KB o 1,200 px. Segunda línea de defensa server-side (RF-31, RNF-03).",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "La imagen supera el tamaño máximo permitido (500 KB / 1,200 px)." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "La imagen supera el tamaño máximo permitido (500 KB / 1,200 px)."
+            }
           }
         }
       },
@@ -1592,8 +3218,12 @@
         "description": "429 Too Many Requests — Rate limit: más de 10 intentos de login por IP en 15 minutos.",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Demasiados intentos. Por favor espera 15 minutos antes de intentar de nuevo." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Demasiados intentos. Por favor espera 15 minutos antes de intentar de nuevo."
+            }
           }
         }
       },
@@ -1601,8 +3231,12 @@
         "description": "500 Internal Server Error — Error inesperado en el servidor. El detalle se registra en el log; el cliente recibe un mensaje genérico.",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" },
-            "example": { "error": "Ocurrió un error interno. Por favor intenta más tarde." }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "error": "Ocurrió un error interno. Por favor intenta más tarde."
+            }
           }
         }
       }

@@ -1,9 +1,9 @@
-# PROYECT MANAGEMENT PLAN
+# PROJECT MANAGEMENT PLAN
 
 Proyecto: Mural Maz Lince
-Versión: 1.4
+Versión: 1.5
 Elaborado por: Miriam Alanis
-Fecha de elaboración: Marzo 2026
+Fecha de actualización: Noviembre 2026
 Basado en: PMBOK Guide 7th Edition – PMI
 
 ## HISTORIAL DE VERSIONES
@@ -12,11 +12,12 @@ Basado en: PMBOK Guide 7th Edition – PMI
 | ----------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | 1.0         | 6 Abril 2026  | Versión inicial PMP                                                                                                                                                                                                                                                                                                           | Miriam Alanis |
 | 1.1         | 7 Abril 2026  | Checksum de matrícula, perceptual hashing, modelo proyectos/anuncios con vigencia, protección WhatsApp, migración a Railway.app                                                                                                                                                                                               | Miriam Alanis |
-| 1.2         | 8 Abril 2026  | Almacenamiento persistente con Cloudinary, calibración del umbral de hashing anti-spam, compresión de imagen en cliente, umbral de intención para likes/valoraciones, liSta de categorías de emprendimiento, flujo de moderación y decisiones de análisis.                                                                    | Miriam Alanis |
-| 1.3         | 9 Abril 2026  | Incorporación de entrepreneur_profiles como entidad independiente de users; display_name obligatorio; campos escalabres bio_short y profile_photo para v2.0; actualizacion de OBJ-02, alcance, WBS y criterios de aceptación                                                                                                  | Miriam Alanis |
-| 1.4         | 10 Abril 2026 | Corrección de inconsistencia metodológica: migración a sprints de 1 semanas; incorporación de Sección 6 expandida con estructura completa de 7 épicas, sprints por épica, historias de usuario en formato estándar, tareas técnicas con descripción y criterio de aceptación, backlog por sprint, y hitos de cierre por épica | Miriam Alanis |
+| 1.2         | 8 Abril 2026  | Almacenamiento persistente con Cloudinary, calibración del umbral de hashing anti-spam, compresión de imagen en cliente, umbral de intención para likes/valoraciones, lista de categorías de emprendimiento, flujo de moderación y decisiones de análisis.                                                                    | Miriam Alanis |
+| 1.3         | 9 Abril 2026  | Incorporación de `entrepreneur_profiles` como entidad independiente de `users`; `display_name` obligatorio; campos escalables `bio_short` y `profile_photo`; actualización de OBJ-02, alcance, WBS y criterios de aceptación.                                                                                                  | Miriam Alanis |
+| 1.4         | 10 Abril 2026 | Corrección de inconsistencia metodológica: migración a sprints de 1 semana; incorporación de la estructura completa de 7 épicas, sprints por épica, tareas técnicas, backlog por sprint e hitos de cierre (Sección 3.4). | Miriam Alanis |
+| 1.5         | Noviembre 2026 | Sincronización con el estado real del código: estado actualizado a Fase de construcción/pruebas (BE y FE funcionales, pruebas unitarias e integración en BE, pendiente CI/CD, despliegue a producción y pruebas FE); actualización de alcance real (multicontacto, perfiles públicos `/proyecto/:id` y `/emprendedor/:id`, recorte con `react-easy-crop`, Vite 7 + `VITE_API_URL`, `COMP-11`, retiro admin de publicados) y corrección de referencias documentales (`SRS v1.5`, `SAD v1.4`, `DDC v1.4`, `STP v1.1`). | Equipo de desarrollo |
 
-# 1. INTRODUCCION
+# 1. INTRODUCCIÓN
 
 ## 1.1 Ficha del proyecto
 
@@ -27,7 +28,7 @@ Directora del proyecto: Miriam Alanis
 Institución: Universidad Autónoma de Occidente, Mazatlán, Sinaloa, México
 Fecha de inicio: 6 Abril 2026
 Fecha estimada de cierre: 17 de Julio 2026
-Estado actual: Fase de diseño
+Estado actual: Fase de construcción avanzada y pruebas (backend y frontend implementados; pruebas unitarias e integración activas en backend; pendiente despliegue a producción, CI/CD y suite de pruebas en frontend)
 Repositorio: [https://github.com/devHamialco/MuralMazLince](https://github.com/devHamialco/MuralMazLince)
 Hosting producción: Railway.app (plan gratuito)
 Gestión de tareas: Jira (plan Free)
@@ -161,7 +162,7 @@ El sistema incluye configuración de Docker y docker-compose para el entorno de 
 
 Quedan explícitamente fuera del alcance de esta versión los siguientes elementos:
 
-La integración con bases de datos o sistemas internos de la universidad; la verificación oficial de existencia de matrícula estudiantil (solo se valida el formato); la pasarela de pagos o cualquier transacción económica entre usuarios; la aplicación móvil nativa para iOS o Android; el módulo de mensajería interna entre usuarios; la funcionalidad de guardar anuncios como favoritos; el sistema de publicidad pagada o monetización; las funcionalidades de red social avanzada; la expansión a otras unidades del estado de Sinaloa; el estado de "borrador" рага anuncios no publicados; la exposición directa del número de WhatsApp en texto plano en cualquier capa del sistema accesible desde el cliente; y las páginas completas de perfil del emprendedor con biografía, foto y trayectoria (los campos bio_short y profile_photo se reservan en el modelo de datos como preparación para una v2.0 pero no se implementan en esta versión).
+La integración con bases de datos o sistemas internos de la universidad; la verificación oficial de existencia de matrícula estudiantil (solo se valida el formato `/^2\d{7}$/`); la pasarela de pagos o cualquier transacción económica entre usuarios; la aplicación móvil nativa para iOS o Android; el módulo de mensajería interna entre usuarios; la funcionalidad de guardar anuncios como favoritos; el sistema de publicidad pagada o monetización; las funcionalidades de red social avanzada; la expansión a otras unidades del estado de Sinaloa; el estado de "borrador" persistido en servidor para anuncios (existen borradores locales en `localStorage` del navegador); y la exposición directa del número de WhatsApp en texto plano a terceros. *(Nota: las páginas públicas de perfil del emprendedor y del proyecto —`/emprendedor/:id` y `/proyecto/:id`— con biografía, avatar circular y canales multicontacto sí fueron incorporadas e implementadas en esta versión).*
 
 ## 2.3 Entregables del proyecto
 
@@ -188,7 +189,7 @@ ENT-08 Tablero Jira con el registro completo de gestión del proyecto.
 10. Cada emprendedor registrado tiene exactamente un registro en entrepreneur_profiles con display_name no vacío. El display_name aparece correctamente en el feed y en la vista de detalle de cada anuncio.
 11. La documentación de todas las fases del SDLC está completa y disponible.
 
-# 3. CRONOGRAMA Y BACKLO POR SPRINT
+# 3. CRONOGRAMA Y BACKLOG POR SPRINT
 
 ## 3.1 Metodología
 
@@ -495,8 +496,9 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · Otro job de node-cron (cada hora)
       · Busca anuncios con status='shadowban', admin_action IS NULL, y moderation_queue.shadowban_at + INTERVAL '48 hours' <= NOW()
       · Restaura a status='active', genera notificación al emprendedor
-- [x] Implementar COMP-10 Admin Controller:
+- [x] Implementar COMP-11 Admin Controller:
       · GET /admin/moderation-queue: lista todos los anuncios en pending_review y shadowban, ordenados: urgentes primero (urgency_alert_at IS NOT NULL), luego por fecha de creación. Incluye motivo, datos del emprendedor y, para casos de hashing, la imagen existente para comparación visual
+      · GET /admin/announcements y POST /admin/announcements/:id/remove: listado con búsqueda y retiro de anuncios publicados con motivo obligatorio y suspensión opcional
       · PATCH /admin/announcements/:id/approve: status='active', notificación al emprendedor, registra admin_id y resolved_at en moderation_queue
       · POST /admin/announcements/:id/reject: status='rejected', eliminar imagen de Cloudinary, notificación al emprendedor con el motivo
       · POST /admin/users/:id/suspend: is_suspended=true en users
@@ -510,14 +512,14 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · Vision API con timeout → status='pending_review' (reason='vision_api_timeout')
       · Aprobar anuncio pendiente → status='active'
       · Rechazar anuncio pendiente → status='rejected' + imagen eliminada de Cloudinary
-- [x] Generar el archivo swagger.json definitivo con la especificación OpenAPI 3.0 de todos los endpoints (lo sirve Express en GET /api-docs)
+- [x] Generar el archivo swagger.json con la especificación OpenAPI 3.0 de todos los endpoints (servido por Express en GET /api-docs)
 - [x] Poblar el Sprint 10 en Jira
 - [x] HITO-07: Moderación IA integrada y cola de admin operativa
 
 #### SPRINT 11
 
-- [x] Inicializar el proyecto React (Create React App o Vite) e instalar dependencias: Bootstrap 5, browser-image-compression
-- [x] Configurar las variables de entorno del frontend (.env con REACT_APP_API_URL apuntando al backend en Railway)
+- [x] Inicializar el proyecto React 18 con Vite 7 e instalar dependencias: Bootstrap 5, `react-router-dom`, `react-icons`, `browser-image-compression`, `react-easy-crop`
+- [x] Configurar las variables de entorno del frontend (`frontend/.env.local` con `VITE_API_URL=http://localhost:3000`)
 - [x] Implementar el sistema de diseño base:
       · Variables CSS con los tokens de color (BG_BASE, PRIMARY, ACCENT, etc.)
       · Configuración del tema oscuro global
@@ -528,7 +530,6 @@ Herramienta de gestión: Jira (tablero Scrum con 7 épicas correspondientes a la
       · StarRating (3 estrellas interactivas + modo solo lectura)
       · LikeButton (toggle con animación de pop y contador)
       · StatusBadge (estado del anuncio con color semántico)
-      · NotificationDot (punto rojo sobre ícono de notificaciones)
       · ImageUploader (zona de drag/tap, compresión con browser-image-compression, barra de progreso, preview)
       · ReportModal (lista de motivos, confirmación, manejo de reporte duplicado)
       · ToastNotification (feedback flotante de acciones)
@@ -943,9 +944,9 @@ marcados como completados:
 
 - [ ] ENT-01: Código fuente completo en GitHub, etiquetado como release v1.0
 - [ ] ENT-02: Aplicación web funcional y accesible en producción (Railway.app)
-- [ ] ENT-03: Imagen Docker y docker-compose funcionales en entorno local
+- [x] ENT-03: Imagen Docker y docker-compose funcionales en entorno local
 - [ ] ENT-04: Pipeline CI/CD operativo (push a main → deploy automático)
-- [ ] ENT-05: Documentación técnica completa: SRS v1.3, SAD v1.2, DDC v1.1, STP y STD elaborados y archivados en /docs
+- [x] ENT-05: Documentación técnica sincronizada: SRS v1.5, SAD v1.4, DDC v1.4, STP v1.1 y contrato OpenAPI (`docs/swagger.json` v1.1.0) archivados en `/docs`
 - [ ] ENT-06: Manual de Usuario, README técnico y Manual de Operaciones en /docs
 - [ ] ENT-07: Change Log, Bug Reports y Release Notes v1.0 en /docs
 - [ ] ENT-08: Tablero Jira con 100% de tareas en estado Done

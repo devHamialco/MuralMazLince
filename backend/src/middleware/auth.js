@@ -44,7 +44,25 @@ function requireRole(...roles) {
   };
 }
 
+/**
+ * Middleware que adjunta req.user si existe token válido, sin bloquear si no existe.
+ */
+function optionalAuth(req, res, next) {
+  const { token } = req.cookies || {};
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (_err) {
+    req.user = null;
+  }
+  return next();
+}
+
 module.exports = {
   requireAuth,
   requireRole,
+  optionalAuth,
 };

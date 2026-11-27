@@ -28,6 +28,10 @@ export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [toast, setToast] = useState(null);
+  // Arranca en `true`: hasta que loadNotifications() resuelva no hay lista
+  // confiable, así el panel nunca muestra el vacío falso (N5).
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   /**
    * Muestra un toast; ToastNotification controla su cierre automático.
@@ -49,7 +53,7 @@ export function NotificationProvider({ children }) {
   * Usar cuando el backend emite una notificación nueva que aún no está
   * en el estado.
    *
-  * @param {object} notification Notification data returned by the API.
+  * @param {object} notification Datos de la notificación devueltos por la API.
    * @returns {void}
    */
   const addNotification = useCallback((notification) => {
@@ -95,10 +99,14 @@ export function NotificationProvider({ children }) {
   /**
    * Carga las notificaciones desde la API y actualiza el estado.
    * Debe llamarse al montar el panel de notificaciones o al iniciar sesión.
+   * Expone `loading` y `error` para que el panel diferencie "cargando",
+   * "error" y "vacío real" (N5).
    *
    * @returns {Promise<void>}
    */
   const loadNotifications = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await api.getNotifications();
       const notifs = response.data.notifications || [];
@@ -108,6 +116,9 @@ export function NotificationProvider({ children }) {
       logApi('GET', '/notifications', 'Loaded', notifs.length, 'notifications');
     } catch (err) {
       logError('Failed to load notifications:', err.message);
+      setError(err.message || 'Error al cargar notificaciones');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -115,6 +126,8 @@ export function NotificationProvider({ children }) {
     notifications,
     unreadCount,
     toast,
+    loading,
+    error,
     showToast,
     hideToast,
     addNotification,
@@ -126,6 +139,8 @@ export function NotificationProvider({ children }) {
     notifications,
     unreadCount,
     toast,
+    loading,
+    error,
     showToast,
     hideToast,
     addNotification,
@@ -147,7 +162,8 @@ export function NotificationProvider({ children }) {
  * Debe usarse dentro de un árbol envuelto por `<NotificationProvider>`.
  *
  * @returns {{ notifications: Array, unreadCount: number, toast: object|null,
- *             showToast: Function, addNotification: Function, markAsRead: Function,
+ *             loading: boolean, error: string|null, showToast: Function,
+ *             addNotification: Function, markAsRead: Function,
  *             markAllAsRead: Function, clearNotifications: Function, loadNotifications: Function }}
  * @throws {Error} Si se usa fuera del árbol de `NotificationProvider`.
  */
