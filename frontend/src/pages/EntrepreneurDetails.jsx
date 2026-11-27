@@ -124,146 +124,6 @@ export default function EntrepreneurDetails() {
 
         {!loading && !error && entrepreneur && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Tarjeta de Perfil del Emprendedor */}
-            <section
-              aria-label="Perfil del emprendedor"
-              className="card-mml"
-              style={{
-                padding: '28px 24px',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '16px',
-                }}
-              >
-                {/* Foto de perfil circular */}
-                <div
-                  style={{
-                    width: '110px',
-                    height: '110px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: '3px solid var(--primary)',
-                    backgroundColor: 'var(--bg-base)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {entrepreneur.profile_photo_url ? (
-                    <img
-                      src={entrepreneur.profile_photo_url}
-                      alt={entrepreneur.display_name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <FiUser size={46} style={{ color: 'var(--text-muted)' }} />
-                  )}
-                </div>
-
-                <div>
-                  <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>
-                    {entrepreneur.display_name}
-                  </h1>
-                  {entrepreneur.bio_short && (
-                    <p
-                      style={{
-                        fontSize: '14px',
-                        color: 'var(--text-secondary)',
-                        margin: '0 auto',
-                        maxWidth: '560px',
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {entrepreneur.bio_short}
-                    </p>
-                  )}
-                </div>
-
-                {/* Acciones de Contacto */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    marginTop: '8px',
-                  }}
-                >
-                  {/* WhatsApp */}
-                  {entrepreneur.wa_link && (
-                    <a
-                      href={entrepreneur.wa_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-cta btn-cta-primary btn-cta-sm"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        textDecoration: 'none',
-                        minHeight: '40px',
-                        padding: '0 16px',
-                      }}
-                    >
-                      <FiMessageCircle size={16} /> Contactar por WhatsApp
-                    </a>
-                  )}
-
-                  {/* Instagram */}
-                  {entrepreneur.instagram_handle && (
-                    <a
-                      href={`https://instagram.com/${entrepreneur.instagram_handle}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-cta btn-cta-outline btn-cta-sm"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        textDecoration: 'none',
-                        minHeight: '40px',
-                        padding: '0 16px',
-                      }}
-                    >
-                      <FiInstagram size={16} /> @{entrepreneur.instagram_handle}
-                    </a>
-                  )}
-
-                  {/* Salón de clases / Campus */}
-                  {entrepreneur.classroom_location && (
-                    <div
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 14px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--text-secondary)',
-                        fontSize: '13px',
-                      }}
-                    >
-                      <FiMapPin size={15} style={{ color: 'var(--primary)' }} />
-                      <span>{entrepreneur.classroom_location}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-
             {/* Si es vista de un proyecto específico: Datos del Proyecto */}
             {isProjectView && project && (
               <section
@@ -303,9 +163,9 @@ export default function EntrepreneurDetails() {
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                      <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                         {project.name}
-                      </h2>
+                      </h1>
                       {project.category_name && (
                         <CategoryBadge category={project.category_name} clickable={false} />
                       )}
@@ -416,6 +276,146 @@ export default function EntrepreneurDetails() {
                   ))}
                 </div>
               )}
+            </section>
+
+            {/* Tarjeta de Perfil del Emprendedor */}
+            <section
+              aria-label="Perfil del emprendedor"
+              className="card-mml"
+              style={{
+                padding: '28px 24px',
+                backgroundColor: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: '16px',
+                }}
+              >
+                {/* Foto de perfil circular */}
+                <div
+                  style={{
+                    width: '110px',
+                    height: '110px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: '3px solid var(--primary)',
+                    backgroundColor: 'var(--bg-base)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+                    flexShrink: 0,
+                  }}
+                >
+                  {entrepreneur.profile_photo_url ? (
+                    <img
+                      src={entrepreneur.profile_photo_url}
+                      alt={entrepreneur.display_name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <FiUser size={46} style={{ color: 'var(--text-muted)' }} />
+                  )}
+                </div>
+
+                <div>
+                  <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px 0' }}>
+                    {entrepreneur.display_name}
+                  </h2>
+                  {entrepreneur.bio_short && (
+                    <p
+                      style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)',
+                        margin: '0 auto',
+                        maxWidth: '560px',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {entrepreneur.bio_short}
+                    </p>
+                  )}
+                </div>
+
+                {/* Acciones de Contacto */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    marginTop: '8px',
+                  }}
+                >
+                  {/* WhatsApp */}
+                  {entrepreneur.wa_link && (
+                    <a
+                      href={entrepreneur.wa_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-cta btn-cta-primary btn-cta-sm"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        textDecoration: 'none',
+                        minHeight: '40px',
+                        padding: '0 16px',
+                      }}
+                    >
+                      <FiMessageCircle size={16} /> Contactar por WhatsApp
+                    </a>
+                  )}
+
+                  {/* Instagram */}
+                  {entrepreneur.instagram_handle && (
+                    <a
+                      href={`https://instagram.com/${entrepreneur.instagram_handle}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-cta btn-cta-outline btn-cta-sm"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        textDecoration: 'none',
+                        minHeight: '40px',
+                        padding: '0 16px',
+                      }}
+                    >
+                      <FiInstagram size={16} /> @{entrepreneur.instagram_handle}
+                    </a>
+                  )}
+
+                  {/* Salón de clases / Campus */}
+                  {entrepreneur.classroom_location && (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 14px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-secondary)',
+                        fontSize: '13px',
+                      }}
+                    >
+                      <FiMapPin size={15} style={{ color: 'var(--primary)' }} />
+                      <span>{entrepreneur.classroom_location}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </section>
           </div>
         )}

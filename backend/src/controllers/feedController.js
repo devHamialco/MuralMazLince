@@ -112,6 +112,10 @@ const getAnnouncementDetail = async (req, res) => {
 
     const announcement = result.rows[0];
 
+    // Indicadores booleanos seguros de canales disponibles (sin exponer datos a visitantes)
+    announcement.has_whatsapp = Boolean(announcement.whatsapp_number);
+    announcement.has_instagram = Boolean(announcement.instagram_handle);
+
     // Generar wa_link y exponer canales de contacto solo si el usuario está autenticado (RF-11)
     let waLink = null;
     if (viewer && announcement.whatsapp_number) {

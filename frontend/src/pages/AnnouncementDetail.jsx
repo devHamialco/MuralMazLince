@@ -7,7 +7,6 @@ import {
   FiStar,
   FiHeart,
   FiMessageCircle,
-  FiLock,
   FiCalendar,
   FiAlertTriangle,
   FiImage,
@@ -222,6 +221,8 @@ export default function AnnouncementDetail() {
     instagram_handle: instagramHandle,
     classroom_location: classroomLocation,
     wa_link: waLink,
+    has_whatsapp: hasWhatsapp,
+    has_instagram: hasInstagram,
     likes_count: likesCount = 0,
     avg_rating: avgRating,
     average_rating: legacyAverageRating,
@@ -231,7 +232,14 @@ export default function AnnouncementDetail() {
   const averageRating = Number(avgRating ?? legacyAverageRating ?? 0);
 
   const cleanInstagram = instagramHandle ? String(instagramHandle).replace(/^@/, '') : null;
-  const hasAnyContact = waLink || cleanInstagram || classroomLocation;
+  const showWhatsappBtn = isAuthenticated ? Boolean(waLink) : Boolean(hasWhatsapp);
+  const showInstagramBtn = isAuthenticated ? Boolean(cleanInstagram) : Boolean(hasInstagram);
+  const hasAnyContact = showWhatsappBtn
+    || showInstagramBtn
+    || (isAuthenticated && Boolean(classroomLocation));
+  const redirectToLogin = () => {
+    navigate('/login', { state: { from: { pathname: `/announcement/${id}` } } });
+  };
   const daysLeft = getDaysLeft(expiresAt);
   const expiringSoon = daysLeft !== null && daysLeft <= 7 && daysLeft > 0;
   const canReport = isAuthenticated && user?.role !== 'visitor_registered';
@@ -302,7 +310,7 @@ export default function AnnouncementDetail() {
 
   /* ---------- Bloque: contacto ---------- */
   let contactContent;
-  if (hasAnyContact || !isAuthenticated) {
+  if (hasAnyContact) {
     contactContent = (
       <section style={cardStyle} aria-labelledby="contact-title">
         <h2 id="contact-title" style={sectionLabelStyle}>
@@ -311,7 +319,7 @@ export default function AnnouncementDetail() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {/* WhatsApp: acción principal */}
-          {isAuthenticated && waLink && (
+          {showWhatsappBtn && (isAuthenticated ? (
             <a
               href={waLink}
               target="_blank"
@@ -326,38 +334,24 @@ export default function AnnouncementDetail() {
             >
               <FiMessageCircle size={18} aria-hidden="true" /> Contactar por WhatsApp
             </a>
-          )}
-
-          {!isAuthenticated && (
-            <div
+          ) : (
+            <button
+              type="button"
+              onClick={redirectToLogin}
+              className="btn-cta"
               style={{
-                padding: '14px',
-                backgroundColor: 'var(--bg-card)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px dashed var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                alignItems: 'center',
-                textAlign: 'center',
+                ...actionBase,
+                backgroundColor: '#25D366',
+                color: '#FFFFFF',
+                boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)',
               }}
             >
-              <FiLock size={18} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                Inicia sesión para ver los datos de contacto, calificar y dar like a este anuncio.
-              </span>
-              <Link
-                to="/login"
-                className="btn-cta btn-cta-primary"
-                style={{ ...actionBase, minHeight: '44px' }}
-              >
-                Iniciar sesión
-              </Link>
-            </div>
-          )}
+              <FiMessageCircle size={18} aria-hidden="true" /> Contactar por WhatsApp
+            </button>
+          ))}
 
           {/* Instagram */}
-          {isAuthenticated && cleanInstagram && (
+          {showInstagramBtn && (isAuthenticated ? (
             <a
               href={`https://instagram.com/${cleanInstagram}`}
               target="_blank"
@@ -367,7 +361,16 @@ export default function AnnouncementDetail() {
             >
               <FiInstagram size={18} aria-hidden="true" /> @{cleanInstagram}
             </a>
-          )}
+          ) : (
+            <button
+              type="button"
+              onClick={redirectToLogin}
+              className="btn-cta btn-cta-outline"
+              style={{ ...actionBase, fontWeight: 600 }}
+            >
+              <FiInstagram size={18} aria-hidden="true" /> Contactar por Instagram
+            </button>
+          ))}
 
           {/* Ubicación */}
           {isAuthenticated && classroomLocation && (
@@ -558,23 +561,21 @@ export default function AnnouncementDetail() {
         {/* 4. Contacto (acción principal) */}
         {contactContent}
 
-        {/* 5. Tu opinión (solo usuarios autenticados) */}
-        {isAuthenticated && (
-          <section style={cardStyle} aria-labelledby="opinion-title">
-            <h2 id="opinion-title" style={sectionLabelStyle}>
-              Tu opinión
-            </h2>
-            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <StarRating value={userRating} onChange={handleRating} size={24} />
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {userRating > 0 ? 'Toca de nuevo tu calificación para quitarla' : 'Toca una estrella para calificar'}
-                </span>
-              </div>
-              <LikeButton liked={userLiked} count={likesCount} onClick={handleLike} />
+        {/* 5. Tu opinión (si no está autenticado, redirige a login al interactuar) */}
+        <section style={cardStyle} aria-labelledby="opinion-title">
+          <h2 id="opinion-title" style={sectionLabelStyle}>
+            Tu opinión
+          </h2>
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <StarRating value={userRating} onChange={handleRating} size={24} />
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {userRating > 0 ? 'Toca de nuevo tu calificación para quitarla' : 'Toca una estrella para calificar'}
+              </span>
             </div>
-          </section>
-        )}
+            <LikeButton liked={userLiked} count={likesCount} onClick={handleLike} />
+          </div>
+        </section>
 
         {/* 6. Reportar (acción secundaria, discreta) */}
         {canReport && (
