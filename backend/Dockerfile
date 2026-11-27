@@ -1,14 +1,16 @@
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS frontend-builder
 
-WORKDIR /app
+WORKDIR /frontend
 
-COPY backend/package*.json ./
+COPY frontend/package*.json ./
 
 RUN npm ci
 
-COPY backend/. .
+COPY frontend/. .
 
-FROM node:18-alpine AS production
+RUN npm run build
+
+FROM node:22-alpine AS production
 
 WORKDIR /app
 
@@ -16,7 +18,10 @@ COPY backend/package*.json ./
 
 RUN npm ci --omit=dev
 
-COPY --from=builder /app/src ./src
+COPY backend/src ./src
+COPY backend/scripts ./scripts
+COPY docs/swagger.json ./docs/swagger.json
+COPY --from=frontend-builder /frontend/dist ./public
 
 ENV NODE_ENV=production
 ENV PORT=3000

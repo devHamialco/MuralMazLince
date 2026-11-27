@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 
@@ -14,12 +15,13 @@ const { runExpireAnnouncementsJob } = require('./jobs/expireAnnouncements');
 const { runShadowbanJob, runShadowbanRestoreJob } = require('./jobs/shadowbanJob');
 
 const app = express();
+app.set('trust proxy', 1);
 
 const pool = require('./db').getPool();
 
 // Determinación de origen permitido para CORS según entorno
 const allowedOrigin = (process.env.NODE_ENV === 'production')
-  ? (process.env.APP_PRODUCTION_URL || process.env.CORS_ALLOWED_ORIGIN)
+  ? (process.env.APP_PRODUCTION_URL || process.env.CORS_ALLOWED_ORIGIN || true)
   : process.env.CORS_ALLOWED_ORIGIN;
 
 app.use(
@@ -28,7 +30,21 @@ app.use(
     credentials: true,
   }),
 );
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://res.cloudinary.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        connectSrc: ["'self'", 'https://res.cloudinary.com'],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 app.use(cookieParser());
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
@@ -61,10 +77,25 @@ app.get('/health', async (_req, res) => {
 });
 
 app.get('/api-docs', (_req, res) => {
-  res.sendFile(path.join(__dirname, '..', '..', 'docs', 'swagger.json'));
+  const localSwagger = path.join(__dirname, '..', 'docs', 'swagger.json');
+  const repoSwagger = path.join(__dirname, '..', '..', 'docs', 'swagger.json');
+  const swaggerPath = fs.existsSync(localSwagger) ? localSwagger : repoSwagger;
+  res.sendFile(swaggerPath);
 });
 
 app.use(routes);
+
+const frontendDistPath = path.join(__dirname, '..', 'public');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
+if (fs.existsSync(frontendIndexPath)) {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res, next) => {
+    if (!req.accepts('html')) {
+      return next();
+    }
+    return res.sendFile(frontendIndexPath);
+  });
+}
 
 app.use(errorHandler);
 
