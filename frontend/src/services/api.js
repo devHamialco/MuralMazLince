@@ -178,6 +178,26 @@ class ApiClient {
   }
 
   /**
+   * Obtiene el perfil público de un emprendedor.
+   *
+   * @param   {number|string} id
+   * @returns {Promise<{ data: object, status: number }>}
+   */
+  async getProfile(id) {
+    return this.request(`/auth/profile/${id}`);
+  }
+
+  /**
+   * Actualiza el perfil del emprendedor autenticado.
+   *
+   * @param   {object} data
+   * @returns {Promise<{ data: { user: object, profile: object }, status: number }>}
+   */
+  async updateProfile(data) {
+    return this.request('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  /**
    * Inicia un reclamo de matrícula en uso (RF-34).
    *
    * @param   {{ disputed_matricula: string, claimant_whatsapp: string }} data
@@ -191,17 +211,19 @@ class ApiClient {
   // ── Announcements ───────────────────────────────────────────────────────
 
   /**
-   * Obtiene el feed paginado por cursor (RF-08, RF-09, ADR-03).
+   * Obtiene el feed de anuncios (RF-08, RF-09, ADR-03).
    * Solo devuelve anuncios con status='active'. Nunca incluye `whatsapp_number`.
    *
-  * @param {number|null} [cursor=null] ID del último anuncio; null inicia la página.
-  * @param {string|null} [category=null] Código para filtrar; null incluye todas.
-  * @returns {Promise<{data: object, status: number}>} Página y metadatos de paginación.
+   * @param {number|null} [cursor=null] ID del último anuncio; null inicia la página.
+   * @param {string|null} [category=null] Código para filtrar; null incluye todas.
+   * @param {number|null} [limit=null] Límite de anuncios.
+   * @returns {Promise<{data: object, status: number}>} Página y metadatos de paginación.
    */
-  async getAnnouncements(cursor = null, category = null) {
+  async getAnnouncements(cursor = null, category = null, limit = null) {
     const params = new URLSearchParams();
     if (cursor) params.append('cursor', cursor);
     if (category) params.append('category', category);
+    if (limit) params.append('limit', limit);
     const query = params.toString();
     return this.request(`/announcements${query ? `?${query}` : ''}`);
   }
@@ -285,7 +307,7 @@ class ApiClient {
   async setRating(announcementId, rating) {
     return this.request(`/announcements/${announcementId}/rating`, {
       method: 'POST',
-      body: JSON.stringify({ rating }),
+      body: JSON.stringify({ stars: rating }),
     });
   }
 
@@ -348,6 +370,16 @@ class ApiClient {
    */
   async getProject(id) {
     return this.request(`/projects/${id}`);
+  }
+
+  /**
+   * Obtiene la vista pública de un proyecto y su emprendedor.
+   *
+   * @param   {number|string} id
+   * @returns {Promise<{ data: object, status: number }>}
+   */
+  async getPublicProject(id) {
+    return this.request(`/projects/public/${id}`);
   }
 
   /**
@@ -438,6 +470,17 @@ class ApiClient {
   }
 
   /**
+   * Lista anuncios activos publicados para gestión administrativa.
+   *
+   * @param   {string} [search='']
+   * @returns {Promise<{ data: { announcements: Array }, status: number }>}
+   */
+  async getAdminAnnouncements(search = '') {
+    const query = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : '';
+    return this.request(`/admin/announcements${query}`);
+  }
+
+  /**
    * Aprueba un anuncio en la cola de moderación (RF-37).
    *
    * @param   {number|string} id - ID del anuncio.
@@ -456,6 +499,21 @@ class ApiClient {
    */
   async rejectAnnouncement(id, reason) {
     return this.request(`/admin/announcements/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
+  /**
+   * Elimina un anuncio publicado con causa y notifica al emprendedor.
+   *
+   * @param   {number}  id
+   * @param   {string}  reason
+   * @param   {boolean} [suspendUser=false]
+   * @returns {Promise<{ data: object, status: number }>}
+   */
+  async removeAdminAnnouncement(id, reason, suspendUser = false) {
+    return this.request(`/admin/announcements/${id}/remove`, {
+      method: 'POST',
+      body: JSON.stringify({ reason, suspend_user: suspendUser }),
+    });
   }
 
   /**

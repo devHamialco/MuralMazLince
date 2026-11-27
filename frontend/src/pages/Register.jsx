@@ -3,7 +3,16 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FiCheck, FiX, FiLock, FiArrowLeft, FiEye, FiEyeOff, FiAlertCircle } from 'react-icons/fi';
+import {
+  FiX,
+  FiLock,
+  FiArrowLeft,
+  FiEye,
+  FiEyeOff,
+  FiAlertCircle,
+  FiInstagram,
+  FiMessageCircle,
+} from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import Navbar from '../components/Navbar';
@@ -69,8 +78,11 @@ export default function Register() {
   // Campos emprendedor
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [whatsapp, setWhatsapp] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [bioShort, setBioShort] = useState('');
+  const [contactType, setContactType] = useState('whatsapp'); // 'whatsapp' | 'instagram'
+  const [whatsapp, setWhatsapp] = useState('');
+  const [instagram, setInstagram] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [displayNameError, setDisplayNameError] = useState(false);
 
@@ -121,18 +133,35 @@ export default function Register() {
     }
   };
 
+  const getEntrepreneurValidationError = () => {
+    if (!isValidMatricula(matricula)) {
+      return 'Ingresa una matrícula válida de 8 dígitos que comience con 2.';
+    }
+    if (password.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres.';
+    }
+    if (displayName.trim().length < 2) {
+      return 'El nombre público debe tener al menos 2 caracteres.';
+    }
+    if (contactType === 'whatsapp' && !isValidWhatsApp(whatsapp)) {
+      return 'Ingresa un número de WhatsApp válido de 10 dígitos.';
+    }
+    if (contactType === 'instagram' && !instagram.trim()) {
+      return 'Ingresa tu nombre de usuario de Instagram.';
+    }
+    if (!privacyAccepted) {
+      return 'Debes aceptar el Aviso de Privacidad para continuar.';
+    }
+    return null;
+  };
+
   const handleEntrepreneurSubmit = async (e) => {
     e.preventDefault();
     setError(null);
 
-    const isValid = isValidMatricula(matricula)
-                  && password.length >= 8
-                  && isValidWhatsApp(whatsapp)
-                  && displayName.length >= 2
-                  && privacyAccepted;
-
-    if (!isValid) {
-      setError('Por favor completa todos los campos correctamente');
+    const validationError = getEntrepreneurValidationError();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -142,8 +171,10 @@ export default function Register() {
       await registerEntrepreneur({
         matricula,
         password,
-        whatsapp_number: whatsapp,
         display_name: displayName.trim(),
+        bio_short: bioShort.trim() || undefined,
+        whatsapp_number: contactType === 'whatsapp' ? whatsapp : undefined,
+        instagram_handle: contactType === 'instagram' ? instagram.trim() : undefined,
         privacy_accepted: true,
       });
 
@@ -163,13 +194,6 @@ export default function Register() {
       setLoading(false);
     }
   };
-
-  const isEntrepreneurSubmitDisabled = loading
-    || !matriculaValid
-    || password.length < 8
-    || !isValidWhatsApp(whatsapp)
-    || displayName.length < 2
-    || !privacyAccepted;
 
   if (step === 'bienvenido') {
     return (
@@ -288,7 +312,6 @@ export default function Register() {
                     }}
                   />
                   <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
-                    {matriculaValid === true && <FiCheck size={18} style={{ color: 'var(--status-active)' }} />}
                     {matriculaValid === false && <FiX size={18} style={{ color: 'var(--status-rejected)' }} />}
                   </div>
                 </div>
@@ -381,7 +404,6 @@ export default function Register() {
                     }}
                   />
                   <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
-                    {matriculaValid === true && <FiCheck size={18} style={{ color: 'var(--status-active)' }} />}
                     {matriculaValid === false && <FiX size={18} style={{ color: 'var(--status-rejected)' }} />}
                   </div>
                 </div>
@@ -395,6 +417,8 @@ export default function Register() {
                   <input
                     id="entrepreneur-password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    aria-describedby="entrepreneur-password-help"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Ingresa tu contraseña"
@@ -403,6 +427,8 @@ export default function Register() {
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    aria-pressed={showPassword}
                     onClick={() => setShowPassword(!showPassword)}
                     style={{
                       position: 'absolute',
@@ -423,6 +449,28 @@ export default function Register() {
                     {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
                   </button>
                 </div>
+                <p id="entrepreneur-password-help" style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px', marginBottom: 0 }}>
+                  Mínimo 8 caracteres.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  marginBottom: 'var(--spacing-lg)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                  fontSize: '12px',
+                  lineHeight: '1.4',
+                }}
+              >
+                <FiAlertCircle size={16} style={{ color: 'var(--status-pending)', flexShrink: 0 }} />
+                <span>Podrás editar esta información más adelante</span>
               </div>
 
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
@@ -455,48 +503,127 @@ export default function Register() {
               </div>
 
               <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-                <label htmlFor="entrepreneur-whatsapp" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  WhatsApp
+                <label htmlFor="entrepreneur-bio" style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Cuéntanos sobre tu emprendimiento
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="entrepreneur-whatsapp"
-                    type="tel"
-                    value={whatsapp}
-                    onChange={(e) => handleWhatsappChange(e.target.value)}
-                    placeholder="10 dígitos"
-                    className="form-control"
-                    style={{
-                      width: '100%',
-                      paddingRight: '44px',
-                      color: 'var(--text-primary)',
-                      borderColor: isValidWhatsApp(whatsapp) && whatsapp ? 'var(--status-active)' : 'var(--border)',
-                      boxShadow: isValidWhatsApp(whatsapp) && whatsapp
-                        ? '0 0 12px rgba(16, 185, 129, 0.2)'
-                        : 'none',
-                    }}
-                  />
-                  <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', display: 'flex' }}>
-                    {isValidWhatsApp(whatsapp) && whatsapp && <FiCheck size={18} style={{ color: 'var(--status-active)' }} />}
-                  </div>
-                </div>
-                <div
+                <textarea
+                  id="entrepreneur-bio"
+                  value={bioShort}
+                  onChange={(e) => setBioShort(e.target.value.slice(0, 200))}
+                  maxLength={200}
+                  rows={3}
+                  placeholder="¿De qué trata tu negocio o qué ofreces?"
+                  className="form-control"
                   style={{
-                    marginTop: 'var(--spacing-sm)',
-                    backgroundColor: 'rgba(46, 91, 255, 0.1)',
-                    borderLeft: '2px solid var(--secondary)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '8px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
+                    width: '100%',
+                    color: 'var(--text-primary)',
+                    resize: 'vertical',
                   }}
-                >
-                  <FiLock size={14} style={{ color: 'var(--secondary)', flexShrink: 0 }} />
-                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
-                    Tu número solo se usará para contactarte sobre tus proyectos.
-                  </p>
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px', marginBottom: 0 }}>
+                  {bioShort.length}/200
+                </p>
+              </div>
+
+              <div style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <span style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--primary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Elige tu medio de contacto
+                </span>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setContactType('whatsapp')}
+                    className={`btn-cta btn-cta-sm ${contactType === 'whatsapp' ? 'btn-cta-primary' : 'btn-cta-outline'}`}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <FiMessageCircle size={16} /> WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContactType('instagram')}
+                    className={`btn-cta btn-cta-sm ${contactType === 'instagram' ? 'btn-cta-primary' : 'btn-cta-outline'}`}
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <FiInstagram size={16} /> Instagram
+                  </button>
                 </div>
+
+                {contactType === 'whatsapp' ? (
+                  <div>
+                    <label htmlFor="entrepreneur-whatsapp" style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      Número de celular
+                    </label>
+                    <input
+                      id="entrepreneur-whatsapp"
+                      type="tel"
+                      value={whatsapp}
+                      onChange={(e) => handleWhatsappChange(e.target.value)}
+                      placeholder="10 dígitos"
+                      className="form-control"
+                      style={{
+                        width: '100%',
+                        color: 'var(--text-primary)',
+                        borderColor: isValidWhatsApp(whatsapp) && whatsapp ? 'var(--status-active)' : 'var(--border)',
+                        boxShadow: isValidWhatsApp(whatsapp) && whatsapp
+                          ? '0 0 12px rgba(16, 185, 129, 0.2)'
+                          : 'none',
+                      }}
+                    />
+                    <div
+                      style={{
+                        marginTop: 'var(--spacing-sm)',
+                        backgroundColor: 'rgba(46, 91, 255, 0.1)',
+                        borderLeft: '2px solid var(--secondary)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <FiLock size={14} style={{ color: 'var(--secondary)', flexShrink: 0 }} />
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+                        Tu número solo se usará para contactarte sobre tus proyectos.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label htmlFor="entrepreneur-instagram" style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      Nombre de usuario de Instagram
+                    </label>
+                    <input
+                      id="entrepreneur-instagram"
+                      type="text"
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      placeholder="@usuario"
+                      className="form-control"
+                      style={{
+                        width: '100%',
+                        color: 'var(--text-primary)',
+                        borderColor: instagram.trim() ? 'var(--status-active)' : 'var(--border)',
+                      }}
+                    />
+                    <div
+                      style={{
+                        marginTop: 'var(--spacing-sm)',
+                        backgroundColor: 'rgba(46, 91, 255, 0.1)',
+                        borderLeft: '2px solid var(--secondary)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '8px 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <FiInstagram size={14} style={{ color: 'var(--secondary)', flexShrink: 0 }} />
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+                        Los interesados podrán contactarte directamente en tu cuenta de Instagram.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="d-flex align-items-start gap-2" style={{ marginBottom: 'var(--spacing-lg)' }}>
@@ -505,7 +632,6 @@ export default function Register() {
                   type="checkbox"
                   checked={privacyAccepted}
                   onChange={(event) => setPrivacyAccepted(event.target.checked)}
-                  required
                   style={{ width: '20px', height: '20px', accentColor: 'var(--primary)', marginTop: '2px' }}
                 />
                 <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
@@ -517,16 +643,18 @@ export default function Register() {
               </div>
 
               {error && (
-                <div style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '12px 16px',
-                  marginBottom: 'var(--spacing-lg)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
+                <div
+                  role="alert"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '12px 16px',
+                    marginBottom: 'var(--spacing-lg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                  }}
                 >
                   <FiAlertCircle size={18} style={{ color: 'var(--status-rejected)', flexShrink: 0 }} />
                   <p style={{ fontSize: '14px', color: 'var(--status-rejected)', margin: 0, fontWeight: 500 }}>{error}</p>
@@ -535,7 +663,7 @@ export default function Register() {
 
               <button
                 type="submit"
-                disabled={isEntrepreneurSubmitDisabled}
+                disabled={loading}
                 className="btn-cta btn-cta-primary"
                 style={{ width: '100%', height: '52px' }}
               >

@@ -21,6 +21,30 @@ function useMockCloudinary() {
   return process.env.NODE_ENV === 'test' || process.env.CLOUDINARY_MOCK === 'true';
 }
 
+function getMimeType(buffer) {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  const isPng = buffer.length >= 4
+    && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+  if (isPng) {
+    return 'image/png';
+  }
+  const isWebp = buffer.length >= 4
+    && buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46;
+  if (isWebp) {
+    return 'image/webp';
+  }
+  return 'image/png';
+}
+
+function decodeBase64Image(base64String) {
+  if (!base64String || typeof base64String !== 'string') return null;
+  const clean = base64String.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').trim();
+  if (!clean) return null;
+  return Buffer.from(clean, 'base64');
+}
+
 async function uploadToCloudinary(imageBuffer) {
   ensureCloudinaryConfig();
   if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
@@ -35,9 +59,10 @@ async function uploadToCloudinary(imageBuffer) {
     };
   }
 
+  const mime = getMimeType(imageBuffer);
   const base64Image = imageBuffer.toString('base64');
   const result = await cloudinary.uploader.upload(
-    `data:image/png;base64,${base64Image}`,
+    `data:${mime};base64,${base64Image}`,
     {
       folder: process.env.CLOUDINARY_FOLDER || 'mural_lince',
       resource_type: 'image',
@@ -66,4 +91,5 @@ async function deleteFromCloudinary(publicId) {
 module.exports = {
   uploadToCloudinary,
   deleteFromCloudinary,
+  decodeBase64Image,
 };

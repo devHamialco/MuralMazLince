@@ -8,6 +8,7 @@ import Feed from './pages/Feed';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AnnouncementDetail from './pages/AnnouncementDetail';
+import EntrepreneurDetails from './pages/EntrepreneurDetails';
 import ClaimMatricula from './pages/ClaimMatricula';
 import EntrepreneurDashboard from './pages/EntrepreneurDashboard';
 import AdminPanel from './pages/AdminPanel';
@@ -55,7 +56,7 @@ function AppContent() {
           element={<Feed />}
         />
 
-        {/* Auth routes */}
+        {/* Rutas de autenticación */}
         <Route
           path="/login"
           element={isAuthenticated ? <Navigate to="/" /> : <Login />}
@@ -71,6 +72,16 @@ function AppContent() {
         <Route
           path="/announcement/:id"
           element={<AnnouncementDetail />}
+        />
+
+        {/* Proyecto / Emprendedor público */}
+        <Route
+          path="/proyecto/:id"
+          element={<EntrepreneurDetails />}
+        />
+        <Route
+          path="/emprendedor/:id"
+          element={<EntrepreneurDetails />}
         />
 
         {/* Reclamo de matrícula */}
