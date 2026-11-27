@@ -1,15 +1,15 @@
 const { Router } = require('express');
 const authController = require('../controllers/authController');
 const { authLimiter } = require('../middleware/rateLimiter');
-const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 
 const router = Router();
 
 // Ruta pública — sin rate limit (es solo una página estática de información legal)
 router.get('/privacy', authController.getPrivacy);
 
-// Perfil público del emprendedor (con wa_link condicional si el visor está autenticado)
-router.get('/profile/:id', optionalAuth, authController.getEntrepreneurProfile);
+// Perfil del emprendedor (solo usuarios autenticados)
+router.get('/profile/:id', requireAuth, authController.getEntrepreneurProfile);
 
 // Obtener datos del usuario logueado
 router.get('/me', requireAuth, authController.getMe);

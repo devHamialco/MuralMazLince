@@ -112,10 +112,15 @@ const getAnnouncementDetail = async (req, res) => {
 
     const announcement = result.rows[0];
 
-    // Generar wa_link solo si el usuario está autenticado (RF-11)
+    // Generar wa_link y exponer canales de contacto solo si el usuario está autenticado (RF-11)
     let waLink = null;
     if (viewer && announcement.whatsapp_number) {
       waLink = generateWaLink(announcement.whatsapp_number);
+    }
+
+    if (!viewer) {
+      announcement.instagram_handle = null;
+      announcement.classroom_location = null;
     }
 
     // NUNCA enviar whatsapp_number en la respuesta (RN-09, PRINC-02)

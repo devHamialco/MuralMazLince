@@ -344,7 +344,7 @@ export default function AnnouncementDetail() {
             >
               <FiLock size={18} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
               <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                Inicia sesión para ver el WhatsApp, calificar y dar like a este anuncio.
+                Inicia sesión para ver los datos de contacto, calificar y dar like a este anuncio.
               </span>
               <Link
                 to="/login"
@@ -357,7 +357,7 @@ export default function AnnouncementDetail() {
           )}
 
           {/* Instagram */}
-          {cleanInstagram && (
+          {isAuthenticated && cleanInstagram && (
             <a
               href={`https://instagram.com/${cleanInstagram}`}
               target="_blank"
@@ -370,7 +370,7 @@ export default function AnnouncementDetail() {
           )}
 
           {/* Ubicación */}
-          {classroomLocation && (
+          {isAuthenticated && classroomLocation && (
             <div
               style={{
                 display: 'flex',

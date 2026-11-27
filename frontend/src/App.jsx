@@ -74,14 +74,22 @@ function AppContent() {
           element={<AnnouncementDetail />}
         />
 
-        {/* Proyecto / Emprendedor público */}
+        {/* Proyecto / Emprendedor (solo usuarios autenticados) */}
         <Route
           path="/proyecto/:id"
-          element={<EntrepreneurDetails />}
+          element={(
+            <PrivateRoute>
+              <EntrepreneurDetails />
+            </PrivateRoute>
+          )}
         />
         <Route
           path="/emprendedor/:id"
-          element={<EntrepreneurDetails />}
+          element={(
+            <PrivateRoute>
+              <EntrepreneurDetails />
+            </PrivateRoute>
+          )}
         />
 
         {/* Reclamo de matrícula */}
